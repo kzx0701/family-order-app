@@ -136,7 +136,7 @@ const _sfc_main = {
       loading.value = true;
       loadError.value = "";
       try {
-        const res = await common_vendor.wr.callFunction({
+        const res = await common_vendor._r.callFunction({
           name: "orders-crud",
           data: { action: "get", _id: id, token: userStore.token }
         });
@@ -165,7 +165,7 @@ const _sfc_main = {
       }
       actionLoading.value = true;
       try {
-        const res = await common_vendor.wr.callFunction({
+        const res = await common_vendor._r.callFunction({
           name: "orders-crud",
           data: {
             action: "updateStatus",
@@ -231,7 +231,7 @@ const _sfc_main = {
     };
     const callUrgeCloudFunction = async () => {
       try {
-        const res = await common_vendor.wr.callFunction({
+        const res = await common_vendor._r.callFunction({
           name: "orders-crud",
           data: {
             action: "urge",
@@ -268,11 +268,11 @@ const _sfc_main = {
           name: "arrow-left",
           size: 20
         }),
-        b: common_vendor.o(goBack, "38"),
+        b: common_vendor.o(goBack, "ad"),
         c: common_vendor.unref(statusBarHeight) + 20 + "px",
         d: loading.value
       }, loading.value ? {} : loadError.value ? {
-        f: common_vendor.o(retryLoad, "66"),
+        f: common_vendor.o(retryLoad, "62"),
         g: common_vendor.p({
           emoji: "😵",
           title: "订单加载失败",
@@ -331,7 +331,7 @@ const _sfc_main = {
       }, actionLoading.value ? {} : {}, {
         C: common_vendor.t(bottomButton.value.text),
         D: common_vendor.n(bottomButton.value.class),
-        E: common_vendor.o(onBottomAction, "f9")
+        E: common_vendor.o(onBottomAction, "4f")
       }) : !loading.value && !loadError.value && (order.value.status === "completed" || order.value.status === "cancelled") ? {
         G: common_vendor.t(order.value.status === "completed" ? "✓ 订单已完成" : "订单已取消"),
         H: common_vendor.n(order.value.status)

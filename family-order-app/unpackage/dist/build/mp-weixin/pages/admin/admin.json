@@ -1,0 +1,16 @@
+{
+  "navigationStyle": "custom",
+  "navigationBarTitleText": "管理",
+  "enablePullDownRefresh": true,
+  "backgroundTextStyle": "dark",
+  "usingComponents": {
+    "icon": "../../components/icons/Icon",
+    "skeleton": "../../components/skeleton/skeleton",
+    "fo-switch": "../../components/fo-switch/fo-switch",
+    "fo-empty": "../../components/fo-empty/fo-empty",
+    "order-card": "../../components/order-card/order-card",
+    "custom-tabbar": "../../components/custom-tabbar/custom-tabbar",
+    "fo-input": "../../components/fo-input/fo-input",
+    "fo-sheet": "../../components/fo-sheet/fo-sheet"
+  }
+}

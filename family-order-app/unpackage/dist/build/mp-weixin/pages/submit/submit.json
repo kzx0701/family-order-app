@@ -1,0 +1,7 @@
+{
+  "navigationStyle": "custom",
+  "navigationBarTitleText": "提交订单",
+  "usingComponents": {
+    "icon": "../../components/icons/Icon"
+  }
+}

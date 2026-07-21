@@ -1478,7 +1478,7 @@ const _sfc_main = {
         return;
       loading.value = true;
       try {
-        const res = await common_vendor.wr.callFunction({
+        const res = await common_vendor._r.callFunction({
           name: "home-data",
           data: {
             token: userStore.token,
@@ -1543,14 +1543,14 @@ const _sfc_main = {
       }, avatarUrl.value ? {
         f: avatarUrl.value
       } : {}, {
-        g: common_vendor.o(onAvatarTap, "e1"),
+        g: common_vendor.o(onAvatarTap, "a8"),
         h: common_vendor.unref(statusBarHeight) + 28 + "px",
         i: common_vendor.unref(headerHeight) + "px",
-        j: common_vendor.o(($event) => goOrder("coffee"), "6a"),
-        k: common_vendor.o(($event) => goOrder("food"), "9a"),
+        j: common_vendor.o(($event) => goOrder("coffee"), "4c"),
+        k: common_vendor.o(($event) => goOrder("food"), "45"),
         l: common_vendor.t(todaySectionTitle.value),
         m: common_vendor.t(displayOrders.value.length),
-        n: common_vendor.o(goRecord, "34"),
+        n: common_vendor.o(goRecord, "94"),
         o: loading.value && orders.value.length === 0
       }, loading.value && orders.value.length === 0 ? {
         p: common_vendor.p({
@@ -1583,19 +1583,19 @@ const _sfc_main = {
       }, editAvatar.value ? {
         z: editAvatar.value
       } : {}, {
-        A: common_vendor.o(onChooseAvatar, "ca"),
+        A: common_vendor.o(onChooseAvatar, "0b"),
         B: editNickname.value,
         C: showProfileModal.value,
-        D: common_vendor.o(onNicknameInput, "a6"),
-        E: common_vendor.o(saveProfile, "48"),
+        D: common_vendor.o(onNicknameInput, "a2"),
+        E: common_vendor.o(saveProfile, "fd"),
         F: common_vendor.t(editNickname.value.length),
-        G: common_vendor.o(closeProfileModal, "92"),
+        G: common_vendor.o(closeProfileModal, "1b"),
         H: common_vendor.t(saving.value ? "保存中..." : "保存"),
         I: saving.value || !editNickname.value.trim() ? 1 : "",
-        J: common_vendor.o(saveProfile, "90"),
+        J: common_vendor.o(saveProfile, "29"),
         K: common_vendor.o(() => {
-        }, "59"),
-        L: common_vendor.o(closeProfileModal, "ad")
+        }, "7d"),
+        L: common_vendor.o(closeProfileModal, "5c")
       }) : {});
     };
   }

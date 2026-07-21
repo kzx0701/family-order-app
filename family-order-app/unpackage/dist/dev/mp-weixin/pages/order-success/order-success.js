@@ -582,7 +582,7 @@ const _sfc_main = {
       loading.value = true;
       loadError.value = "";
       try {
-        const res = await common_vendor.wr.callFunction({
+        const res = await common_vendor._r.callFunction({
           name: "orders-crud",
           data: { action: "get", _id: id, token: userStore.token }
         });
@@ -646,7 +646,7 @@ const _sfc_main = {
         c: common_vendor.unref(statusBarHeight) + 48 + "px",
         d: loading.value
       }, loading.value ? {} : loadError.value ? {
-        f: common_vendor.o(retryLoad, "8e"),
+        f: common_vendor.o(retryLoad, "67"),
         g: common_vendor.p({
           emoji: "😵",
           title: "订单加载失败",
@@ -678,8 +678,8 @@ const _sfc_main = {
         e: loadError.value,
         p: !loading.value
       }, !loading.value ? {
-        q: common_vendor.o(goHome, "e7"),
-        r: common_vendor.o(goRecord, "68")
+        q: common_vendor.o(goHome, "11"),
+        r: common_vendor.o(goRecord, "f2")
       } : {}, {
         s: common_vendor.n(themeClass.value)
       });

@@ -47,13 +47,13 @@ const _sfc_main = {
       return common_vendor.e({
         a: __props.visible
       }, __props.visible ? {
-        b: common_vendor.o(onClose, "cc"),
+        b: common_vendor.o(onClose, "e1"),
         c: common_vendor.t(__props.title),
         d: common_vendor.p({
           name: "close",
           size: 20
         }),
-        e: common_vendor.o(onClose, "77"),
+        e: common_vendor.o(onClose, "27"),
         f: common_vendor.s(contentStyle.value),
         g: show.value ? 1 : ""
       } : {});

@@ -47,7 +47,7 @@ const _sfc_main = {
           size: 14,
           color: "#6F4E37"
         }),
-        d: common_vendor.o(($event) => onSelect("orderer"), "a1"),
+        d: common_vendor.o(($event) => onSelect("orderer"), "c8"),
         e: common_vendor.p({
           name: "settings",
           size: 18,
@@ -58,7 +58,7 @@ const _sfc_main = {
           size: 14,
           color: "#15803D"
         }),
-        g: common_vendor.o(($event) => onSelect("admin"), "03")
+        g: common_vendor.o(($event) => onSelect("admin"), "59")
       };
     };
   }

@@ -52,9 +52,9 @@ const _sfc_main = {
           size: 18,
           color: "#fff"
         }),
-        i: common_vendor.o(onAddTap, "7a"),
+        i: common_vendor.o(onAddTap, "b8"),
         j: `${__props.index * 50}ms`,
-        k: common_vendor.o(onCardTap, "e2")
+        k: common_vendor.o(onCardTap, "df")
       });
     };
   }

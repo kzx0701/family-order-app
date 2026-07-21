@@ -1,7 +1,7 @@
 {
-    "name" : "家庭点餐",
-    "appid" : "__UNI__FAMILY_ORDER",
-    "description" : "家庭点餐小程序 - 老婆下单、丈夫做饭",
+    "name" : "黑米咖啡",
+    "appid" : "__UNI__2CB297B",
+    "description" : "黑米咖啡小程序 - 老婆下单、丈夫做饭",
     "versionName" : "1.0.0",
     "versionCode" : "100",
     "transformPx" : false,
@@ -40,8 +40,7 @@
         "usingComponents" : true,
         "permission" : {},
         "requiredBackgroundModes" : [],
-        "lazyCodeLoading" : "requiredComponents",
-        "__usePrivacyCheck__" : true
+        "lazyCodeLoading" : "requiredComponents"
     },
     "h5" : {
         "title" : "家庭点餐",

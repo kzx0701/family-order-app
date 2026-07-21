@@ -97,7 +97,7 @@ const _sfc_main = {
     return (_ctx, _cache) => {
       return {
         a: common_vendor.s(iconStyle.value),
-        b: common_vendor.o(($event) => _ctx.$emit("click", $event), "63")
+        b: common_vendor.o(($event) => _ctx.$emit("click", $event), "4e")
       };
     };
   }

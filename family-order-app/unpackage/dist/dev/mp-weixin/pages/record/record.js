@@ -137,7 +137,7 @@ const _sfc_main = {
         page.value += 1;
       }
       try {
-        const res = await common_vendor.wr.callFunction({
+        const res = await common_vendor._r.callFunction({
           name: "orders-crud",
           data: {
             action: "list",
@@ -170,7 +170,7 @@ const _sfc_main = {
       order.status = target;
       triggerFlash(order._id);
       try {
-        const res = await common_vendor.wr.callFunction({
+        const res = await common_vendor._r.callFunction({
           name: "orders-crud",
           data: {
             action: "updateStatus",
@@ -206,7 +206,7 @@ const _sfc_main = {
           order.status = "cancelled";
           triggerFlash(order._id);
           try {
-            const res = await common_vendor.wr.callFunction({
+            const res = await common_vendor._r.callFunction({
               name: "orders-crud",
               data: {
                 action: "cancel",

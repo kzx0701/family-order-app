@@ -1,0 +1,51 @@
+{
+  "pages": [
+    "pages/home/home",
+    "pages/order/order",
+    "pages/record/record",
+    "pages/admin/admin",
+    "pages/dish-detail/dish-detail",
+    "pages/order-detail/order-detail",
+    "pages/submit/submit",
+    "pages/order-success/order-success",
+    "pages/role-select/role-select"
+  ],
+  "window": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "家庭点餐",
+    "navigationBarBackgroundColor": "#FFFBF5",
+    "backgroundColor": "#FFFBF5",
+    "backgroundColorTop": "#FFFBF5",
+    "backgroundColorBottom": "#FFFBF5"
+  },
+  "tabBar": {
+    "custom": true,
+    "color": "#78716C",
+    "selectedColor": "#6F4E37",
+    "backgroundColor": "#FFFBF5",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/home/home",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/order/order",
+        "text": "点单"
+      },
+      {
+        "pagePath": "pages/record/record",
+        "text": "记录"
+      },
+      {
+        "pagePath": "pages/admin/admin",
+        "text": "管理"
+      }
+    ]
+  },
+  "__usePrivacyCheck__": true,
+  "permission": {},
+  "requiredBackgroundModes": [],
+  "lazyCodeLoading": "requiredComponents",
+  "usingComponents": {}
+}

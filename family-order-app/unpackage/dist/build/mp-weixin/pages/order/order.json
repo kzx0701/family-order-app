@@ -1,0 +1,11 @@
+{
+  "navigationStyle": "custom",
+  "navigationBarTitleText": "点单",
+  "usingComponents": {
+    "icon": "../../components/icons/Icon",
+    "skeleton": "../../components/skeleton/skeleton",
+    "dish-card": "../../components/dish-card/dish-card",
+    "cart-popup": "../../components/cart-popup/cart-popup",
+    "custom-tabbar": "../../components/custom-tabbar/custom-tabbar"
+  }
+}

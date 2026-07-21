@@ -108,7 +108,7 @@ const _sfc_main = {
       submitting.value = true;
       try {
         await requestSubscribe();
-        const res = await common_vendor.wr.callFunction({
+        const res = await common_vendor._r.callFunction({
           name: "orders-crud",
           data: {
             action: "create",
@@ -169,7 +169,7 @@ const _sfc_main = {
           name: "arrow-left",
           size: 20
         }),
-        b: common_vendor.o(goBack, "2e"),
+        b: common_vendor.o(goBack, "61"),
         c: common_vendor.unref(statusBarHeight) + 20 + "px",
         d: common_vendor.t(totalCount.value),
         e: common_vendor.t(cartItems.value.length),
@@ -196,9 +196,9 @@ const _sfc_main = {
           size: 16
         }),
         h: reservationType.value === "asap" ? 1 : "",
-        i: common_vendor.o(($event) => setReservation("asap"), "e4"),
+        i: common_vendor.o(($event) => setReservation("asap"), "09"),
         j: reservationType.value === "scheduled" ? 1 : "",
-        k: common_vendor.o(($event) => setReservation("scheduled"), "11"),
+        k: common_vendor.o(($event) => setReservation("scheduled"), "38"),
         l: reservationType.value === "scheduled"
       }, reservationType.value === "scheduled" ? {
         m: common_vendor.f(dateOptions, (opt, k0, i0) => {
@@ -215,14 +215,14 @@ const _sfc_main = {
           size: 16
         }),
         p: scheduledTime.value,
-        q: common_vendor.o(onTimeChange, "f9")
+        q: common_vendor.o(onTimeChange, "46")
       } : {}, {
         r: common_vendor.p({
           name: "note",
           size: 16
         }),
         s: note.value,
-        t: common_vendor.o(($event) => note.value = $event.detail.value, "83"),
+        t: common_vendor.o(($event) => note.value = $event.detail.value, "3a"),
         v: common_vendor.t(note.value.length),
         w: userAvatar.value
       }, userAvatar.value ? {
@@ -233,7 +233,7 @@ const _sfc_main = {
       }, submitting.value ? {} : {}, {
         A: common_vendor.t(submitting.value ? "提交中..." : "提交点单"),
         B: submitting.value ? 1 : "",
-        C: common_vendor.o(onSubmit, "44"),
+        C: common_vendor.o(onSubmit, "18"),
         D: common_vendor.n(themeClass.value)
       });
     };

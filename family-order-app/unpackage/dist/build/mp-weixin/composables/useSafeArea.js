@@ -1,0 +1,1 @@
+"use strict";const e=require("../common/vendor.js"),t=e.ref(0);let r=!1;exports.useSafeArea=function(){if(!r){r=!0;try{const r=e.index.getSystemInfoSync();t.value=r.statusBarHeight||20}catch(s){t.value=20}}return{statusBarHeight:t}};

@@ -1,0 +1,1 @@
+"use strict";const e=require("../common/vendor.js");exports.useHeaderFixed=function(t=".header"){const r=e.ref(0),n=()=>{e.index.createSelectorQuery().select(t).boundingClientRect(e=>{e&&e.height&&(r.value=e.height)}).exec()};return e.onMounted(async()=>{await e.nextTick$1(),setTimeout(n,50)}),{headerHeight:r,remeasure:n}};

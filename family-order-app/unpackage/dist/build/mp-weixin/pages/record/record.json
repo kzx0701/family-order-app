@@ -1,0 +1,12 @@
+{
+  "navigationStyle": "custom",
+  "navigationBarTitleText": "记录",
+  "enablePullDownRefresh": true,
+  "backgroundTextStyle": "dark",
+  "usingComponents": {
+    "skeleton": "../../components/skeleton/skeleton",
+    "fo-empty": "../../components/fo-empty/fo-empty",
+    "status-badge": "../../components/status-badge/status-badge",
+    "custom-tabbar": "../../components/custom-tabbar/custom-tabbar"
+  }
+}
