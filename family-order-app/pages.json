@@ -1,0 +1,124 @@
+{
+    "pages": [
+        {
+            "path": "pages/home/home",
+            "style": {
+                "navigationStyle": "custom",
+                "navigationBarTitleText": "首页",
+                "enablePullDownRefresh": true,
+                "backgroundTextStyle": "dark"
+            }
+        },
+        {
+            "path": "pages/order/order",
+            "style": {
+                "navigationStyle": "custom",
+                "navigationBarTitleText": "点单"
+            }
+        },
+        {
+            "path": "pages/record/record",
+            "style": {
+                "navigationStyle": "custom",
+                "navigationBarTitleText": "记录",
+                "enablePullDownRefresh": true,
+                "backgroundTextStyle": "dark"
+            }
+        },
+        {
+            "path": "pages/admin/admin",
+            "style": {
+                "navigationStyle": "custom",
+                "navigationBarTitleText": "管理",
+                "enablePullDownRefresh": true,
+                "backgroundTextStyle": "dark"
+            }
+        },
+        {
+            "path": "pages/dish-detail/dish-detail",
+            "style": {
+                "navigationStyle": "custom",
+                "navigationBarTitleText": "菜品详情"
+            }
+        },
+        {
+            "path": "pages/order-detail/order-detail",
+            "style": {
+                "navigationStyle": "custom",
+                "navigationBarTitleText": "订单详情"
+            }
+        },
+        {
+            "path": "pages/submit/submit",
+            "style": {
+                "navigationStyle": "custom",
+                "navigationBarTitleText": "提交订单"
+            }
+        },
+        {
+            "path": "pages/order-success/order-success",
+            "style": {
+                "navigationStyle": "custom",
+                "navigationBarTitleText": "下单成功"
+            }
+        },
+        {
+            "path": "pages/role-select/role-select",
+            "style": {
+                "navigationStyle": "custom",
+                "navigationBarTitleText": "选择角色",
+                "disableScroll": true
+            }
+        }
+    ],
+    "globalStyle": {
+        "navigationBarTextStyle": "black",
+        "navigationBarTitleText": "家庭点餐",
+        "navigationBarBackgroundColor": "#FFFBF5",
+        "backgroundColor": "#FFFBF5",
+        "backgroundColorTop": "#FFFBF5",
+        "backgroundColorBottom": "#FFFBF5"
+    },
+    "tabBar": {
+        "custom": true,
+        "color": "#78716C",
+        "selectedColor": "#6F4E37",
+        "backgroundColor": "#FFFBF5",
+        "borderStyle": "white",
+        "list": [
+            {
+                "pagePath": "pages/home/home",
+                "text": "首页"
+            },
+            {
+                "pagePath": "pages/order/order",
+                "text": "点单"
+            },
+            {
+                "pagePath": "pages/record/record",
+                "text": "记录"
+            },
+            {
+                "pagePath": "pages/admin/admin",
+                "text": "管理"
+            }
+        ]
+    },
+    "easycom": {
+        "autoscan": true,
+        "custom": {
+            "^fo-(.*)": "@/components/fo-$1/fo-$1.vue",
+            "^Icon$": "@/components/icons/Icon.vue",
+            "^CustomTabbar$": "@/components/custom-tabbar/custom-tabbar.vue"
+        }
+    },
+    "condition": {
+        "current": 0,
+        "list": [
+            {
+                "name": "首页",
+                "path": "pages/home/home"
+            }
+        ]
+    }
+}

@@ -1,0 +1,12 @@
+{
+  "navigationStyle": "custom",
+  "navigationBarTitleText": "首页",
+  "enablePullDownRefresh": true,
+  "backgroundTextStyle": "dark",
+  "usingComponents": {
+    "default-avatar": "../../components/default-avatar/default-avatar",
+    "skeleton": "../../components/skeleton/skeleton",
+    "order-card": "../../components/order-card/order-card",
+    "custom-tabbar": "../../components/custom-tabbar/custom-tabbar"
+  }
+}

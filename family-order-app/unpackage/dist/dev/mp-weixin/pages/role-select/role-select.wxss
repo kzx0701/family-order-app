@@ -1,0 +1,320 @@
+/**
+ * uniapp 内置 SCSS 变量文件
+ * 此文件会被自动注入到每个组件的 <style lang="scss"> 中
+ * 因此只能包含变量声明与 mixin 定义，不能包含会生成 CSS 输出的规则
+ */
+/* 引入设计 token 变量（仅变量声明，无 CSS 输出） */
+/**
+ * 设计 Token - SCSS 变量定义
+ * 从 colors_and_type.css 提取并转换为 SCSS 变量
+ * 此文件仅包含变量声明，不生成 CSS 输出（可安全被 uni.scss 自动注入）
+ */
+/* === 暖奶油底色（全局背景） === */
+/* === 品牌主色：暖奶油 === */
+/* === 咖啡棕系（咖啡主题主色） === */
+/* === 美食绿系（美食主题主色） === */
+/* === neutral 灰阶 === */
+/* === 状态色 === */
+/* === 语义别名（指向常用 token） === */
+/* === 圆角 === */
+/* === 字体 === */
+/* === 字号 === */
+/* === 字重 === */
+/* === 行高 === */
+/* === 阴影 === */
+/* === 间距（rpx 适配小程序） === */
+/* === 动效时长与缓动 === */
+/* === 安全区域 === */
+/* 引入 mixin 定义（仅 @mixin，无 CSS 输出） */
+/**
+ * 通用 SCSS Mixin
+ * 此文件仅包含 @mixin 定义，不生成 CSS 输出（可安全被 uni.scss 自动注入）
+ */
+/* === 卡片样式 === */
+/* 主题卡片：带主题色渐变背景 */
+/* === 按钮 === */
+/* 主题主按钮 */
+/* 次级按钮 */
+/* 禁用按钮 */
+/* 圆形图标按钮（如返回按钮、加号按钮） */
+/* === 安全区域 === */
+/* === 文本省略 === */
+/* === flex 工具 === */
+/* === 状态徽章 === */
+/* === 1px 细边框（小程序适配） === */
+/* === 点击反馈 === */
+/* === uniapp 内置变量映射到设计 token === */
+/* 主色调：暖奶油 / 咖啡棕 */
+/* 文字色 */
+/* 背景色 */
+/* 边框色 */
+/* 字号 */
+/* 间距 */
+/* 圆角 */
+.page-role.data-v-e10c152c {
+  position: relative;
+  min-height: 100vh;
+  background-color: #FFFBF5;
+  overflow: hidden;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* === 背景装饰 === */
+.bg-decor.data-v-e10c152c {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+.blob.data-v-e10c152c {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(48rpx);
+  opacity: 0.55;
+  animation: floatBlob-e10c152c 9s ease-in-out infinite;
+}
+.blob.blob-1.data-v-e10c152c {
+  top: -140rpx;
+  right: -120rpx;
+  width: 420rpx;
+  height: 420rpx;
+  background: radial-gradient(circle, #FFCC80 0%, rgba(255, 204, 128, 0) 70%);
+}
+.blob.blob-2.data-v-e10c152c {
+  top: 38%;
+  left: -160rpx;
+  width: 380rpx;
+  height: 380rpx;
+  background: radial-gradient(circle, #BBF7D0 0%, rgba(187, 247, 208, 0) 70%);
+  animation-delay: -3s;
+}
+.blob.blob-3.data-v-e10c152c {
+  bottom: -120rpx;
+  right: -100rpx;
+  width: 340rpx;
+  height: 340rpx;
+  background: radial-gradient(circle, #FFE0B2 0%, rgba(255, 224, 178, 0) 70%);
+  animation-delay: -6s;
+}
+@keyframes floatBlob-e10c152c {
+0%, 100% {
+    transform: translate(0, 0) scale(1);
+}
+50% {
+    transform: translate(24rpx, -32rpx) scale(1.1);
+}
+}
+/* 散落的小圆点装饰 */
+.bg-dot.data-v-e10c152c {
+  position: absolute;
+  font-size: 60rpx;
+  font-weight: 700;
+  color: #E8D0B3;
+  opacity: 0.6;
+  animation: floatDot-e10c152c 5s ease-in-out infinite;
+}
+.bg-dot.bg-dot-1.data-v-e10c152c {
+  top: 18%;
+  right: 60rpx;
+  color: #FFCC80;
+  animation-delay: -1s;
+}
+.bg-dot.bg-dot-2.data-v-e10c152c {
+  top: 62%;
+  right: 40rpx;
+  color: #A3B491;
+  animation-delay: -2.5s;
+}
+.bg-dot.bg-dot-3.data-v-e10c152c {
+  top: 30%;
+  left: 50rpx;
+  color: #E8D0B3;
+  animation-delay: -4s;
+}
+@keyframes floatDot-e10c152c {
+0%, 100% {
+    transform: translateY(0);
+    opacity: 0.5;
+}
+50% {
+    transform: translateY(-18rpx);
+    opacity: 0.9;
+}
+}
+/* === 顶部问候 === */
+.hero.data-v-e10c152c {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 140rpx 0 56rpx;
+  animation: slideDown 0.6s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+.hero .hero-emoji-row.data-v-e10c152c {
+  margin-bottom: 20rpx;
+  animation: pulse 2.4s ease-in-out infinite;
+}
+.hero .hero-emoji.data-v-e10c152c {
+  font-size: 88rpx;
+  line-height: 1;
+}
+.hero .hero-title.data-v-e10c152c {
+  font-size: 60rpx;
+  font-weight: 700;
+  color: #3E2723;
+  letter-spacing: 2rpx;
+}
+.hero .hero-sub.data-v-e10c152c {
+  margin-top: 16rpx;
+  font-size: 14px;
+  color: #78716C;
+}
+
+/* === 角色卡片容器 === */
+.role-cards.data-v-e10c152c {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 36rpx;
+  padding: 0 48rpx;
+}
+
+/* === 单个卡片 === */
+.role-card.data-v-e10c152c {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 28rpx;
+  padding: 40rpx 36rpx;
+  border-radius: 20px;
+  box-shadow: 0 8rpx 24rpx rgba(44, 27, 20, 0.12), 0 2rpx 8rpx rgba(44, 27, 20, 0.06);
+  overflow: hidden;
+  transition: transform 250ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  animation: slideUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) both;
+  /* 卡片右上角高光 */
+  /* 丝滑点击反馈：缩小 + 阴影收紧 */
+}
+.role-card .card-shine.data-v-e10c152c {
+  position: absolute;
+  top: -50rpx;
+  right: -50rpx;
+  width: 200rpx;
+  height: 200rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.28);
+  pointer-events: none;
+}
+.role-card.card-orderer.data-v-e10c152c {
+  background: linear-gradient(135deg, #FFD4C1 0%, #FFB088 100%);
+  animation-delay: 0.15s;
+}
+.role-card.card-admin.data-v-e10c152c {
+  background: linear-gradient(135deg, #C7E8D4 0%, #8FD4A8 100%);
+  animation-delay: 0.3s;
+}
+.role-card.data-v-e10c152c:active {
+  transform: scale(0.95);
+  box-shadow: 0 2rpx 8rpx rgba(44, 27, 20, 0.1), 0 1rpx 3rpx rgba(44, 27, 20, 0.06);
+}
+
+/* 卡片插画区 */
+.card-illustration.data-v-e10c152c {
+  position: relative;
+  flex-shrink: 0;
+  width: 120rpx;
+  height: 120rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.card-illustration .card-emoji.data-v-e10c152c {
+  font-size: 80rpx;
+  line-height: 1;
+  /* 轻微浮动让插画有呼吸感 */
+  animation: pulse 3s ease-in-out infinite;
+}
+.card-illustration .card-icon-badge.data-v-e10c152c {
+  position: absolute;
+  bottom: -2rpx;
+  right: -2rpx;
+  width: 44rpx;
+  height: 44rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 2px rgba(44, 27, 20, 0.04), 0 1px 3px rgba(44, 27, 20, 0.06);
+  border: 2rpx solid rgba(255, 255, 255, 0.8);
+}
+.card-illustration .card-icon-badge.badge-coffee.data-v-e10c152c {
+  background-color: #6F4E37;
+}
+.card-illustration .card-icon-badge.badge-food.data-v-e10c152c {
+  background-color: #4A5E38;
+}
+
+/* 卡片文字区 */
+.card-body.data-v-e10c152c {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+.card-body .card-role-tag.data-v-e10c152c {
+  align-self: flex-start;
+  padding: 4rpx 16rpx;
+  border-radius: 9999px;
+  background-color: rgba(255, 255, 255, 0.7);
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+.card-body .card-role-tag.tag-orderer.data-v-e10c152c {
+  color: #B45309;
+}
+.card-body .card-role-tag.tag-admin.data-v-e10c152c {
+  color: #15803D;
+}
+.card-body .card-role-name.data-v-e10c152c {
+  font-size: 22px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.12);
+}
+.card-body .card-desc.data-v-e10c152c {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.94);
+}
+
+/* 卡片 CTA 按钮 */
+.card-cta.data-v-e10c152c {
+  position: relative;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4rpx;
+  padding: 14rpx 24rpx;
+  border-radius: 9999px;
+  background-color: rgba(255, 255, 255, 0.96);
+  font-size: 12px;
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(44, 27, 20, 0.04), 0 1px 3px rgba(44, 27, 20, 0.06);
+}
+
+/* === 底部提示 === */
+.footer-hint.data-v-e10c152c {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 56rpx 0 80rpx;
+  animation: fadeIn 0.8s cubic-bezier(0.4, 0, 0.2, 1) both;
+  animation-delay: 0.5s;
+}
+.footer-hint .hint-text.data-v-e10c152c {
+  font-size: 10px;
+  color: #78716C;
+}

@@ -1,0 +1,235 @@
+/**
+ * uniapp 内置 SCSS 变量文件
+ * 此文件会被自动注入到每个组件的 <style lang="scss"> 中
+ * 因此只能包含变量声明与 mixin 定义，不能包含会生成 CSS 输出的规则
+ */
+/* 引入设计 token 变量（仅变量声明，无 CSS 输出） */
+/**
+ * 设计 Token - SCSS 变量定义
+ * 从 colors_and_type.css 提取并转换为 SCSS 变量
+ * 此文件仅包含变量声明，不生成 CSS 输出（可安全被 uni.scss 自动注入）
+ */
+/* === 暖奶油底色（全局背景） === */
+/* === 品牌主色：暖奶油 === */
+/* === 咖啡棕系（咖啡主题主色） === */
+/* === 美食绿系（美食主题主色） === */
+/* === neutral 灰阶 === */
+/* === 状态色 === */
+/* === 语义别名（指向常用 token） === */
+/* === 圆角 === */
+/* === 字体 === */
+/* === 字号 === */
+/* === 字重 === */
+/* === 行高 === */
+/* === 阴影 === */
+/* === 间距（rpx 适配小程序） === */
+/* === 动效时长与缓动 === */
+/* === 安全区域 === */
+/* 引入 mixin 定义（仅 @mixin，无 CSS 输出） */
+/**
+ * 通用 SCSS Mixin
+ * 此文件仅包含 @mixin 定义，不生成 CSS 输出（可安全被 uni.scss 自动注入）
+ */
+/* === 卡片样式 === */
+/* 主题卡片：带主题色渐变背景 */
+/* === 按钮 === */
+/* 主题主按钮 */
+/* 次级按钮 */
+/* 禁用按钮 */
+/* 圆形图标按钮（如返回按钮、加号按钮） */
+/* === 安全区域 === */
+/* === 文本省略 === */
+/* === flex 工具 === */
+/* === 状态徽章 === */
+/* === 1px 细边框（小程序适配） === */
+/* === 点击反馈 === */
+/* === uniapp 内置变量映射到设计 token === */
+/* 主色调：暖奶油 / 咖啡棕 */
+/* 文字色 */
+/* 背景色 */
+/* 边框色 */
+/* 字号 */
+/* 间距 */
+/* 圆角 */
+.order-card-wrap.data-v-1ab9fcf6 {
+  /* 容器：承载主卡片 + 展开详情，不承载视觉样式 */
+}
+.order-card.data-v-1ab9fcf6 {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  padding: 24rpx;
+  background-color: #FFFFFF;
+  border-radius: 16px;
+  box-shadow: 0 1px 2px rgba(44, 27, 20, 0.04), 0 1px 3px rgba(44, 27, 20, 0.06);
+  transition: transform 150ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 150ms cubic-bezier(0.4, 0, 0.2, 1), border-radius 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  /* 状态变化时整体闪光，强化动效反馈 */
+  /* 展开时底部圆角消失，与详情区平滑衔接 */
+  /* 可展开时点击有微妙反馈 */
+}
+.order-card.is-flashing.data-v-1ab9fcf6 {
+  box-shadow: 0 0 0 4rpx rgba(255, 167, 38, 0.18), 0 2px 8px rgba(44, 27, 20, 0.06), 0 4px 16px rgba(44, 27, 20, 0.04);
+}
+.order-card.is-expanded.data-v-1ab9fcf6 {
+  border-radius: 16px 16px 0 0;
+}
+.order-card .card-icon.data-v-1ab9fcf6 {
+  flex-shrink: 0;
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 12px;
+  background-color: #FFF8F0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 44rpx;
+}
+.order-card .card-body.data-v-1ab9fcf6 {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+.order-card .card-body .card-summary.data-v-1ab9fcf6 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #3E2723;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.order-card .card-body .card-meta.data-v-1ab9fcf6 {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  font-size: 10px;
+  color: #78716C;
+}
+.order-card .card-body .card-meta .meta-user.data-v-1ab9fcf6 {
+  color: #8B6F47;
+  font-weight: 500;
+}
+.order-card .card-body .card-meta .meta-expand.data-v-1ab9fcf6 {
+  margin-left: auto;
+  color: #C4956A;
+  font-weight: 500;
+}
+.order-card .card-actions.data-v-1ab9fcf6 {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12rpx;
+}
+.order-card .card-actions .reservation-time.data-v-1ab9fcf6 {
+  font-size: 10px;
+  color: #8B6F47;
+  font-weight: 500;
+  line-height: 1;
+}
+.order-card .card-actions .action-row.data-v-1ab9fcf6 {
+  display: flex;
+  gap: 8rpx;
+  align-items: center;
+}
+
+/* 操作按钮：仅保留取消按钮样式 */
+.action-btn.data-v-1ab9fcf6 {
+  padding: 10rpx 24rpx;
+  border-radius: 9999px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.2;
+  transition: transform 150ms cubic-bezier(0.4, 0, 0.2, 1), opacity 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  /* 取消：灰色边框，透明背景 */
+}
+.action-btn.data-v-1ab9fcf6:active {
+  transform: scale(0.92);
+  opacity: 0.85;
+}
+.action-btn .action-text.data-v-1ab9fcf6 {
+  color: #fff;
+}
+.action-btn.btn-cancel.data-v-1ab9fcf6 {
+  background-color: transparent;
+  border: 2rpx solid #D6D3D1;
+  box-shadow: none;
+}
+.action-btn.btn-cancel .action-text.data-v-1ab9fcf6 {
+  color: #78716C;
+}
+
+/* 展开详情区 */
+.card-detail.data-v-1ab9fcf6 {
+  padding: 20rpx 24rpx 24rpx;
+  background-color: #FFF8F0;
+  border-radius: 0 0 16px 16px;
+  box-shadow: 0 1px 2px rgba(44, 27, 20, 0.04), 0 1px 3px rgba(44, 27, 20, 0.06);
+}
+.card-detail .detail-items.data-v-1ab9fcf6 {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+  padding-bottom: 16rpx;
+  border-bottom: 1rpx dashed #E7E5E4;
+}
+.card-detail .detail-item.data-v-1ab9fcf6 {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+.card-detail .detail-item .item-img.data-v-1ab9fcf6 {
+  width: 48rpx;
+  height: 48rpx;
+  border-radius: 4px;
+  background-color: #FFFFFF;
+  flex-shrink: 0;
+}
+.card-detail .detail-item .item-img.placeholder.data-v-1ab9fcf6 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28rpx;
+}
+.card-detail .detail-item .item-name.data-v-1ab9fcf6 {
+  flex: 1;
+  font-size: 12px;
+  color: #2C1B14;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.card-detail .detail-item .item-qty.data-v-1ab9fcf6 {
+  font-size: 12px;
+  color: #8B6F47;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.card-detail .detail-row.data-v-1ab9fcf6 {
+  display: flex;
+  align-items: flex-start;
+  gap: 8rpx;
+  margin-top: 12rpx;
+  font-size: 12px;
+}
+.card-detail .detail-row .row-icon.data-v-1ab9fcf6 {
+  color: #8B6F47;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28rpx;
+  height: 28rpx;
+  flex-shrink: 0;
+  margin-top: 2rpx;
+}
+.card-detail .detail-row .row-label.data-v-1ab9fcf6 {
+  color: #78716C;
+  flex-shrink: 0;
+}
+.card-detail .detail-row .row-value.data-v-1ab9fcf6 {
+  flex: 1;
+  color: #2C1B14;
+  line-height: 1.5;
+}

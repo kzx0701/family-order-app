@@ -1,0 +1,8 @@
+{
+  "navigationStyle": "custom",
+  "navigationBarTitleText": "选择角色",
+  "disableScroll": true,
+  "usingComponents": {
+    "icon": "../../components/icons/Icon"
+  }
+}

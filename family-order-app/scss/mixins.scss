@@ -1,0 +1,165 @@
+/**
+ * 通用 SCSS Mixin
+ * 此文件仅包含 @mixin 定义，不生成 CSS 输出（可安全被 uni.scss 自动注入）
+ */
+
+/* === 卡片样式 === */
+@mixin card-base($radius: $radius-lg, $shadow: $shadow-sm) {
+  background-color: $color-card;
+  border-radius: $radius;
+  box-shadow: $shadow;
+  box-sizing: border-box;
+}
+
+/* 主题卡片：带主题色渐变背景 */
+@mixin card-themed($radius: $radius-lg) {
+  border-radius: $radius;
+  background: linear-gradient(160deg, var(--theme-grad-start), var(--theme-grad-end));
+  box-shadow: $shadow-sm;
+  box-sizing: border-box;
+}
+
+/* === 按钮 === */
+@mixin btn-base($padding-y: 16rpx, $padding-x: 32rpx, $radius: $radius-full) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: $padding-y $padding-x;
+  border-radius: $radius;
+  font-weight: $font-weight-medium;
+  font-size: $font-size-base;
+  line-height: 1;
+  transition: transform $dur-fast $ease-smooth, opacity $dur-fast $ease-smooth;
+
+  &:active {
+    transform: scale(0.96);
+    opacity: 0.85;
+  }
+}
+
+/* 主题主按钮 */
+@mixin btn-primary {
+  @include btn-base;
+  background-color: var(--theme-primary);
+  color: var(--theme-primary-foreground);
+}
+
+/* 次级按钮 */
+@mixin btn-secondary {
+  @include btn-base;
+  background-color: var(--theme-secondary);
+  color: var(--theme-secondary-foreground);
+}
+
+/* 禁用按钮 */
+@mixin btn-disabled {
+  @include btn-base;
+  background-color: $color-neutral-200;
+  color: $color-neutral-400;
+}
+
+/* 圆形图标按钮（如返回按钮、加号按钮） */
+@mixin btn-icon($size: 72rpx, $bg: var(--theme-secondary), $fg: var(--theme-primary)) {
+  width: $size;
+  height: $size;
+  border-radius: 50%;
+  background-color: $bg;
+  color: $fg;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform $dur-fast $ease-smooth;
+
+  &:active {
+    transform: scale(0.9);
+  }
+}
+
+/* === 安全区域 === */
+@mixin safe-area-bottom($extra: 0rpx) {
+  padding-bottom: calc(#{$extra} + #{$safe-area-inset-bottom});
+}
+
+@mixin safe-area-top($extra: 0rpx) {
+  padding-top: calc(#{$extra} + #{$safe-area-inset-top});
+}
+
+@mixin fixed-bottom-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 100;
+  @include safe-area-bottom;
+}
+
+/* === 文本省略 === */
+@mixin ellipsis($lines: 1) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  @if $lines == 1 {
+    white-space: nowrap;
+  } @else {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: $lines;
+    word-break: break-all;
+  }
+}
+
+/* === flex 工具 === */
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+@mixin flex-column {
+  display: flex;
+  flex-direction: column;
+}
+
+/* === 状态徽章 === */
+@mixin status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6rpx 18rpx;
+  border-radius: $radius-full;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  background-color: var(--status-bg);
+  color: var(--status-fg);
+}
+
+/* === 1px 细边框（小程序适配） === */
+@mixin hairline-bottom($color: $color-border) {
+  position: relative;
+
+  &::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 1px;
+    background-color: $color;
+    transform: scaleY(0.5);
+    transform-origin: 0 100%;
+  }
+}
+
+/* === 点击反馈 === */
+@mixin tap-feedback($scale: 0.97) {
+  transition: transform $dur-fast $ease-smooth;
+
+  &:active {
+    transform: scale($scale);
+  }
+}

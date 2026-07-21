@@ -1,0 +1,401 @@
+/**
+ * uniapp 内置 SCSS 变量文件
+ * 此文件会被自动注入到每个组件的 <style lang="scss"> 中
+ * 因此只能包含变量声明与 mixin 定义，不能包含会生成 CSS 输出的规则
+ */
+/* 引入设计 token 变量（仅变量声明，无 CSS 输出） */
+/**
+ * 设计 Token - SCSS 变量定义
+ * 从 colors_and_type.css 提取并转换为 SCSS 变量
+ * 此文件仅包含变量声明，不生成 CSS 输出（可安全被 uni.scss 自动注入）
+ */
+/* === 暖奶油底色（全局背景） === */
+/* === 品牌主色：暖奶油 === */
+/* === 咖啡棕系（咖啡主题主色） === */
+/* === 美食绿系（美食主题主色） === */
+/* === neutral 灰阶 === */
+/* === 状态色 === */
+/* === 语义别名（指向常用 token） === */
+/* === 圆角 === */
+/* === 字体 === */
+/* === 字号 === */
+/* === 字重 === */
+/* === 行高 === */
+/* === 阴影 === */
+/* === 间距（rpx 适配小程序） === */
+/* === 动效时长与缓动 === */
+/* === 安全区域 === */
+/* 引入 mixin 定义（仅 @mixin，无 CSS 输出） */
+/**
+ * 通用 SCSS Mixin
+ * 此文件仅包含 @mixin 定义，不生成 CSS 输出（可安全被 uni.scss 自动注入）
+ */
+/* === 卡片样式 === */
+/* 主题卡片：带主题色渐变背景 */
+/* === 按钮 === */
+/* 主题主按钮 */
+/* 次级按钮 */
+/* 禁用按钮 */
+/* 圆形图标按钮（如返回按钮、加号按钮） */
+/* === 安全区域 === */
+/* === 文本省略 === */
+/* === flex 工具 === */
+/* === 状态徽章 === */
+/* === 1px 细边框（小程序适配） === */
+/* === 点击反馈 === */
+/* === uniapp 内置变量映射到设计 token === */
+/* 主色调：暖奶油 / 咖啡棕 */
+/* 文字色 */
+/* 背景色 */
+/* 边框色 */
+/* 字号 */
+/* 间距 */
+/* 圆角 */
+.cart-popup-root.data-v-f070f07b {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 999;
+}
+
+/* === 遮罩层：fadeIn === */
+.cart-mask.data-v-f070f07b {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background-color: rgba(44, 27, 20, 0.45);
+  opacity: 0;
+  transition: opacity 250ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.cart-mask--show.data-v-f070f07b {
+  opacity: 1;
+}
+
+/* === 底部卡片：slideUp 弹性缓动 === */
+.cart-sheet.data-v-f070f07b {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #FFFFFF;
+  border-radius: 20px 20px 0 0;
+  padding-bottom: env(safe-area-inset-bottom);
+  box-shadow: 0 -8rpx 32rpx rgba(44, 27, 20, 0.12);
+  transform: translateY(100%);
+  transition: transform 300ms cubic-bezier(0.34, 1.2, 0.64, 1);
+  max-height: 82vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.cart-sheet--show.data-v-f070f07b {
+  transform: translateY(0);
+}
+
+/* 顶部抓手 */
+.cart-handle.data-v-f070f07b {
+  width: 64rpx;
+  height: 8rpx;
+  border-radius: 9999px;
+  background-color: #E7E5E4;
+  margin: 16rpx auto 0;
+  flex-shrink: 0;
+}
+
+/* === 标题栏 === */
+.cart-header.data-v-f070f07b {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20rpx 40rpx 16rpx;
+  flex-shrink: 0;
+}
+.cart-header .cart-title-wrap.data-v-f070f07b {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+.cart-header .cart-title-wrap .cart-title.data-v-f070f07b {
+  font-size: 18px;
+  font-weight: 700;
+  color: #3E2723;
+}
+.cart-header .cart-title-wrap .cart-kinds.data-v-f070f07b {
+  padding: 2rpx 14rpx;
+  border-radius: 9999px;
+  background-color: var(--theme-secondary);
+  transition: background-color 250ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.cart-header .cart-title-wrap .cart-kinds .cart-kinds-text.data-v-f070f07b {
+  font-size: 10px;
+  color: var(--theme-secondary-foreground);
+  font-weight: 500;
+}
+.cart-header .cart-clear.data-v-f070f07b {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  padding: 8rpx 20rpx;
+  border-radius: 9999px;
+  background-color: #F5F5F4;
+  color: #78716C;
+  transition: transform 150ms cubic-bezier(0.4, 0, 0.2, 1), background-color 250ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.cart-header .cart-clear.data-v-f070f07b:active {
+  transform: scale(0.94);
+  background-color: #E7E5E4;
+}
+.cart-header .cart-clear .cart-clear-text.data-v-f070f07b {
+  font-size: 12px;
+  color: #78716C;
+}
+
+/* === 内容区 === */
+.cart-content.data-v-f070f07b {
+  flex: 1;
+  padding: 8rpx 32rpx;
+  min-height: 240rpx;
+  max-height: 56vh;
+}
+.cart-content.is-empty.data-v-f070f07b {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* === 空状态 === */
+.cart-empty.data-v-f070f07b {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16rpx;
+  padding: 60rpx 0 80rpx;
+  animation: fadeIn 250ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+.cart-empty .cart-empty-emoji.data-v-f070f07b {
+  font-size: 96rpx;
+  line-height: 1;
+  animation: pulse 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+.cart-empty .cart-empty-text.data-v-f070f07b {
+  font-size: 12px;
+  color: #78716C;
+}
+.cart-empty .cart-empty-hint.data-v-f070f07b {
+  margin-top: 8rpx;
+  padding: 12rpx 36rpx;
+  border-radius: 9999px;
+  background-color: var(--theme-secondary);
+  transition: transform 150ms cubic-bezier(0.34, 1.56, 0.64, 1), background-color 250ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.cart-empty .cart-empty-hint.data-v-f070f07b:active {
+  transform: scale(0.96);
+}
+.cart-empty .cart-empty-hint .cart-empty-hint-text.data-v-f070f07b {
+  color: var(--theme-primary);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* === 菜品列表 === */
+.cart-list.data-v-f070f07b {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+  padding: 8rpx 0 24rpx;
+}
+.cart-item.data-v-f070f07b {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  padding: 16rpx;
+  background-color: #FFFBF5;
+  border-radius: 12px;
+  animation: itemEnter-f070f07b 300ms cubic-bezier(0.4, 0, 0.2, 1) both;
+  transition: opacity 250ms cubic-bezier(0.4, 0, 0.2, 1), transform 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  /* 移除中：淡出 + 右滑 */
+  /* 菜品图：圆角小图 96rpx */
+  /* 信息：名称 + 描述 */
+  /* 数量选择器：与详情页一致风格 */
+  /* 删除按钮 */
+}
+.cart-item.is-removing.data-v-f070f07b {
+  animation: itemLeave-f070f07b 250ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+.cart-item .item-img-wrap.data-v-f070f07b {
+  flex-shrink: 0;
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: var(--theme-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.cart-item .item-img-wrap .item-img.data-v-f070f07b {
+  width: 100%;
+  height: 100%;
+}
+.cart-item .item-img-wrap .item-emoji.data-v-f070f07b {
+  font-size: 40rpx;
+  line-height: 1;
+}
+.cart-item .item-info.data-v-f070f07b {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+.cart-item .item-info .item-name.data-v-f070f07b {
+  font-size: 14px;
+  font-weight: 600;
+  color: #2C1B14;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cart-item .item-info .item-desc.data-v-f070f07b {
+  font-size: 10px;
+  color: #78716C;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cart-item .item-qty.data-v-f070f07b {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  flex-shrink: 0;
+  /* 数字：数量变化时放大反馈 */
+}
+.cart-item .item-qty .qty-btn.data-v-f070f07b {
+  width: 48rpx;
+  height: 48rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 150ms cubic-bezier(0.34, 1.56, 0.64, 1), background-color 250ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.cart-item .item-qty .qty-btn.data-v-f070f07b:active {
+  transform: scale(0.82);
+}
+.cart-item .item-qty .qty-minus.data-v-f070f07b {
+  background-color: #F5F5F4;
+  color: #57534E;
+}
+.cart-item .item-qty .qty-plus.data-v-f070f07b {
+  background-color: var(--theme-primary);
+  color: #fff;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
+}
+.cart-item .item-qty .qty-value.data-v-f070f07b {
+  min-width: 40rpx;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: #2C1B14;
+  animation: numPop-f070f07b 280ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.cart-item .item-del.data-v-f070f07b {
+  flex-shrink: 0;
+  width: 48rpx;
+  height: 48rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #A8A29E;
+  transition: transform 150ms cubic-bezier(0.4, 0, 0.2, 1), color 250ms cubic-bezier(0.4, 0, 0.2, 1), background-color 250ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.cart-item .item-del.data-v-f070f07b:active {
+  transform: scale(0.85);
+  color: #EF4444;
+  background-color: rgba(239, 68, 68, 0.08);
+}
+
+/* === 底部按钮 === */
+.cart-footer.data-v-f070f07b {
+  flex-shrink: 0;
+  padding: 16rpx 32rpx 24rpx;
+  border-top: 1px solid #E7E5E4;
+}
+.cart-footer .cart-submit-btn.data-v-f070f07b {
+  position: relative;
+  background-color: var(--theme-primary);
+  padding: 24rpx 0;
+  border-radius: 9999px;
+  text-align: center;
+  transition: transform 150ms cubic-bezier(0.34, 1.56, 0.64, 1), background-color 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.12);
+  /* 件数徽章：跟随主题色，白字圆角 */
+}
+.cart-footer .cart-submit-btn.data-v-f070f07b:active {
+  transform: scale(0.97);
+}
+.cart-footer .cart-submit-btn .cart-submit-text.data-v-f070f07b {
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+}
+.cart-footer .cart-submit-btn .cart-submit-badge.data-v-f070f07b {
+  position: absolute;
+  top: 50%;
+  right: 32rpx;
+  transform: translateY(-50%);
+  min-width: 36rpx;
+  height: 36rpx;
+  padding: 0 10rpx;
+  border-radius: 9999px;
+  background-color: rgba(255, 255, 255, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.cart-footer .cart-submit-btn .cart-submit-badge .cart-submit-badge-text.data-v-f070f07b {
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+/* === 列表项入场动画 === */
+@keyframes itemEnter-f070f07b {
+from {
+    opacity: 0;
+    transform: translateY(20rpx) scale(0.96);
+}
+to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+}
+/* === 列表项移除动画：淡出 + 右滑 === */
+@keyframes itemLeave-f070f07b {
+from {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+}
+to {
+    opacity: 0;
+    transform: translateX(60rpx) scale(0.9);
+}
+}
+/* === 数字放大反馈 === */
+@keyframes numPop-f070f07b {
+0% {
+    transform: scale(1);
+}
+40% {
+    transform: scale(1.4);
+}
+100% {
+    transform: scale(1);
+}
+}

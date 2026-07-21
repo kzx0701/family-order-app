@@ -1,0 +1,42 @@
+{
+    "bsonType": "object",
+    "required": ["name", "type"],
+    "permission": {
+        "read": true,
+        "create": "auth.uid != null && db.collection('users').doc(auth.uid).data.role == 'admin'",
+        "update": "auth.uid != null && db.collection('users').doc(auth.uid).data.role == 'admin'",
+        "delete": "auth.uid != null && db.collection('users').doc(auth.uid).data.role == 'admin'"
+    },
+    "properties": {
+        "_id": {
+            "description": "ID"
+        },
+        "name": {
+            "bsonType": "string",
+            "description": "分类名称",
+            "trim": "both",
+            "label": "名称",
+            "errorMessage": "分类名称必填"
+        },
+        "type": {
+            "bsonType": "string",
+            "description": "所属类型：coffee 咖啡 / food 美食",
+            "enum": ["coffee", "food"],
+            "label": "类型",
+            "errorMessage": "类型必填且只能为 coffee 或 food"
+        },
+        "sortOrder": {
+            "bsonType": "int",
+            "description": "排序值（越小越靠前）",
+            "defaultValue": 0,
+            "label": "排序"
+        },
+        "createTime": {
+            "bsonType": "timestamp",
+            "description": "创建时间",
+            "forceDefaultValue": {
+                "$env": "now"
+            }
+        }
+    }
+}

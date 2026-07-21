@@ -1,0 +1,90 @@
+{
+    "bsonType": "object",
+    "required": ["items", "userId"],
+    "permission": {
+        "read": "auth.uid != null",
+        "create": "auth.uid != null",
+        "update": "auth.uid != null",
+        "delete": "auth.uid != null && db.collection('users').doc(auth.uid).data.role == 'admin'"
+    },
+    "properties": {
+        "_id": {
+            "description": "ID"
+        },
+        "items": {
+            "bsonType": "array",
+            "description": "订单菜品列表",
+            "arrayType": "object",
+            "label": "菜品列表",
+            "errorMessage": "订单菜品不能为空",
+            "properties": {
+                "dishId": {
+                    "bsonType": "string",
+                    "description": "菜品 ID"
+                },
+                "name": {
+                    "bsonType": "string",
+                    "description": "菜品名称（冗余存储，避免菜品改名影响历史订单）"
+                },
+                "image": {
+                    "bsonType": "string",
+                    "description": "菜品图片 URL"
+                },
+                "quantity": {
+                    "bsonType": "int",
+                    "description": "数量",
+                    "minimum": 1
+                }
+            }
+        },
+        "userId": {
+            "bsonType": "string",
+            "description": "下单用户 ID",
+            "foreignKey": "users._id"
+        },
+        "userName": {
+            "bsonType": "string",
+            "description": "下单用户昵称（冗余）",
+            "defaultValue": ""
+        },
+        "reservationType": {
+            "bsonType": "string",
+            "description": "预约类型：asap 尽快 / scheduled 指定时间",
+            "enum": ["asap", "scheduled"],
+            "defaultValue": "asap"
+        },
+        "reservationTime": {
+            "bsonType": "timestamp",
+            "description": "预约时间（reservationType 为 scheduled 时有效）"
+        },
+        "note": {
+            "bsonType": "string",
+            "description": "备注",
+            "trim": "both",
+            "maxLength": 200,
+            "label": "备注",
+            "errorMessage": "备注最多 200 字",
+            "defaultValue": ""
+        },
+        "status": {
+            "bsonType": "string",
+            "description": "订单状态：pending 待制作 / preparing 制作中 / completed 已完成 / cancelled 已取消",
+            "enum": ["pending", "preparing", "completed", "cancelled"],
+            "defaultValue": "pending"
+        },
+        "createTime": {
+            "bsonType": "timestamp",
+            "description": "创建时间",
+            "forceDefaultValue": {
+                "$env": "now"
+            }
+        },
+        "updateTime": {
+            "bsonType": "timestamp",
+            "description": "更新时间",
+            "forceDefaultValue": {
+                "$env": "now"
+            }
+        }
+    }
+}

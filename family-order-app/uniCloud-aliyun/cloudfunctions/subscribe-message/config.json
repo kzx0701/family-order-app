@@ -1,0 +1,11 @@
+{
+    "memorySize": 256,
+    "timeout": 60,
+    "appid": "wxbce36fe0e2e44d62",
+    "secret": "7b8dce66595c2385228aa2f69a5815e1",
+    "templates": {
+        "orderNotify": "",
+        "completeNotify": "",
+        "urgeNotify": ""
+    }
+}

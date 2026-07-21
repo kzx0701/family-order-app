@@ -1,0 +1,70 @@
+/**
+ * 双主题类
+ * 通过给页面/容器添加 .theme-coffee 或 .theme-food 切换主题色
+ * 主题色以 CSS 变量暴露，运行时可动态切换（适合点单页咖啡/美食共用）
+ *
+ * 使用方式：
+ *   <view class="theme-coffee">...</view>
+ *   <view class="theme-food">...</view>
+ * 组件内引用：background-color: var(--theme-primary);
+ */
+
+/* 默认根变量（暖奶油底色，无主题倾向） */
+page {
+  --theme-primary: #{$color-coffee-600};
+  --theme-primary-foreground: #FFFFFF;
+  --theme-secondary: #{$color-coffee-100};
+  --theme-secondary-foreground: #{$color-coffee-700};
+  --theme-accent: #{$color-coffee-300};
+  --theme-soft: #{$color-coffee-50};
+  --theme-text: #{$color-coffee-800};
+}
+
+/* 咖啡主题：棕色系 */
+.theme-coffee {
+  --theme-primary: #{$color-coffee-600};
+  --theme-primary-foreground: #FFFFFF;
+  --theme-secondary: #{$color-coffee-100};
+  --theme-secondary-foreground: #{$color-coffee-700};
+  --theme-accent: #{$color-coffee-300};
+  --theme-soft: #{$color-coffee-50};
+  --theme-text: #{$color-coffee-800};
+  --theme-grad-start: #{$color-coffee-100};
+  --theme-grad-end: #{$color-coffee-200};
+  --theme-card-border: #{$color-coffee-100};
+}
+
+/* 美食主题：绿色系 */
+.theme-food {
+  --theme-primary: #{$color-food-600};
+  --theme-primary-foreground: #FFFFFF;
+  --theme-secondary: #{$color-food-100};
+  --theme-secondary-foreground: #{$color-food-700};
+  --theme-accent: #{$color-food-300};
+  --theme-soft: #{$color-food-50};
+  --theme-text: #{$color-food-800};
+  --theme-grad-start: #{$color-food-100};
+  --theme-grad-end: #{$color-food-200};
+  --theme-card-border: #{$color-food-100};
+}
+
+/* 状态标签色变量（供状态徽章复用） */
+.status-pending {
+  --status-bg: #FEF3C7;
+  --status-fg: #B45309;
+}
+
+.status-preparing {
+  --status-bg: #DBEAFE;
+  --status-fg: #1D4ED8;
+}
+
+.status-completed {
+  --status-bg: #{$color-food-100};
+  --status-fg: #{$color-food-600};
+}
+
+.status-cancelled {
+  --status-bg: #FEE2E2;
+  --status-fg: #B91C1C;
+}

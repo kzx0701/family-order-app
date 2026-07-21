@@ -1,0 +1,135 @@
+/* Family Order - Brand Design Tokens */
+/* Primary palette: warm cream base with dual-mode accents (coffee brown + fresh green) */
+
+:root {
+  /* === Brand Primary: Warm Cream === */
+  --color-primary-50: #FFF8F0;
+  --color-primary-100: #FFEFD6;
+  --color-primary-200: #FFE0B2;
+  --color-primary-300: #FFCC80;
+  --color-primary-400: #FFB74D;
+  --color-primary-500: #FFA726;
+  --color-primary-600: #FB8C00;
+  --color-primary-700: #F57C00;
+  --color-primary-800: #EF6C00;
+  --color-primary-900: #E65100;
+
+  /* === Coffee Mode Accent === */
+  --coffee-50: #FDF8F0;
+  --coffee-100: #F5E6D3;
+  --coffee-200: #E8D0B3;
+  --coffee-300: #D4A574;
+  --coffee-400: #C4956A;
+  --coffee-500: #8B6F47;
+  --coffee-600: #6F4E37;
+  --coffee-700: #5C4033;
+  --coffee-800: #3E2723;
+  --coffee-900: #2C1B14;
+
+  /* === Food Mode Accent === */
+  --food-50: #F0F9F4;
+  --food-100: #DCFCE7;
+  --food-200: #BBF7D0;
+  --food-300: #86EFAC;
+  --food-400: #4ADE80;
+  --food-500: #22C55E;
+  --food-600: #16A34A;
+  --food-700: #15803D;
+  --food-800: #166534;
+  --food-900: #14532D;
+
+  /* === Neutral Scale === */
+  --color-neutral-50: #FAFAF9;
+  --color-neutral-100: #F5F5F4;
+  --color-neutral-200: #E7E5E4;
+  --color-neutral-300: #D6D3D1;
+  --color-neutral-400: #A8A29E;
+  --color-neutral-500: #78716C;
+  --color-neutral-600: #57534E;
+  --color-neutral-700: #44403C;
+  --color-neutral-800: #292524;
+  --color-neutral-900: #1C1917;
+
+  /* === State Colors === */
+  --state-success: #22C55E;
+  --state-warning: #F59E0B;
+  --state-error: #EF4444;
+  --state-info: #3B82F6;
+
+  /* === Semantic Aliases (light mode) === */
+  --brand-background: #FFFBF5;
+  --brand-foreground: #2C1B14;
+  --brand-card: #FFFFFF;
+  --brand-card-foreground: #2C1B14;
+  --brand-popover: #FFFFFF;
+  --brand-popover-foreground: #2C1B14;
+  --brand-primary: #8B6F47;
+  --brand-primary-foreground: #FFFFFF;
+  --brand-muted: #F5F0EB;
+  --brand-muted-foreground: #78716C;
+  --brand-border: #E7E5E4;
+  --brand-input: #E7E5E4;
+  --brand-ring: #D4A574;
+
+  /* === Radius Scale === */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+  --brand-radius-sm: 4px;
+  --brand-radius-md: 8px;
+  --brand-radius-lg: 12px;
+  --brand-radius-full: 9999px;
+
+  /* === Typography === */
+  --font-sans: 'Inter', -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-display: 'Inter', -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-size-xs: 10px;
+  --font-size-sm: 12px;
+  --font-size-base: 14px;
+  --font-size-lg: 16px;
+  --font-size-xl: 18px;
+  --font-size-2xl: 22px;
+  --font-size-3xl: 28px;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.75;
+}
+
+.dark {
+  --brand-background: #1C1917;
+  --brand-foreground: #FAFAF9;
+  --brand-card: #292524;
+  --brand-card-foreground: #FAFAF9;
+  --brand-popover: #292524;
+  --brand-popover-foreground: #FAFAF9;
+  --brand-muted: #44403C;
+  --brand-muted-foreground: #A8A29E;
+  --brand-border: #44403C;
+  --brand-input: #44403C;
+}
+
+/* === Tailwind semantic tokens === */
+@theme inline {
+  --color-background: var(--brand-background);
+  --color-foreground: var(--brand-foreground);
+  --color-card: var(--brand-card);
+  --color-card-foreground: var(--brand-card-foreground);
+  --color-popover: var(--brand-popover);
+  --color-popover-foreground: var(--brand-popover-foreground);
+  --color-primary: var(--brand-primary);
+  --color-primary-foreground: var(--brand-primary-foreground);
+  --color-muted: var(--brand-muted);
+  --color-muted-foreground: var(--brand-muted-foreground);
+  --color-border: var(--brand-border);
+  --color-input: var(--brand-input);
+  --color-ring: var(--brand-ring);
+  --radius-small: var(--radius-sm);
+  --radius-medium: var(--radius-md);
+  --radius-large: var(--radius-lg);
+  --radius-full: var(--radius-full);
+}

@@ -1,0 +1,7 @@
+{
+    "name": "home-data",
+    "version": "1.0.0",
+    "description": "首页聚合数据：根据角色查询今日订单（下单人查自己 / 管理员查 pending+preparing），返回列表含菜品摘要与 emoji",
+    "main": "index.js",
+    "dependencies": {}
+}

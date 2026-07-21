@@ -1,0 +1,9 @@
+{
+  "navigationStyle": "custom",
+  "navigationBarTitleText": "菜品详情",
+  "usingComponents": {
+    "icon": "../../components/icons/Icon",
+    "lottie-loading": "../../components/lottie-loading/lottie-loading",
+    "error-state": "../../components/error-state/error-state"
+  }
+}

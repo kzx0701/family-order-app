@@ -1,0 +1,379 @@
+/**
+ * uniapp 内置 SCSS 变量文件
+ * 此文件会被自动注入到每个组件的 <style lang="scss"> 中
+ * 因此只能包含变量声明与 mixin 定义，不能包含会生成 CSS 输出的规则
+ */
+/* 引入设计 token 变量（仅变量声明，无 CSS 输出） */
+/**
+ * 设计 Token - SCSS 变量定义
+ * 从 colors_and_type.css 提取并转换为 SCSS 变量
+ * 此文件仅包含变量声明，不生成 CSS 输出（可安全被 uni.scss 自动注入）
+ */
+/* === 暖奶油底色（全局背景） === */
+/* === 品牌主色：暖奶油 === */
+/* === 咖啡棕系（咖啡主题主色） === */
+/* === 美食绿系（美食主题主色） === */
+/* === neutral 灰阶 === */
+/* === 状态色 === */
+/* === 语义别名（指向常用 token） === */
+/* === 圆角 === */
+/* === 字体 === */
+/* === 字号 === */
+/* === 字重 === */
+/* === 行高 === */
+/* === 阴影 === */
+/* === 间距（rpx 适配小程序） === */
+/* === 动效时长与缓动 === */
+/* === 安全区域 === */
+/* 引入 mixin 定义（仅 @mixin，无 CSS 输出） */
+/**
+ * 通用 SCSS Mixin
+ * 此文件仅包含 @mixin 定义，不生成 CSS 输出（可安全被 uni.scss 自动注入）
+ */
+/* === 卡片样式 === */
+/* 主题卡片：带主题色渐变背景 */
+/* === 按钮 === */
+/* 主题主按钮 */
+/* 次级按钮 */
+/* 禁用按钮 */
+/* 圆形图标按钮（如返回按钮、加号按钮） */
+/* === 安全区域 === */
+/* === 文本省略 === */
+/* === flex 工具 === */
+/* === 状态徽章 === */
+/* === 1px 细边框（小程序适配） === */
+/* === 点击反馈 === */
+/* === uniapp 内置变量映射到设计 token === */
+/* 主色调：暖奶油 / 咖啡棕 */
+/* 文字色 */
+/* 背景色 */
+/* 边框色 */
+/* 字号 */
+/* 间距 */
+/* 圆角 */
+.page-submit.data-v-61228d3b {
+  min-height: 100vh;
+  padding-bottom: calc(180rpx + env(safe-area-inset-bottom));
+  background-color: #FFFBF5;
+}
+
+/* === 头部（sticky 固定，滚动时常驻顶部） === */
+.header.data-v-61228d3b {
+  position: -webkit-sticky;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 40rpx 32rpx 24rpx;
+  background-color: #FFFBF5;
+}
+.header .back-btn.data-v-61228d3b {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 50%;
+  background-color: var(--theme-secondary);
+  color: var(--theme-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.header .back-btn.data-v-61228d3b:active {
+  transform: scale(0.9);
+}
+.header .title.data-v-61228d3b {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--theme-primary);
+  transition: color 250ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.header .placeholder.data-v-61228d3b {
+  width: 72rpx;
+}
+
+/* === 通用 section === */
+.section.data-v-61228d3b {
+  margin: 24rpx 32rpx;
+  padding: 32rpx;
+  background-color: #FFFFFF;
+  border-radius: 20px;
+  box-shadow: 0 1px 2px rgba(44, 27, 20, 0.04), 0 1px 3px rgba(44, 27, 20, 0.06);
+}
+.section-head.data-v-61228d3b {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  margin-bottom: 24rpx;
+  color: var(--theme-primary);
+}
+.section-head .section-title.data-v-61228d3b {
+  margin-bottom: 0;
+}
+.section-head .section-sub.data-v-61228d3b {
+  margin-left: auto;
+  font-size: 10px;
+  color: #78716C;
+  font-weight: 400;
+}
+.section-title.data-v-61228d3b {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: #2C1B14;
+  margin-bottom: 24rpx;
+}
+
+/* === 菜品列表 === */
+.dish-list .dish-item.data-v-61228d3b {
+  display: flex;
+  align-items: center;
+  padding: 20rpx 0;
+}
+.dish-list .dish-item .dish-img.data-v-61228d3b {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 8px;
+  background-color: var(--theme-secondary);
+  flex-shrink: 0;
+}
+.dish-list .dish-item .dish-img.placeholder.data-v-61228d3b {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 44rpx;
+}
+.dish-list .dish-item .dish-info.data-v-61228d3b {
+  flex: 1;
+  min-width: 0;
+  margin-left: 24rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+.dish-list .dish-item .dish-info .dish-name.data-v-61228d3b {
+  font-size: 14px;
+  color: #2C1B14;
+  font-weight: 500;
+}
+.dish-list .dish-item .dish-info .dish-desc.data-v-61228d3b {
+  font-size: 10px;
+  color: #78716C;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dish-list .dish-item .dish-qty.data-v-61228d3b {
+  margin-left: 16rpx;
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--theme-primary);
+  font-weight: 600;
+}
+
+/* === 预约时间 === */
+.time-options.data-v-61228d3b {
+  display: flex;
+  gap: 24rpx;
+}
+.time-options .time-option.data-v-61228d3b {
+  flex: 1;
+  padding: 22rpx 0;
+  text-align: center;
+  border-radius: 9999px;
+  background-color: #F5F0EB;
+  color: #78716C;
+  font-size: 14px;
+  font-weight: 500;
+  transition: transform 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color 250ms cubic-bezier(0.4, 0, 0.2, 1), color 250ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.time-options .time-option.data-v-61228d3b:active {
+  transform: scale(0.97);
+}
+.time-options .time-option.active.data-v-61228d3b {
+  background-color: var(--theme-primary);
+  color: var(--theme-primary-foreground);
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.1);
+}
+
+/* === 指定时间展开面板 === */
+.schedule-panel.data-v-61228d3b {
+  margin-top: 24rpx;
+  padding-top: 28rpx;
+  border-top: 2rpx dashed #E7E5E4;
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+}
+.schedule-panel .schedule-row.data-v-61228d3b {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.schedule-panel .schedule-row .schedule-label.data-v-61228d3b {
+  font-size: 12px;
+  color: #78716C;
+  flex-shrink: 0;
+}
+.schedule-panel .date-pills.data-v-61228d3b {
+  display: flex;
+  gap: 12rpx;
+}
+.schedule-panel .date-pills .date-pill.data-v-61228d3b {
+  padding: 12rpx 24rpx;
+  border-radius: 9999px;
+  background-color: #F5F0EB;
+  color: #78716C;
+  font-size: 12px;
+  transition: transform 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color 250ms cubic-bezier(0.4, 0, 0.2, 1), color 250ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.schedule-panel .date-pills .date-pill.data-v-61228d3b:active {
+  transform: scale(0.97);
+}
+.schedule-panel .date-pills .date-pill.active.data-v-61228d3b {
+  background-color: var(--theme-primary);
+  color: var(--theme-primary-foreground);
+}
+.schedule-panel .time-picker.data-v-61228d3b {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 12rpx 24rpx;
+  border-radius: 9999px;
+  background-color: #F5F0EB;
+  color: var(--theme-primary);
+  font-size: 12px;
+  font-weight: 600;
+  transition: transform 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.schedule-panel .time-picker.data-v-61228d3b:active {
+  transform: scale(0.97);
+}
+.schedule-panel .time-picker .time-value.data-v-61228d3b {
+  color: var(--theme-primary);
+}
+
+/* === 备注 === */
+.note-input.data-v-61228d3b {
+  width: 100%;
+  min-height: 140rpx;
+  padding: 20rpx;
+  border-radius: 8px;
+  background-color: #F5F0EB;
+  font-size: 14px;
+  color: #2C1B14;
+  box-sizing: border-box;
+  line-height: 1.75;
+}
+.note-placeholder.data-v-61228d3b {
+  color: #A8A29E;
+}
+.note-count.data-v-61228d3b {
+  display: block;
+  text-align: right;
+  margin-top: 10rpx;
+  font-size: 10px;
+  color: #78716C;
+}
+
+/* === 点单人 === */
+.user-row.data-v-61228d3b {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.user-row .section-title.data-v-61228d3b {
+  margin-bottom: 0;
+}
+.user-row .user-info.data-v-61228d3b {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+.user-row .user-info .user-avatar.data-v-61228d3b {
+  width: 48rpx;
+  height: 48rpx;
+  border-radius: 50%;
+  background-color: var(--theme-secondary);
+}
+.user-row .user-info .user-avatar.placeholder.data-v-61228d3b {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28rpx;
+}
+.user-row .user-info .user-name.data-v-61228d3b {
+  font-size: 14px;
+  color: #2C1B14;
+  font-weight: 500;
+}
+
+/* === 底部提交栏 === */
+.bottom-bar.data-v-61228d3b {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 24rpx 32rpx;
+  padding-bottom: calc(24rpx + env(safe-area-inset-bottom));
+  background-color: rgba(255, 251, 245, 0.96);
+  backdrop-filter: blur(20rpx);
+  -webkit-backdrop-filter: blur(20rpx);
+  position: relative;
+}
+.bottom-bar.data-v-61228d3b::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background-color: rgba(231, 229, 228, 0.8);
+  transform: scaleY(0.5);
+  transform-origin: 0 100%;
+}
+.bottom-bar .submit-btn.data-v-61228d3b {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16rpx 32rpx;
+  border-radius: 9999px;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 1;
+  transition: transform 150ms cubic-bezier(0.4, 0, 0.2, 1), opacity 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  background-color: var(--theme-primary);
+  color: var(--theme-primary-foreground);
+  width: 100%;
+  padding: 28rpx 0;
+  border-radius: 9999px;
+  font-size: 16px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  box-shadow: 0 6rpx 20rpx rgba(0, 0, 0, 0.12);
+  transition: transform 150ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.bottom-bar .submit-btn.data-v-61228d3b:active {
+  transform: scale(0.96);
+  opacity: 0.85;
+}
+.bottom-bar .submit-btn .submit-text.data-v-61228d3b {
+  color: inherit;
+}
+.bottom-bar .submit-btn .spinner.data-v-61228d3b {
+  width: 32rpx;
+  height: 32rpx;
+  border: 4rpx solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 800ms linear infinite;
+}
+.bottom-bar .submit-btn.loading.data-v-61228d3b {
+  opacity: 0.85;
+}

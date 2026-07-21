@@ -1,0 +1,48 @@
+{
+    "bsonType": "object",
+    "required": ["openid"],
+    "permission": {
+        "read": "auth.uid != null",
+        "create": true,
+        "update": "auth.uid != null",
+        "delete": false
+    },
+    "properties": {
+        "_id": {
+            "description": "ID"
+        },
+        "openid": {
+            "bsonType": "string",
+            "description": "微信 openid，唯一标识",
+            "trim": "both"
+        },
+        "nickname": {
+            "bsonType": "string",
+            "description": "用户昵称",
+            "trim": "both",
+            "defaultValue": "微信用户"
+        },
+        "avatar": {
+            "bsonType": "string",
+            "description": "头像 URL",
+            "defaultValue": ""
+        },
+        "role": {
+            "bsonType": "string",
+            "description": "角色：orderer 下单人 / admin 管理员；新用户为空字符串待选择",
+            "enum": ["orderer", "admin"]
+        },
+        "familyId": {
+            "bsonType": "string",
+            "description": "所属家庭 ID（单家庭场景下所有用户共享同一值）",
+            "defaultValue": "default"
+        },
+        "createTime": {
+            "bsonType": "timestamp",
+            "description": "创建时间",
+            "forceDefaultValue": {
+                "$env": "now"
+            }
+        }
+    }
+}

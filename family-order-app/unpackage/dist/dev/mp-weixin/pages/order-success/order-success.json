@@ -1,0 +1,9 @@
+{
+  "navigationStyle": "custom",
+  "navigationBarTitleText": "下单成功",
+  "usingComponents": {
+    "icon": "../../components/icons/Icon",
+    "error-state": "../../components/error-state/error-state",
+    "status-badge": "../../components/status-badge/status-badge"
+  }
+}

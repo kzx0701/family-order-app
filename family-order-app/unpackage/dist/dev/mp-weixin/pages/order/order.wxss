@@ -1,0 +1,422 @@
+/**
+ * uniapp 内置 SCSS 变量文件
+ * 此文件会被自动注入到每个组件的 <style lang="scss"> 中
+ * 因此只能包含变量声明与 mixin 定义，不能包含会生成 CSS 输出的规则
+ */
+/* 引入设计 token 变量（仅变量声明，无 CSS 输出） */
+/**
+ * 设计 Token - SCSS 变量定义
+ * 从 colors_and_type.css 提取并转换为 SCSS 变量
+ * 此文件仅包含变量声明，不生成 CSS 输出（可安全被 uni.scss 自动注入）
+ */
+/* === 暖奶油底色（全局背景） === */
+/* === 品牌主色：暖奶油 === */
+/* === 咖啡棕系（咖啡主题主色） === */
+/* === 美食绿系（美食主题主色） === */
+/* === neutral 灰阶 === */
+/* === 状态色 === */
+/* === 语义别名（指向常用 token） === */
+/* === 圆角 === */
+/* === 字体 === */
+/* === 字号 === */
+/* === 字重 === */
+/* === 行高 === */
+/* === 阴影 === */
+/* === 间距（rpx 适配小程序） === */
+/* === 动效时长与缓动 === */
+/* === 安全区域 === */
+/* 引入 mixin 定义（仅 @mixin，无 CSS 输出） */
+/**
+ * 通用 SCSS Mixin
+ * 此文件仅包含 @mixin 定义，不生成 CSS 输出（可安全被 uni.scss 自动注入）
+ */
+/* === 卡片样式 === */
+/* 主题卡片：带主题色渐变背景 */
+/* === 按钮 === */
+/* 主题主按钮 */
+/* 次级按钮 */
+/* 禁用按钮 */
+/* 圆形图标按钮（如返回按钮、加号按钮） */
+/* === 安全区域 === */
+/* === 文本省略 === */
+/* === flex 工具 === */
+/* === 状态徽章 === */
+/* === 1px 细边框（小程序适配） === */
+/* === 点击反馈 === */
+/* === uniapp 内置变量映射到设计 token === */
+/* 主色调：暖奶油 / 咖啡棕 */
+/* 文字色 */
+/* 背景色 */
+/* 边框色 */
+/* 字号 */
+/* 间距 */
+/* 圆角 */
+.page-order.data-v-93207a4f {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #FFFBF5;
+  transition: background-color 250ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* === 顶部 header === */
+.header.data-v-93207a4f {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 40rpx 32rpx 24rpx;
+  position: relative;
+  z-index: 10;
+}
+.header .back-btn.data-v-93207a4f,
+.header .cart-btn.data-v-93207a4f {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 50%;
+  background-color: var(--theme-secondary);
+  color: var(--theme-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 150ms cubic-bezier(0.34, 1.56, 0.64, 1), background-color 250ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.header .back-btn.data-v-93207a4f:active,
+.header .cart-btn.data-v-93207a4f:active {
+  transform: scale(0.9);
+}
+.header .title.data-v-93207a4f {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--theme-primary);
+  transition: color 250ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.header .cart-btn.data-v-93207a4f {
+  position: relative;
+}
+.header .cart-btn .cart-badge.data-v-93207a4f {
+  position: absolute;
+  top: -8rpx;
+  right: -8rpx;
+  min-width: 32rpx;
+  height: 32rpx;
+  padding: 0 8rpx;
+  border-radius: 9999px;
+  background-color: var(--theme-primary);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.header .cart-btn.shake.data-v-93207a4f {
+  animation: cartShake-93207a4f 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes cartShake-93207a4f {
+0%, 100% {
+    transform: scale(1) rotate(0deg);
+}
+20% {
+    transform: scale(1.25) rotate(-12deg);
+}
+50% {
+    transform: scale(0.9) rotate(8deg);
+}
+80% {
+    transform: scale(1.08) rotate(-3deg);
+}
+}
+/* === 主体内容 === */
+.content.data-v-93207a4f {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+/* === 左侧分类导航 === */
+.sidebar.data-v-93207a4f {
+  width: 160rpx;
+  background-color: var(--theme-secondary);
+  flex-shrink: 0;
+  height: 100%;
+  transition: background-color 250ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.sidebar .cat-item.data-v-93207a4f {
+  position: relative;
+  padding: 32rpx 0;
+  text-align: center;
+  transition: background-color 250ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.sidebar .cat-item .cat-indicator.data-v-93207a4f {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%) scaleY(0);
+  width: 6rpx;
+  height: 48rpx;
+  border-radius: 9999px;
+  background-color: var(--theme-primary);
+  transition: transform 250ms cubic-bezier(0.34, 1.56, 0.64, 1), background-color 250ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.sidebar .cat-item .cat-name.data-v-93207a4f {
+  font-size: 12px;
+  color: #78716C;
+  transition: color 250ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.sidebar .cat-item.active.data-v-93207a4f {
+  background-color: #FFFFFF;
+}
+.sidebar .cat-item.active .cat-indicator.data-v-93207a4f {
+  transform: translateY(-50%) scaleY(1);
+}
+.sidebar .cat-item.active .cat-name.data-v-93207a4f {
+  color: var(--theme-primary);
+  font-weight: 600;
+}
+
+/* === 右侧菜品列表 === */
+.dish-list.data-v-93207a4f {
+  flex: 1;
+  height: 100%;
+  padding: 0 24rpx;
+  /* 骨架屏容器：与菜品区段一致的纵向内边距 */
+}
+.dish-list .dish-skeleton.data-v-93207a4f {
+  padding: 16rpx 0;
+}
+.dish-list .dish-section.data-v-93207a4f {
+  padding: 16rpx 0;
+}
+.dish-list .dish-section .section-header.data-v-93207a4f {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 16rpx 8rpx 20rpx;
+}
+.dish-list .dish-section .section-header .section-title.data-v-93207a4f {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--theme-text);
+  transition: color 250ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.dish-list .dish-section .section-header .section-deco.data-v-93207a4f {
+  font-size: 12px;
+}
+.dish-list .dish-section .dish-grid.data-v-93207a4f {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+.dish-list .dish-section .section-empty.data-v-93207a4f {
+  padding: 40rpx 0;
+  text-align: center;
+}
+.dish-list .dish-section .section-empty .section-empty-text.data-v-93207a4f {
+  font-size: 10px;
+  color: #78716C;
+}
+.dish-list .list-bottom-spacer.data-v-93207a4f {
+  height: 40rpx;
+}
+
+/* === 加载与空状态 === */
+.state-block.data-v-93207a4f {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16rpx;
+  padding: 120rpx 0;
+}
+.state-block .loading-dots.data-v-93207a4f {
+  display: flex;
+  gap: 8rpx;
+}
+.state-block .loading-dots .dot.data-v-93207a4f {
+  font-size: 22px;
+  color: var(--theme-primary);
+  animation: dotBlink-93207a4f 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+.state-block .loading-dots .dot.data-v-93207a4f:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.state-block .loading-dots .dot.data-v-93207a4f:nth-child(3) {
+  animation-delay: 0.4s;
+}
+.state-block .state-emoji.data-v-93207a4f {
+  font-size: 96rpx;
+  line-height: 1;
+  animation: pulse 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+.state-block .state-text.data-v-93207a4f {
+  font-size: 12px;
+  color: #78716C;
+  text-align: center;
+  line-height: 1.75;
+  white-space: pre-line;
+}
+.state-block .state-action.data-v-93207a4f {
+  margin-top: 8rpx;
+  padding: 12rpx 32rpx;
+  border-radius: 9999px;
+  background-color: var(--theme-secondary);
+  transition: transform 150ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.state-block .state-action.data-v-93207a4f:active {
+  transform: scale(0.96);
+}
+.state-block .state-action .state-action-text.data-v-93207a4f {
+  color: var(--theme-primary);
+  font-size: 12px;
+  font-weight: 500;
+}
+@keyframes dotBlink-93207a4f {
+0%, 100% {
+    opacity: 0.3;
+}
+50% {
+    opacity: 1;
+}
+}
+/* === 底部购物车条 === */
+.cart-bar.data-v-93207a4f {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20rpx 32rpx;
+  background-color: #FFFFFF;
+  position: relative;
+  padding-bottom: calc(20rpx + env(safe-area-inset-bottom) + 80rpx);
+  gap: 24rpx;
+}
+.cart-bar.data-v-93207a4f::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background-color: #E7E5E4;
+  transform: scaleY(0.5);
+  transform-origin: 0 100%;
+}
+.cart-bar .cart-icon-wrap.data-v-93207a4f {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.cart-bar .cart-icon-wrap .cart-icon-circle.data-v-93207a4f {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 50%;
+  background-color: #E7E5E4;
+  color: #A8A29E;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 250ms cubic-bezier(0.4, 0, 0.2, 1), color 250ms cubic-bezier(0.4, 0, 0.2, 1), transform 250ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.cart-bar .cart-icon-wrap .cart-icon-circle.active.data-v-93207a4f {
+  background-color: var(--theme-primary);
+  color: #fff;
+  transform: scale(1.05);
+}
+.cart-bar .submit-btn.data-v-93207a4f {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16rpx 32rpx;
+  border-radius: 9999px;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 1;
+  transition: transform 150ms cubic-bezier(0.4, 0, 0.2, 1), opacity 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  background-color: var(--theme-primary);
+  color: var(--theme-primary-foreground);
+  padding: 20rpx 56rpx;
+  transition: background-color 250ms cubic-bezier(0.4, 0, 0.2, 1), transform 150ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.cart-bar .submit-btn.data-v-93207a4f:active {
+  transform: scale(0.96);
+  opacity: 0.85;
+}
+.cart-bar .submit-btn .submit-text.data-v-93207a4f {
+  color: inherit;
+  font-size: 14px;
+  font-weight: 600;
+}
+.cart-bar .submit-btn.disabled.data-v-93207a4f {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16rpx 32rpx;
+  border-radius: 9999px;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 1;
+  transition: transform 150ms cubic-bezier(0.4, 0, 0.2, 1), opacity 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  background-color: #E7E5E4;
+  color: #A8A29E;
+  /* 置灰时移除点击反馈，视觉上明确不可点击 */
+}
+.cart-bar .submit-btn.disabled.data-v-93207a4f:active {
+  transform: scale(0.96);
+  opacity: 0.85;
+}
+.cart-bar .submit-btn.disabled.data-v-93207a4f:active {
+  transform: none;
+  opacity: 1;
+}
+
+/* === 飞入动效层 === */
+.fly-layer.data-v-93207a4f {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+}
+.fly-item.data-v-93207a4f {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 40px;
+  height: 40px;
+  pointer-events: none;
+  animation: flyArc-93207a4f 0.8s cubic-bezier(0.4, 0, 0.6, 1) forwards;
+}
+.fly-item .fly-img.data-v-93207a4f {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 2rpx solid #fff;
+  box-shadow: 0 2px 8px rgba(44, 27, 20, 0.06), 0 4px 16px rgba(44, 27, 20, 0.04);
+}
+.fly-item .fly-emoji.data-v-93207a4f {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32rpx;
+  background-color: var(--theme-secondary);
+  border-radius: 50%;
+  border: 2rpx solid #fff;
+  box-shadow: 0 2px 8px rgba(44, 27, 20, 0.06), 0 4px 16px rgba(44, 27, 20, 0.04);
+}
+@keyframes flyArc-93207a4f {
+0% {
+    transform: translate(var(--sx, 0), var(--sy, 0)) scale(1);
+    opacity: 1;
+}
+50% {
+    transform: translate(var(--px, 0), var(--py, 0)) scale(0.6);
+    opacity: 1;
+}
+100% {
+    transform: translate(var(--ex, 0), var(--ey, 0)) scale(0.2);
+    opacity: 0;
+}
+}

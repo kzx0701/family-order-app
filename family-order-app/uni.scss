@@ -1,0 +1,52 @@
+/**
+ * uniapp 内置 SCSS 变量文件
+ * 此文件会被自动注入到每个组件的 <style lang="scss"> 中
+ * 因此只能包含变量声明与 mixin 定义，不能包含会生成 CSS 输出的规则
+ */
+
+/* 引入设计 token 变量（仅变量声明，无 CSS 输出） */
+@import '@/scss/tokens.scss';
+
+/* 引入 mixin 定义（仅 @mixin，无 CSS 输出） */
+@import '@/scss/mixins.scss';
+
+/* === uniapp 内置变量映射到设计 token === */
+
+/* 主色调：暖奶油 / 咖啡棕 */
+$uni-color-primary: $color-coffee-600;
+$uni-color-success: $color-state-success;
+$uni-color-warning: $color-state-warning;
+$uni-color-error: $color-state-error;
+
+/* 文字色 */
+$uni-text-color: $color-text;
+$uni-text-color-inverse: #ffffff;
+$uni-text-color-grey: $color-text-muted;
+$uni-text-color-placeholder: $color-neutral-400;
+$uni-text-color-disable: $color-neutral-300;
+
+/* 背景色 */
+$uni-bg-color: $color-bg;
+$uni-bg-color-grey: $color-neutral-100;
+$uni-bg-color-hover: $color-neutral-100;
+$uni-bg-color-mask: rgba(0, 0, 0, 0.4);
+
+/* 边框色 */
+$uni-border-color: $color-border;
+
+/* 字号 */
+$uni-font-size-sm: $font-size-sm;
+$uni-font-size-base: $font-size-base;
+$uni-font-size-lg: $font-size-lg;
+
+/* 间距 */
+$uni-spacing-row-sm: 8rpx;
+$uni-spacing-row-base: 16rpx;
+$uni-spacing-col-sm: 10rpx;
+$uni-spacing-col-base: 20rpx;
+
+/* 圆角 */
+$uni-border-radius-sm: $radius-sm;
+$uni-border-radius-base: $radius-md;
+$uni-border-radius-lg: $radius-lg;
+$uni-border-radius-circle: 50%;

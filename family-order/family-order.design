@@ -1,0 +1,397 @@
+{
+  "data": [
+    {
+      "id": "page-home",
+      "title": "首页",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1753000000000,
+      "canvasData": {
+        "x": 1460,
+        "y": 0,
+        "group": 0
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/home.html",
+        "interactions": [
+          {
+            "domId": "entry-coffee",
+            "targetPageId": "page-order-coffee",
+            "transitionLabel": "进入咖啡点单"
+          },
+          {
+            "domId": "entry-food",
+            "targetPageId": "page-order-food",
+            "transitionLabel": "进入美食点单"
+          },
+          {
+            "domId": "tab-order",
+            "targetPageId": "page-order-coffee",
+            "hideEdge": true,
+            "transitionLabel": "点单"
+          },
+          {
+            "domId": "tab-history",
+            "targetPageId": "page-order-history",
+            "hideEdge": true,
+            "transitionLabel": "记录"
+          }
+        ]
+      }
+    },
+    {
+      "id": "page-order-coffee",
+      "title": "咖啡点单",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1753000001000,
+      "canvasData": {
+        "x": 200,
+        "y": 0,
+        "group": 0
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/order-coffee.html",
+        "interactions": [
+          {
+            "domId": "product-coffee-1",
+            "targetPageId": "page-dish-detail",
+            "transitionLabel": "查看咖啡详情"
+          },
+          {
+            "domId": "product-coffee-2",
+            "targetPageId": "page-dish-detail",
+            "hideEdge": true,
+            "transitionLabel": "查看咖啡详情"
+          },
+          {
+            "domId": "product-coffee-3",
+            "targetPageId": "page-dish-detail",
+            "hideEdge": true,
+            "transitionLabel": "查看咖啡详情"
+          },
+          {
+            "domId": "product-coffee-4",
+            "targetPageId": "page-dish-detail",
+            "hideEdge": true,
+            "transitionLabel": "查看咖啡详情"
+          },
+          {
+            "domId": "product-coffee-5",
+            "targetPageId": "page-dish-detail",
+            "hideEdge": true,
+            "transitionLabel": "查看咖啡详情"
+          },
+          {
+            "domId": "submit-order-coffee",
+            "targetPageId": "page-order-success",
+            "transitionLabel": "提交咖啡订单"
+          },
+          {
+            "domId": "back-home",
+            "targetPageId": "page-home",
+            "hideEdge": true,
+            "transitionLabel": "返回首页"
+          },
+          {
+            "domId": "tab-home",
+            "targetPageId": "page-home",
+            "hideEdge": true,
+            "transitionLabel": "首页"
+          },
+          {
+            "domId": "tab-history",
+            "targetPageId": "page-order-history",
+            "hideEdge": true,
+            "transitionLabel": "记录"
+          }
+        ]
+      }
+    },
+    {
+      "id": "page-order-food",
+      "title": "美食点单",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1753000002000,
+      "canvasData": {
+        "x": 200,
+        "y": 590,
+        "group": 0
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/order-food.html",
+        "interactions": [
+          {
+            "domId": "product-food-1",
+            "targetPageId": "page-dish-detail",
+            "transitionLabel": "查看美食详情"
+          },
+          {
+            "domId": "product-food-2",
+            "targetPageId": "page-dish-detail",
+            "hideEdge": true,
+            "transitionLabel": "查看美食详情"
+          },
+          {
+            "domId": "product-food-3",
+            "targetPageId": "page-dish-detail",
+            "hideEdge": true,
+            "transitionLabel": "查看美食详情"
+          },
+          {
+            "domId": "product-food-4",
+            "targetPageId": "page-dish-detail",
+            "hideEdge": true,
+            "transitionLabel": "查看美食详情"
+          },
+          {
+            "domId": "product-food-5",
+            "targetPageId": "page-dish-detail",
+            "hideEdge": true,
+            "transitionLabel": "查看美食详情"
+          },
+          {
+            "domId": "submit-order-food",
+            "targetPageId": "page-order-success",
+            "transitionLabel": "提交美食订单"
+          },
+          {
+            "domId": "back-home",
+            "targetPageId": "page-home",
+            "hideEdge": true,
+            "transitionLabel": "返回首页"
+          },
+          {
+            "domId": "tab-home",
+            "targetPageId": "page-home",
+            "hideEdge": true,
+            "transitionLabel": "首页"
+          },
+          {
+            "domId": "tab-history",
+            "targetPageId": "page-order-history",
+            "hideEdge": true,
+            "transitionLabel": "记录"
+          }
+        ]
+      }
+    },
+    {
+      "id": "page-dish-detail",
+      "title": "菜品详情",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1753000003000,
+      "canvasData": {
+        "x": 620,
+        "y": 0,
+        "group": 0
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/dish-detail.html",
+        "interactions": [
+          {
+            "domId": "back-to-order",
+            "targetPageId": "page-order-coffee",
+            "hideEdge": true,
+            "transitionLabel": "返回点单"
+          },
+          {
+            "domId": "add-to-cart",
+            "targetPageId": "page-order-success",
+            "transitionLabel": "加入点单"
+          }
+        ]
+      }
+    },
+    {
+      "id": "page-order-success",
+      "title": "提交成功",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1753000004000,
+      "canvasData": {
+        "x": 1040,
+        "y": 0,
+        "group": 0
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/order-success.html",
+        "interactions": [
+          {
+            "domId": "back-home",
+            "targetPageId": "page-home",
+            "transitionLabel": "返回首页"
+          },
+          {
+            "domId": "view-history",
+            "targetPageId": "page-order-history",
+            "transitionLabel": "查看记录"
+          },
+          {
+            "domId": "tab-home",
+            "targetPageId": "page-home",
+            "hideEdge": true,
+            "transitionLabel": "首页"
+          },
+          {
+            "domId": "tab-order",
+            "targetPageId": "page-order-coffee",
+            "hideEdge": true,
+            "transitionLabel": "点单"
+          },
+          {
+            "domId": "tab-history",
+            "targetPageId": "page-order-history",
+            "hideEdge": true,
+            "transitionLabel": "记录"
+          }
+        ]
+      }
+    },
+    {
+      "id": "page-order-history",
+      "title": "点单记录",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1753000005000,
+      "canvasData": {
+        "x": 1460,
+        "y": 590,
+        "group": 0
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/order-history.html",
+        "interactions": [
+          {
+            "domId": "reorder-1",
+            "targetPageId": "page-order-coffee",
+            "hideEdge": true,
+            "transitionLabel": "再来一单"
+          },
+          {
+            "domId": "reorder-2",
+            "targetPageId": "page-order-food",
+            "hideEdge": true,
+            "transitionLabel": "再来一单"
+          },
+          {
+            "domId": "reorder-3",
+            "targetPageId": "page-order-coffee",
+            "hideEdge": true,
+            "transitionLabel": "再来一单"
+          },
+          {
+            "domId": "reorder-4",
+            "targetPageId": "page-order-food",
+            "hideEdge": true,
+            "transitionLabel": "再来一单"
+          },
+          {
+            "domId": "tab-home",
+            "targetPageId": "page-home",
+            "hideEdge": true,
+            "transitionLabel": "首页"
+          },
+          {
+            "domId": "tab-order",
+            "targetPageId": "page-order-coffee",
+            "hideEdge": true,
+            "transitionLabel": "点单"
+          }
+        ]
+      }
+    },
+    {
+      "id": "image-001",
+      "title": "首页横幅",
+      "type": "image",
+      "version": 1,
+      "createdAt": 1753000010000,
+      "canvasData": {
+        "x": 0,
+        "y": 1180
+      },
+      "devMetadata": {
+        "imageSrc": "assets/hero-banner.jpg"
+      }
+    },
+    {
+      "id": "image-002",
+      "title": "咖啡产品图",
+      "type": "image",
+      "version": 1,
+      "createdAt": 1753000011000,
+      "canvasData": {
+        "x": 420,
+        "y": 1180
+      },
+      "devMetadata": {
+        "imageSrc": "assets/coffee-products.jpg"
+      }
+    },
+    {
+      "id": "image-003",
+      "title": "美食产品图",
+      "type": "image",
+      "version": 1,
+      "createdAt": 1753000012000,
+      "canvasData": {
+        "x": 840,
+        "y": 1180
+      },
+      "devMetadata": {
+        "imageSrc": "assets/food-products.jpg"
+      }
+    },
+    {
+      "id": "image-004",
+      "title": "咖啡详情图",
+      "type": "image",
+      "version": 1,
+      "createdAt": 1753000013000,
+      "canvasData": {
+        "x": 1260,
+        "y": 1180
+      },
+      "devMetadata": {
+        "imageSrc": "assets/coffee-detail.jpg"
+      }
+    },
+    {
+      "id": "image-005",
+      "title": "下单成功插图",
+      "type": "image",
+      "version": 1,
+      "createdAt": 1753000014000,
+      "canvasData": {
+        "x": 1680,
+        "y": 1180
+      },
+      "devMetadata": {
+        "imageSrc": "assets/order-success.jpg"
+      }
+    },
+    {
+      "id": "image-006",
+      "title": "美食详情图",
+      "type": "image",
+      "version": 1,
+      "createdAt": 1753000015000,
+      "canvasData": {
+        "x": 2100,
+        "y": 1180
+      },
+      "devMetadata": {
+        "imageSrc": "assets/food-detail.jpg"
+      }
+    }
+  ],
+  "config": {
+    "autoLayout": true,
+    "deviceType": "mobile",
+    "projectName": "家庭点单小程序",
+    "designLibrary": null
+  }
+}

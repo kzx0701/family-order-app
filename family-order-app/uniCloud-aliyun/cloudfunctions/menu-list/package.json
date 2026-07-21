@@ -1,0 +1,7 @@
+{
+    "name": "menu-list",
+    "version": "1.0.0",
+    "description": "点单页菜单查询：返回指定类型(coffee/food)的分类与上架菜品列表，构造推荐分类置顶",
+    "main": "index.js",
+    "dependencies": {}
+}

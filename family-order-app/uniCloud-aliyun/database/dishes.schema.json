@@ -1,0 +1,80 @@
+{
+    "bsonType": "object",
+    "required": ["name", "type"],
+    "permission": {
+        "read": true,
+        "create": "auth.uid != null && db.collection('users').doc(auth.uid).data.role == 'admin'",
+        "update": "auth.uid != null && db.collection('users').doc(auth.uid).data.role == 'admin'",
+        "delete": "auth.uid != null && db.collection('users').doc(auth.uid).data.role == 'admin'"
+    },
+    "properties": {
+        "_id": {
+            "description": "ID"
+        },
+        "name": {
+            "bsonType": "string",
+            "description": "菜品名称",
+            "trim": "both",
+            "label": "名称",
+            "errorMessage": "菜品名称必填"
+        },
+        "image": {
+            "bsonType": "string",
+            "description": "菜品图片 URL（uniCloud 云存储）",
+            "label": "图片",
+            "defaultValue": ""
+        },
+        "description": {
+            "bsonType": "string",
+            "description": "菜品描述",
+            "trim": "both",
+            "label": "描述",
+            "defaultValue": ""
+        },
+        "type": {
+            "bsonType": "string",
+            "description": "类型：coffee 咖啡 / food 美食",
+            "enum": ["coffee", "food"],
+            "label": "类型",
+            "errorMessage": "类型必填且只能为 coffee 或 food"
+        },
+        "categoryId": {
+            "bsonType": "string",
+            "description": "所属分类 ID",
+            "label": "分类",
+            "defaultValue": ""
+        },
+        "isOnSale": {
+            "bsonType": "bool",
+            "description": "是否上架",
+            "defaultValue": true,
+            "label": "上架状态"
+        },
+        "isRecommended": {
+            "bsonType": "bool",
+            "description": "是否推荐（推荐菜品显示在点单页推荐区）",
+            "defaultValue": false,
+            "label": "推荐状态"
+        },
+        "sortOrder": {
+            "bsonType": "int",
+            "description": "排序值（越小越靠前）",
+            "defaultValue": 0,
+            "label": "排序"
+        },
+        "createTime": {
+            "bsonType": "timestamp",
+            "description": "创建时间",
+            "forceDefaultValue": {
+                "$env": "now"
+            }
+        },
+        "updateTime": {
+            "bsonType": "timestamp",
+            "description": "更新时间",
+            "forceDefaultValue": {
+                "$env": "now"
+            }
+        }
+    }
+}

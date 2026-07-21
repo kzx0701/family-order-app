@@ -1,0 +1,7 @@
+{
+    "name": "orders-crud",
+    "version": "1.0.0",
+    "description": "订单 CRUD + 状态流转：create 创建 / list 列表查询 / get 详情 / updateStatus 状态流转（admin 推进 / owner 或 admin 取消）/ cancel 取消便捷方法，单家庭共享所有订单",
+    "main": "index.js",
+    "dependencies": {}
+}
