@@ -67,7 +67,6 @@
   display: flex;
   flex-direction: column;
   gap: 24rpx;
-  /* 切换为下单人按钮 */
   /* 统计卡片：今日订单 + 待制作 */
 }
 .header .header-top.data-v-dbc77958 {
@@ -91,24 +90,6 @@
 .header .subtitle.data-v-dbc77958 {
   font-size: 12px;
   color: #78716C;
-}
-.header .role-switch-btn.data-v-dbc77958 {
-  display: flex;
-  align-items: center;
-  gap: 6rpx;
-  padding: 10rpx 20rpx;
-  border-radius: 9999px;
-  background-color: #FFFFFF;
-  border: 2rpx solid #E8D0B3;
-  color: #6F4E37;
-  font-size: 10px;
-  font-weight: 500;
-  transition: transform 150ms cubic-bezier(0.4, 0, 0.2, 1);
-  flex-shrink: 0;
-  box-shadow: 0 1px 2px rgba(44, 27, 20, 0.04), 0 1px 3px rgba(44, 27, 20, 0.06);
-}
-.header .role-switch-btn.data-v-dbc77958:active {
-  transform: scale(0.97);
 }
 .header .stats-card.data-v-dbc77958 {
   display: flex;
@@ -201,12 +182,12 @@ to {
     width: 48rpx;
 }
 }
-/* === 菜单类型切换行 === */
+/* === 菜单类型切换行（仅菜单切换按钮） === */
 .menu-switch-row.data-v-dbc77958 {
   display: flex;
   align-items: center;
   gap: 16rpx;
-  padding: 0 32rpx 24rpx;
+  padding: 0 32rpx 16rpx;
 }
 .menu-switch-row .menu-switch.data-v-dbc77958 {
   flex: 1;
@@ -236,7 +217,15 @@ to {
   color: #fff;
   box-shadow: 0 4rpx 12rpx rgba(22, 163, 74, 0.25);
 }
-.menu-switch-row .cat-entry.data-v-dbc77958 {
+
+/* === 分类行：分类入口 + 横向分类筛选 === */
+.cat-row.data-v-dbc77958 {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  padding: 0 32rpx 24rpx;
+}
+.cat-row .cat-entry.data-v-dbc77958 {
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -249,8 +238,40 @@ to {
   font-weight: 500;
   transition: transform 150ms cubic-bezier(0.4, 0, 0.2, 1);
 }
-.menu-switch-row .cat-entry.data-v-dbc77958:active {
+.cat-row .cat-entry.data-v-dbc77958:active {
   transform: scale(0.97);
+}
+.cat-row .cat-filter-scroll.data-v-dbc77958 {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 12rpx;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.cat-row .cat-filter-scroll.data-v-dbc77958::-webkit-scrollbar {
+  display: none;
+}
+.cat-row .cat-filter-pill.data-v-dbc77958 {
+  flex-shrink: 0;
+  padding: 12rpx 24rpx;
+  border-radius: 9999px;
+  background-color: #FFFFFF;
+  color: #78716C;
+  font-size: 12px;
+  font-weight: 500;
+  transition: transform 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 2px rgba(44, 27, 20, 0.04), 0 1px 3px rgba(44, 27, 20, 0.06);
+}
+.cat-row .cat-filter-pill.data-v-dbc77958:active {
+  transform: scale(0.97);
+}
+.cat-row .cat-filter-pill.active.data-v-dbc77958 {
+  background: linear-gradient(135deg, #8B6F47, #6F4E37);
+  color: #fff;
+  box-shadow: 0 4rpx 12rpx rgba(111, 78, 55, 0.25);
 }
 .dish-list.data-v-dbc77958 {
   padding: 0 32rpx;
@@ -265,17 +286,53 @@ to {
 .order-skeleton.data-v-dbc77958 {
   padding: 0 32rpx;
 }
+
+/* === 菜品滑动删除容器 === */
+.dish-swipe-item.data-v-dbc77958 {
+  position: relative;
+  overflow: hidden;
+  border-radius: 20px;
+  margin-bottom: 20rpx;
+}
+
+/* 右侧滑动操作区 */
+.dish-swipe-actions.data-v-dbc77958 {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: stretch;
+  z-index: 1;
+}
+.dish-swipe-actions .dish-swipe-btn.data-v-dbc77958 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 160rpx;
+  font-size: 12px;
+  font-weight: 500;
+  color: #fff;
+}
+.dish-swipe-actions .dish-swipe-btn.data-v-dbc77958:active {
+  opacity: 0.85;
+}
+.dish-swipe-actions .delete.data-v-dbc77958 {
+  background-color: #EF4444;
+}
 .dish-card.data-v-dbc77958 {
+  position: relative;
+  z-index: 2;
   display: flex;
   align-items: center;
   gap: 20rpx;
   padding: 20rpx;
-  margin-bottom: 20rpx;
   background-color: #FFFFFF;
   border-radius: 20px;
   box-shadow: 0 1px 2px rgba(44, 27, 20, 0.04), 0 1px 3px rgba(44, 27, 20, 0.06);
   border-left: 8rpx solid transparent;
-  transition: transform 250ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  transition: box-shadow 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  /* 吸附/回弹时的丝滑过渡 */
 }
 .dish-card.coffee.data-v-dbc77958 {
   border-left-color: #C4956A;
@@ -283,8 +340,8 @@ to {
 .dish-card.food.data-v-dbc77958 {
   border-left-color: #7A8E64;
 }
-.dish-card.data-v-dbc77958:active {
-  transform: scale(0.99);
+.dish-card.swipe-animating.data-v-dbc77958 {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .dish-image.data-v-dbc77958 {
   position: relative;
@@ -400,30 +457,14 @@ to {
 .dish-info .dish-cat .dish-cat-dot.data-v-dbc77958 {
   font-size: 10rpx;
 }
-.dish-actions.data-v-dbc77958 {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12rpx;
+
+/* 菜品上架开关（卡片内右侧） */
+.dish-sale-toggle.data-v-dbc77958 {
   flex-shrink: 0;
-}
-.dish-actions .icon-btn.data-v-dbc77958 {
-  width: 56rpx;
-  height: 56rpx;
-  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #78716C;
-  background-color: #F5F5F4;
-  transition: transform 150ms cubic-bezier(0.4, 0, 0.2, 1);
-}
-.dish-actions .icon-btn.data-v-dbc77958:active {
-  transform: scale(0.9);
-}
-.dish-actions .icon-btn.danger.data-v-dbc77958 {
-  color: #EF4444;
+  padding: 8rpx;
 }
 .fab.data-v-dbc77958 {
   position: fixed;
@@ -713,13 +754,6 @@ to {
 .cat-group.data-v-dbc77958 {
   margin-bottom: 24rpx;
 }
-.cat-group .cat-group-title.data-v-dbc77958 {
-  font-size: 12px;
-  color: #6F4E37;
-  font-weight: 600;
-  margin-bottom: 12rpx;
-  padding-left: 8rpx;
-}
 .cat-item.data-v-dbc77958 {
   display: flex;
   align-items: center;
@@ -852,6 +886,115 @@ to {
   flex-direction: column;
   gap: 20rpx;
   padding: 0 32rpx;
+}
+
+/* === 订单滑动卡片容器 === */
+.order-swipe-item.data-v-dbc77958 {
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+}
+
+/* 右侧滑动操作区 */
+.order-swipe-actions.data-v-dbc77958 {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: stretch;
+  z-index: 1;
+}
+.order-swipe-actions .order-swipe-btn.data-v-dbc77958 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 160rpx;
+  font-size: 12px;
+  font-weight: 500;
+  color: #fff;
+}
+.order-swipe-actions .order-swipe-btn.data-v-dbc77958:active {
+  opacity: 0.85;
+}
+.order-swipe-actions .cancel.data-v-dbc77958 {
+  background-color: #9CA3AF;
+}
+.order-swipe-actions .delete.data-v-dbc77958 {
+  background-color: #EF4444;
+}
+
+/* === 订单卡片主体 === */
+.order-swipe-card.data-v-dbc77958 {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  padding: 20rpx;
+  background-color: #FFFFFF;
+  border-radius: 16px;
+  box-shadow: 0 1px 2px rgba(44, 27, 20, 0.04), 0 1px 3px rgba(44, 27, 20, 0.06);
+  transition: box-shadow 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  /* 吸附/回弹时的丝滑过渡 */
+  /* 状态变化时整体闪光，强化动效反馈 */
+  /* 左侧 emoji 图标 */
+  /* 中部内容 */
+  /* 右侧：状态徽章 */
+}
+.order-swipe-card.swipe-animating.data-v-dbc77958 {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.order-swipe-card.is-flashing.data-v-dbc77958 {
+  box-shadow: 0 0 0 4rpx rgba(255, 167, 38, 0.22), 0 2px 8px rgba(44, 27, 20, 0.06), 0 4px 16px rgba(44, 27, 20, 0.04);
+}
+.order-swipe-card .order-card-icon.data-v-dbc77958 {
+  flex-shrink: 0;
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 12px;
+  background-color: #FFF8F0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 44rpx;
+}
+.order-swipe-card .order-card-body.data-v-dbc77958 {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+.order-swipe-card .order-card-body .order-card-summary.data-v-dbc77958 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #3E2723;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  word-break: break-all;
+}
+.order-swipe-card .order-card-body .order-card-meta.data-v-dbc77958 {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  font-size: 10px;
+  color: #78716C;
+}
+.order-swipe-card .order-card-body .order-card-meta .meta-user.data-v-dbc77958 {
+  color: #8B6F47;
+  font-weight: 500;
+}
+.order-swipe-card .order-card-right.data-v-dbc77958 {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
 }
 
 /* 加载占位（与首页风格一致的三点动画） */

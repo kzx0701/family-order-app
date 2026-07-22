@@ -39,18 +39,30 @@
         <view v-else class="hero-placeholder">{{ heroEmoji }}</view>
         <!-- 渐变遮罩，增加视觉层次 -->
         <view class="hero-mask" />
+
+        <!-- 冷热氛围动效层：热饮热气升腾 / 冰饮冰霜流光（与列表同款语言） -->
+        <view v-if="showTemp" class="temp-fx" :class="dish.temp">
+          <template v-if="dish.temp === 'hot'">
+            <view class="steam-wisp wisp-1" />
+            <view class="steam-wisp wisp-2" />
+            <view class="steam-wisp wisp-3" />
+          </template>
+          <view v-else class="frost-sheen" />
+        </view>
+
+        <!-- 冷热浮动标识：大图右下角的渐变胶囊 -->
+        <view v-if="showTemp" class="temp-chip" :class="dish.temp">
+          <text class="temp-chip-icon">{{ dish.temp === 'ice' ? '❄' : '🔥' }}</text>
+          <text class="temp-chip-text">{{ dish.temp === 'ice' ? '冰饮' : '热饮' }}</text>
+        </view>
       </view>
 
-      <!-- 信息卡（与大图重叠，圆角浮起） -->
-      <view class="info-card animate-slide-up">
-        <!-- 标签行：分类 pill + 冷热徽章 -->
-        <view class="pill-row" v-if="categoryName || (dish.type === 'coffee' && dish.temp)">
-          <view v-if="categoryName" class="category-pill">
+      <!-- 信息卡（与大图重叠，圆角浮起；冷热时带同款氛围晕染） -->
+      <view class="info-card animate-slide-up" :class="tempClass">
+        <!-- 标签行：分类 pill -->
+        <view class="pill-row" v-if="categoryName">
+          <view class="category-pill">
             <text class="pill-text">{{ categoryName }}</text>
-          </view>
-          <view v-if="dish.type === 'coffee' && dish.temp" class="temp-pill" :class="dish.temp">
-            <text class="temp-pill-icon">{{ dish.temp === 'ice' ? '❄' : '🔥' }}</text>
-            <text class="temp-pill-text">{{ dish.temp === 'ice' ? '冰饮' : '热饮' }}</text>
           </view>
         </view>
 
@@ -113,7 +125,8 @@ const dish = ref({
   image: '',
   description: '',
   type: 'coffee',
-  categoryId: ''
+  categoryId: '',
+  temp: ''
 })
 
 /* === 分类名（单独查询，用于分类标签） === */
@@ -137,6 +150,12 @@ const themeClass = computed(() => `theme-${dish.value.type || 'coffee'}`)
 
 /* === 大图占位 emoji === */
 const heroEmoji = computed(() => (dish.value.type === 'food' ? '🍲' : '☕'))
+
+/* === 冷热状态（仅咖啡且有 temp 字段） === */
+const showTemp = computed(() => dish.value.type === 'coffee' && !!dish.value.temp)
+
+/* === 信息卡冷热氛围类：temp-ice / temp-hot === */
+const tempClass = computed(() => (showTemp.value ? `temp-${dish.value.temp}` : ''))
 
 /* === 加号：数量 +1 === */
 const onPlus = () => {
@@ -208,7 +227,8 @@ const loadDish = async (dishId) => {
       image: d.image || '',
       description: d.description || '',
       type: d.type || 'coffee',
-      categoryId: d.categoryId || ''
+      categoryId: d.categoryId || '',
+      temp: d.temp || ''
     }
     categoryName.value = d.categoryName || ''
   } catch (e) {
@@ -371,6 +391,125 @@ onLoad((options) => {
     );
     pointer-events: none;
   }
+
+  /* === 冷热氛围动效层（与列表 dish-card 同款语言，纯图形不涉及文字） === */
+  .temp-fx {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+
+    /* 热饮：三缕热气自杯中袅袅升起（大图版，更高更长） */
+    &.hot {
+      .steam-wisp {
+        position: absolute;
+        bottom: 160rpx;
+        width: 10rpx;
+        height: 34rpx;
+        border-radius: $radius-full;
+        background-color: rgba(255, 255, 255, 0.9);
+        box-shadow: 0 0 16rpx rgba(255, 255, 255, 0.8);
+        opacity: 0;
+        animation: steamRise 2.6s $ease-smooth infinite;
+      }
+
+      .wisp-1 {
+        left: 42%;
+      }
+
+      .wisp-2 {
+        left: 50%;
+        height: 44rpx;
+        animation-delay: 0.9s;
+      }
+
+      .wisp-3 {
+        left: 58%;
+        animation-delay: 1.8s;
+      }
+    }
+
+    /* 冰饮：一道冰霜流光周期性扫过杯面（大图版） */
+    &.ice {
+      .frost-sheen {
+        position: absolute;
+        top: -40%;
+        left: -30%;
+        width: 80rpx;
+        height: 180%;
+        transform: rotate(22deg);
+        background: linear-gradient(
+          90deg,
+          rgba(255, 255, 255, 0) 0%,
+          rgba(255, 255, 255, 0.55) 50%,
+          rgba(255, 255, 255, 0) 100%
+        );
+        animation: frostSweep 3s $ease-smooth infinite;
+      }
+    }
+  }
+
+  @keyframes steamRise {
+    0% {
+      transform: translateY(16rpx) scaleX(1);
+      opacity: 0;
+    }
+    30% {
+      opacity: 0.85;
+    }
+    60% {
+      transform: translateY(-32rpx) scaleX(1.4);
+    }
+    100% {
+      transform: translateY(-72rpx) scaleX(0.8);
+      opacity: 0;
+    }
+  }
+
+  @keyframes frostSweep {
+    0% {
+      left: -30%;
+    }
+    60%,
+    100% {
+      left: 110%;
+    }
+  }
+
+  /* === 冷热浮动标识：大图右下角的渐变胶囊（文字静止，无动画） === */
+  .temp-chip {
+    position: absolute;
+    right: 32rpx;
+    bottom: 80rpx; // 避开信息卡 48rpx 的重叠区
+    z-index: 3;
+    display: inline-flex;
+    align-items: center;
+    gap: 8rpx;
+    padding: 8rpx 26rpx;
+    border-radius: $radius-full;
+    line-height: 1.5;
+    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.18);
+
+    .temp-chip-icon {
+      font-size: 26rpx;
+      line-height: 1;
+      color: #fff;
+    }
+
+    .temp-chip-text {
+      font-size: 24rpx;
+      font-weight: $font-weight-semibold;
+      color: #fff;
+      letter-spacing: 2rpx;
+    }
+
+    &.ice {
+      background: linear-gradient(135deg, #7cb3f7 0%, #4a8cef 100%);
+    }
+
+    &.hot {
+      background: linear-gradient(135deg, #fbb25c 0%, #ef7d1a 100%);
+    }
+  }
 }
 
 /* === 信息卡 === */
@@ -384,8 +523,21 @@ onLoad((options) => {
   box-shadow: $shadow-md;
   display: flex;
   flex-direction: column;
+  border: 2rpx solid transparent;
+  transition: border-color $dur-base $ease-smooth;
 
-  // 标签行：分类 pill + 冷热徽章
+  /* 冷热氛围晕染（与列表卡片同款，呼应大图标识） */
+  &.temp-ice {
+    background: linear-gradient(160deg, $color-card 48%, rgba(191, 219, 254, 0.35) 100%);
+    border-color: rgba(147, 197, 253, 0.5);
+  }
+
+  &.temp-hot {
+    background: linear-gradient(160deg, $color-card 48%, rgba(254, 215, 170, 0.4) 100%);
+    border-color: rgba(253, 186, 116, 0.5);
+  }
+
+  // 标签行：分类 pill
   .pill-row {
     display: flex;
     align-items: center;
@@ -402,34 +554,6 @@ onLoad((options) => {
       font-size: $font-size-xs;
       color: var(--theme-secondary-foreground);
       font-weight: $font-weight-medium;
-    }
-  }
-
-  .temp-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 4rpx;
-    padding: 6rpx 20rpx;
-    border-radius: $radius-full;
-
-    .temp-pill-icon {
-      font-size: 20rpx;
-      line-height: 1;
-    }
-
-    .temp-pill-text {
-      font-size: $font-size-xs;
-      font-weight: $font-weight-medium;
-    }
-
-    &.ice {
-      background-color: #EFF6FF;
-      .temp-pill-icon, .temp-pill-text { color: #2563EB; }
-    }
-
-    &.hot {
-      background-color: #FEF2F2;
-      .temp-pill-icon, .temp-pill-text { color: #DC2626; }
     }
   }
 

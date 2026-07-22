@@ -195,6 +195,7 @@
   animation: slideUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) both;
   /* 卡片右上角高光 */
   /* 丝滑点击反馈：缩小 + 阴影收紧 */
+  /* 选中瞬间：卡片发光提亮，配合人物 cheer 弹跳 */
 }
 .role-card .card-shine.data-v-e10c152c {
   position: absolute;
@@ -218,43 +219,316 @@
   transform: scale(0.95);
   box-shadow: 0 2rpx 8rpx rgba(44, 27, 20, 0.1), 0 1rpx 3rpx rgba(44, 27, 20, 0.06);
 }
+.role-card.selected.data-v-e10c152c {
+  box-shadow: 0 12rpx 36rpx rgba(255, 255, 255, 0.45), 0 8rpx 24rpx rgba(44, 27, 20, 0.14);
+}
 
-/* 卡片插画区 */
-.card-illustration.data-v-e10c152c {
+/* ============================================================
+ * Q 版人物（纯 CSS 手绘，小程序零素材依赖）
+ * 结构：白色天鹅绒相框 > mascot 头部组合
+ * ============================================================ */
+.mascot-frame.data-v-e10c152c {
   position: relative;
   flex-shrink: 0;
-  width: 120rpx;
-  height: 120rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.card-illustration .card-emoji.data-v-e10c152c {
-  font-size: 80rpx;
-  line-height: 1;
-  /* 轻微浮动让插画有呼吸感 */
-  animation: pulse 3s ease-in-out infinite;
-}
-.card-illustration .card-icon-badge.data-v-e10c152c {
-  position: absolute;
-  bottom: -2rpx;
-  right: -2rpx;
-  width: 44rpx;
-  height: 44rpx;
+  width: 148rpx;
+  height: 148rpx;
   border-radius: 50%;
+  background: linear-gradient(160deg, #FFFDF9 0%, #FFF3E4 100%);
+  border: 4rpx solid rgba(255, 255, 255, 0.95);
+  box-shadow: 0 6rpx 16rpx rgba(44, 27, 20, 0.14), inset 0 -6rpx 12rpx rgba(44, 27, 20, 0.05);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 1px 2px rgba(44, 27, 20, 0.04), 0 1px 3px rgba(44, 27, 20, 0.06);
-  border: 2rpx solid rgba(255, 255, 255, 0.8);
-}
-.card-illustration .card-icon-badge.badge-coffee.data-v-e10c152c {
-  background-color: #6F4E37;
-}
-.card-illustration .card-icon-badge.badge-food.data-v-e10c152c {
-  background-color: #4A5E38;
+  overflow: hidden;
 }
 
+/* 人物整体：轻微上下浮动，有生命力 */
+.mascot.data-v-e10c152c {
+  position: relative;
+  width: 120rpx;
+  height: 120rpx;
+  animation: mascotBob-e10c152c 3.2s ease-in-out infinite;
+}
+.mascot.cheer.data-v-e10c152c {
+  animation: cheerJump-e10c152c 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes mascotBob-e10c152c {
+0%, 100% {
+    transform: translateY(0);
+}
+50% {
+    transform: translateY(-6rpx);
+}
+}
+/* 选中时的开心跳：上跃 + 微倾斜回弹 */
+@keyframes cheerJump-e10c152c {
+0% {
+    transform: translateY(0) scale(1) rotate(0deg);
+}
+40% {
+    transform: translateY(-18rpx) scale(1.1) rotate(-4deg);
+}
+70% {
+    transform: translateY(2rpx) scale(0.97) rotate(2deg);
+}
+100% {
+    transform: translateY(0) scale(1) rotate(0deg);
+}
+}
+/* --- 通用五官 --- */
+.face.data-v-e10c152c {
+  position: absolute;
+  left: 50%;
+  bottom: 4rpx;
+  transform: translateX(-50%);
+  width: 92rpx;
+  height: 84rpx;
+  border-radius: 48% 48% 50% 50%;
+  background-color: #FFE3C2;
+}
+.eye.data-v-e10c152c {
+  position: absolute;
+  top: 40rpx;
+  width: 12rpx;
+  height: 14rpx;
+  border-radius: 50%;
+  background-color: #4A2C1A;
+  animation: blink-e10c152c 4.2s ease-in-out infinite;
+  /* 眼睛高光点 */
+}
+.eye.eye-l.data-v-e10c152c {
+  left: 22rpx;
+}
+.eye.eye-r.data-v-e10c152c {
+  right: 22rpx;
+}
+.eye .spark.data-v-e10c152c {
+  position: absolute;
+  top: 2rpx;
+  left: 2rpx;
+  width: 4rpx;
+  height: 4rpx;
+  border-radius: 50%;
+  background-color: #fff;
+}
+
+/* 眨眼：周期内快速压扁一次 */
+@keyframes blink-e10c152c {
+0%, 91%, 100% {
+    transform: scaleY(1);
+}
+95% {
+    transform: scaleY(0.08);
+}
+}
+.blush.data-v-e10c152c {
+  position: absolute;
+  top: 56rpx;
+  width: 16rpx;
+  height: 10rpx;
+  border-radius: 50%;
+  background-color: rgba(255, 139, 139, 0.65);
+}
+.blush.blush-l.data-v-e10c152c {
+  left: 12rpx;
+}
+.blush.blush-r.data-v-e10c152c {
+  right: 12rpx;
+}
+
+/* 微笑：下弯弧线 */
+.mouth.data-v-e10c152c {
+  position: absolute;
+  left: 50%;
+  top: 52rpx;
+  transform: translateX(-50%);
+  width: 18rpx;
+  height: 12rpx;
+  border: 3rpx solid transparent;
+  border-bottom-color: #C9553E;
+  border-radius: 50%;
+}
+
+/* --- 女孩专属：咖啡棕双丸子头 --- */
+.mascot-girl.data-v-e10c152c {
+  /* 刘海：盖在额头上的半圆 */
+  /* 双丸子 */
+  /* 粉色蝴蝶结（右丸子旁） */
+}
+.mascot-girl .hair-back.data-v-e10c152c {
+  position: absolute;
+  left: 50%;
+  bottom: 14rpx;
+  transform: translateX(-50%);
+  width: 106rpx;
+  height: 96rpx;
+  border-radius: 50% 50% 46% 46%;
+  background-color: #7B5638;
+}
+.mascot-girl .bangs.data-v-e10c152c {
+  position: absolute;
+  top: -8rpx;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 84rpx;
+  height: 34rpx;
+  border-radius: 50% 50% 46% 46%;
+  background-color: #7B5638;
+}
+.mascot-girl .bun.data-v-e10c152c {
+  position: absolute;
+  top: 6rpx;
+  width: 32rpx;
+  height: 32rpx;
+  border-radius: 50%;
+  background-color: #7B5638;
+  box-shadow: inset -4rpx -4rpx 0 rgba(0, 0, 0, 0.08);
+}
+.mascot-girl .bun.bun-l.data-v-e10c152c {
+  left: 2rpx;
+}
+.mascot-girl .bun.bun-r.data-v-e10c152c {
+  right: 2rpx;
+}
+.mascot-girl .bow.data-v-e10c152c {
+  position: absolute;
+  top: 4rpx;
+  right: -2rpx;
+  width: 26rpx;
+  height: 16rpx;
+}
+.mascot-girl .bow.data-v-e10c152c::before, .mascot-girl .bow.data-v-e10c152c::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  width: 12rpx;
+  height: 16rpx;
+  background-color: #FF8FAB;
+}
+.mascot-girl .bow.data-v-e10c152c::before {
+  left: 0;
+  border-radius: 8rpx 2rpx 2rpx 8rpx;
+  transform: rotate(-14deg);
+}
+.mascot-girl .bow.data-v-e10c152c::after {
+  right: 0;
+  border-radius: 2rpx 8rpx 8rpx 2rpx;
+  transform: rotate(14deg);
+}
+.mascot-girl .bow .bow-knot.data-v-e10c152c {
+  position: absolute;
+  left: 50%;
+  top: 4rpx;
+  transform: translateX(-50%);
+  width: 8rpx;
+  height: 8rpx;
+  border-radius: 50%;
+  background-color: #F7608A;
+  z-index: 1;
+}
+
+/* --- 厨师男孩专属：白色厨师帽 --- */
+.mascot-chef.data-v-e10c152c {
+  /* 脸两侧露出的头发 */
+}
+.mascot-chef .sidehair.data-v-e10c152c {
+  position: absolute;
+  top: 26rpx;
+  width: 14rpx;
+  height: 26rpx;
+  background-color: #5C4033;
+}
+.mascot-chef .sidehair.sidehair-l.data-v-e10c152c {
+  left: -4rpx;
+  border-radius: 8rpx 0 0 8rpx;
+}
+.mascot-chef .sidehair.sidehair-r.data-v-e10c152c {
+  right: -4rpx;
+  border-radius: 0 8rpx 8rpx 0;
+}
+.mascot-chef .chef-hat.data-v-e10c152c {
+  position: absolute;
+  left: 50%;
+  bottom: 66rpx;
+  transform: translateX(-50%);
+  width: 96rpx;
+  height: 56rpx;
+  z-index: 2;
+  /* 帽檐 */
+  /* 三团蓬松帽顶 */
+}
+.mascot-chef .chef-hat .hat-band.data-v-e10c152c {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  width: 88rpx;
+  height: 22rpx;
+  border-radius: 12rpx;
+  background-color: #FFFFFF;
+  box-shadow: 0 3rpx 6rpx rgba(44, 27, 20, 0.12);
+}
+.mascot-chef .chef-hat .hat-puff.data-v-e10c152c {
+  position: absolute;
+  border-radius: 50%;
+  background-color: #FFFFFF;
+  box-shadow: inset -4rpx -4rpx 0 rgba(44, 27, 20, 0.05);
+}
+.mascot-chef .chef-hat .hat-puff.puff-l.data-v-e10c152c {
+  left: 8rpx;
+  bottom: 12rpx;
+  width: 34rpx;
+  height: 34rpx;
+}
+.mascot-chef .chef-hat .hat-puff.puff-m.data-v-e10c152c {
+  left: 50%;
+  bottom: 18rpx;
+  transform: translateX(-50%);
+  width: 40rpx;
+  height: 40rpx;
+}
+.mascot-chef .chef-hat .hat-puff.puff-r.data-v-e10c152c {
+  right: 8rpx;
+  bottom: 12rpx;
+  width: 34rpx;
+  height: 34rpx;
+}
+
+/* --- 相框周围的漂浮小装饰 --- */
+.floatie.data-v-e10c152c {
+  position: absolute;
+  font-size: 22rpx;
+  line-height: 1;
+  animation: floatieDrift-e10c152c 3.6s ease-in-out infinite;
+  z-index: 3;
+}
+.floatie.floatie-heart.data-v-e10c152c {
+  top: 12rpx;
+  left: 14rpx;
+  color: #F7608A;
+}
+.floatie.floatie-star.data-v-e10c152c {
+  bottom: 16rpx;
+  right: 12rpx;
+  color: #FFB020;
+  animation-delay: -1.8s;
+}
+.floatie.floatie-leaf.data-v-e10c152c {
+  top: 14rpx;
+  right: 16rpx;
+  color: #4A9E5C;
+  animation-delay: -0.9s;
+}
+@keyframes floatieDrift-e10c152c {
+0%, 100% {
+    transform: translateY(0) scale(1);
+    opacity: 0.75;
+}
+50% {
+    transform: translateY(-8rpx) scale(1.15);
+    opacity: 1;
+}
+}
 /* 卡片文字区 */
 .card-body.data-v-e10c152c {
   flex: 1;

@@ -11968,5 +11968,4 @@ exports.t = t$1;
 exports.unref = unref;
 exports.watch = watch;
 exports.wr = wr;
-exports.wx$1 = wx$1;
 //# sourceMappingURL=../../.sourcemap/mp-weixin/common/vendor.js.map

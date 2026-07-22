@@ -22,14 +22,34 @@
     <!-- 角色卡片 -->
     <view class="role-cards">
       <!-- 下单人（老婆） -->
-      <view class="role-card card-orderer" @tap="onSelect('orderer')">
+      <view
+        class="role-card card-orderer"
+        :class="{ selected: selectingRole === 'orderer' }"
+        @tap="onSelect('orderer')"
+      >
         <view class="card-shine"></view>
-        <view class="card-illustration">
-          <text class="card-emoji">👩</text>
-          <view class="card-icon-badge badge-coffee">
-            <Icon name="coffee" :size="18" color="#fff" />
+
+        <!-- Q 版女孩：咖啡棕双丸子头 + 蝴蝶结，眼睛会眨 -->
+        <view class="mascot-frame frame-orderer">
+          <view class="mascot mascot-girl" :class="{ cheer: selectingRole === 'orderer' }">
+            <view class="hair-back"></view>
+            <view class="bun bun-l"></view>
+            <view class="bun bun-r"></view>
+            <view class="face">
+              <view class="bangs"></view>
+              <view class="eye eye-l"><view class="spark"></view></view>
+              <view class="eye eye-r"><view class="spark"></view></view>
+              <view class="blush blush-l"></view>
+              <view class="blush blush-r"></view>
+              <view class="mouth"></view>
+            </view>
+            <view class="bow"><view class="bow-knot"></view></view>
           </view>
+          <!-- 漂浮小装饰 -->
+          <text class="floatie floatie-heart">♡</text>
+          <text class="floatie floatie-star">✦</text>
         </view>
+
         <view class="card-body">
           <view class="card-role-tag tag-orderer">下单人</view>
           <text class="card-role-name">老婆大人</text>
@@ -42,14 +62,38 @@
       </view>
 
       <!-- 管理员（老公） -->
-      <view class="role-card card-admin" @tap="onSelect('admin')">
+      <view
+        class="role-card card-admin"
+        :class="{ selected: selectingRole === 'admin' }"
+        @tap="onSelect('admin')"
+      >
         <view class="card-shine"></view>
-        <view class="card-illustration">
-          <text class="card-emoji">👨‍🍳</text>
-          <view class="card-icon-badge badge-food">
-            <Icon name="settings" :size="18" color="#fff" />
+
+        <!-- Q 版厨师男孩：白色蓬松厨师帽，眼睛会眨 -->
+        <view class="mascot-frame frame-admin">
+          <view class="mascot mascot-chef" :class="{ cheer: selectingRole === 'admin' }">
+            <view class="face">
+              <view class="sidehair sidehair-l"></view>
+              <view class="sidehair sidehair-r"></view>
+              <view class="eye eye-l"><view class="spark"></view></view>
+              <view class="eye eye-r"><view class="spark"></view></view>
+              <view class="blush blush-l"></view>
+              <view class="blush blush-r"></view>
+              <view class="mouth"></view>
+            </view>
+            <!-- 厨师帽：帽檐 + 三团蓬松帽顶 -->
+            <view class="chef-hat">
+              <view class="hat-puff puff-l"></view>
+              <view class="hat-puff puff-m"></view>
+              <view class="hat-puff puff-r"></view>
+              <view class="hat-band"></view>
+            </view>
           </view>
+          <!-- 漂浮小装饰 -->
+          <text class="floatie floatie-star">✦</text>
+          <text class="floatie floatie-leaf">❀</text>
         </view>
+
         <view class="card-body">
           <view class="card-role-tag tag-admin">管理员</view>
           <text class="card-role-name">老公大厨</text>
@@ -79,6 +123,8 @@ const { statusBarHeight } = useSafeArea()
 const userStore = useUserStore()
 // 防止重复点击提交
 const submitting = ref(false)
+// 正在选中的角色：触发人物 cheer 弹跳与卡片发光
+const selectingRole = ref('')
 
 /**
  * 选择角色：调用 store.setRole 持久化后跳转首页
@@ -87,19 +133,21 @@ const submitting = ref(false)
 const onSelect = async (role) => {
   if (submitting.value) return
   submitting.value = true
+  selectingRole.value = role
   try {
     await userStore.setRole(role)
     uni.showToast({
       title: role === 'admin' ? '欢迎，大厨！' : '点单吧~',
       icon: 'none'
     })
-    // 延迟跳转，让 toast 与点击反馈动效完整呈现
+    // 延迟跳转，让 toast 与人物 cheer 动效完整呈现
     setTimeout(() => {
       uni.reLaunch({ url: '/pages/home/home' })
     }, 600)
   } catch (e) {
     uni.showToast({ title: e.message || '设置失败', icon: 'none' })
     submitting.value = false
+    selectingRole.value = ''
   }
 }
 </script>
@@ -289,41 +337,350 @@ const onSelect = async (role) => {
     transform: scale(0.95);
     box-shadow: 0 2rpx 8rpx rgba(44, 27, 20, 0.1), 0 1rpx 3rpx rgba(44, 27, 20, 0.06);
   }
+
+  /* 选中瞬间：卡片发光提亮，配合人物 cheer 弹跳 */
+  &.selected {
+    box-shadow: 0 12rpx 36rpx rgba(255, 255, 255, 0.45),
+      0 8rpx 24rpx rgba(44, 27, 20, 0.14);
+  }
 }
 
-/* 卡片插画区 */
-.card-illustration {
+/* ============================================================
+ * Q 版人物（纯 CSS 手绘，小程序零素材依赖）
+ * 结构：白色天鹅绒相框 > mascot 头部组合
+ * ============================================================ */
+.mascot-frame {
   position: relative;
   flex-shrink: 0;
+  width: 148rpx;
+  height: 148rpx;
+  border-radius: 50%;
+  background: linear-gradient(160deg, #FFFDF9 0%, #FFF3E4 100%);
+  border: 4rpx solid rgba(255, 255, 255, 0.95);
+  box-shadow: 0 6rpx 16rpx rgba(44, 27, 20, 0.14),
+    inset 0 -6rpx 12rpx rgba(44, 27, 20, 0.05);
+  @include flex-center;
+  overflow: hidden;
+}
+
+/* 人物整体：轻微上下浮动，有生命力 */
+.mascot {
+  position: relative;
   width: 120rpx;
   height: 120rpx;
-  @include flex-center;
+  animation: mascotBob 3.2s ease-in-out infinite;
 
-  .card-emoji {
-    font-size: 80rpx;
-    line-height: 1;
-    /* 轻微浮动让插画有呼吸感 */
-    animation: pulse 3s ease-in-out infinite;
+  &.cheer {
+    animation: cheerJump 0.6s $ease-bounce;
+  }
+}
+
+@keyframes mascotBob {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6rpx);
+  }
+}
+
+/* 选中时的开心跳：上跃 + 微倾斜回弹 */
+@keyframes cheerJump {
+  0% {
+    transform: translateY(0) scale(1) rotate(0deg);
+  }
+  40% {
+    transform: translateY(-18rpx) scale(1.1) rotate(-4deg);
+  }
+  70% {
+    transform: translateY(2rpx) scale(0.97) rotate(2deg);
+  }
+  100% {
+    transform: translateY(0) scale(1) rotate(0deg);
+  }
+}
+
+/* --- 通用五官 --- */
+.face {
+  position: absolute;
+  left: 50%;
+  bottom: 4rpx;
+  transform: translateX(-50%);
+  width: 92rpx;
+  height: 84rpx;
+  border-radius: 48% 48% 50% 50%;
+  background-color: #FFE3C2;
+}
+
+.eye {
+  position: absolute;
+  top: 40rpx;
+  width: 12rpx;
+  height: 14rpx;
+  border-radius: 50%;
+  background-color: #4A2C1A;
+  animation: blink 4.2s ease-in-out infinite;
+
+  &.eye-l {
+    left: 22rpx;
   }
 
-  .card-icon-badge {
+  &.eye-r {
+    right: 22rpx;
+  }
+
+  /* 眼睛高光点 */
+  .spark {
     position: absolute;
-    bottom: -2rpx;
-    right: -2rpx;
-    width: 44rpx;
-    height: 44rpx;
+    top: 2rpx;
+    left: 2rpx;
+    width: 4rpx;
+    height: 4rpx;
     border-radius: 50%;
-    @include flex-center;
-    box-shadow: $shadow-sm;
-    border: 2rpx solid rgba(255, 255, 255, 0.8);
+    background-color: #fff;
+  }
+}
 
-    &.badge-coffee {
-      background-color: $color-coffee-600;
+/* 眨眼：周期内快速压扁一次 */
+@keyframes blink {
+  0%, 91%, 100% {
+    transform: scaleY(1);
+  }
+  95% {
+    transform: scaleY(0.08);
+  }
+}
+
+.blush {
+  position: absolute;
+  top: 56rpx;
+  width: 16rpx;
+  height: 10rpx;
+  border-radius: 50%;
+  background-color: rgba(255, 139, 139, 0.65);
+
+  &.blush-l {
+    left: 12rpx;
+  }
+
+  &.blush-r {
+    right: 12rpx;
+  }
+}
+
+/* 微笑：下弯弧线 */
+.mouth {
+  position: absolute;
+  left: 50%;
+  top: 52rpx;
+  transform: translateX(-50%);
+  width: 18rpx;
+  height: 12rpx;
+  border: 3rpx solid transparent;
+  border-bottom-color: #C9553E;
+  border-radius: 50%;
+}
+
+/* --- 女孩专属：咖啡棕双丸子头 --- */
+.mascot-girl {
+  .hair-back {
+    position: absolute;
+    left: 50%;
+    bottom: 14rpx;
+    transform: translateX(-50%);
+    width: 106rpx;
+    height: 96rpx;
+    border-radius: 50% 50% 46% 46%;
+    background-color: #7B5638;
+  }
+
+  /* 刘海：盖在额头上的半圆 */
+  .bangs {
+    position: absolute;
+    top: -8rpx;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 84rpx;
+    height: 34rpx;
+    border-radius: 50% 50% 46% 46%;
+    background-color: #7B5638;
+  }
+
+  /* 双丸子 */
+  .bun {
+    position: absolute;
+    top: 6rpx;
+    width: 32rpx;
+    height: 32rpx;
+    border-radius: 50%;
+    background-color: #7B5638;
+    box-shadow: inset -4rpx -4rpx 0 rgba(0, 0, 0, 0.08);
+
+    &.bun-l {
+      left: 2rpx;
     }
 
-    &.badge-food {
-      background-color: $color-food-600;
+    &.bun-r {
+      right: 2rpx;
     }
+  }
+
+  /* 粉色蝴蝶结（右丸子旁） */
+  .bow {
+    position: absolute;
+    top: 4rpx;
+    right: -2rpx;
+    width: 26rpx;
+    height: 16rpx;
+
+    &::before,
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      width: 12rpx;
+      height: 16rpx;
+      background-color: #FF8FAB;
+    }
+
+    &::before {
+      left: 0;
+      border-radius: 8rpx 2rpx 2rpx 8rpx;
+      transform: rotate(-14deg);
+    }
+
+    &::after {
+      right: 0;
+      border-radius: 2rpx 8rpx 8rpx 2rpx;
+      transform: rotate(14deg);
+    }
+
+    .bow-knot {
+      position: absolute;
+      left: 50%;
+      top: 4rpx;
+      transform: translateX(-50%);
+      width: 8rpx;
+      height: 8rpx;
+      border-radius: 50%;
+      background-color: #F7608A;
+      z-index: 1;
+    }
+  }
+}
+
+/* --- 厨师男孩专属：白色厨师帽 --- */
+.mascot-chef {
+  /* 脸两侧露出的头发 */
+  .sidehair {
+    position: absolute;
+    top: 26rpx;
+    width: 14rpx;
+    height: 26rpx;
+    background-color: #5C4033;
+
+    &.sidehair-l {
+      left: -4rpx;
+      border-radius: 8rpx 0 0 8rpx;
+    }
+
+    &.sidehair-r {
+      right: -4rpx;
+      border-radius: 0 8rpx 8rpx 0;
+    }
+  }
+
+  .chef-hat {
+    position: absolute;
+    left: 50%;
+    bottom: 66rpx;
+    transform: translateX(-50%);
+    width: 96rpx;
+    height: 56rpx;
+    z-index: 2;
+
+    /* 帽檐 */
+    .hat-band {
+      position: absolute;
+      left: 50%;
+      bottom: 0;
+      transform: translateX(-50%);
+      width: 88rpx;
+      height: 22rpx;
+      border-radius: 12rpx;
+      background-color: #FFFFFF;
+      box-shadow: 0 3rpx 6rpx rgba(44, 27, 20, 0.12);
+    }
+
+    /* 三团蓬松帽顶 */
+    .hat-puff {
+      position: absolute;
+      border-radius: 50%;
+      background-color: #FFFFFF;
+      box-shadow: inset -4rpx -4rpx 0 rgba(44, 27, 20, 0.05);
+
+      &.puff-l {
+        left: 8rpx;
+        bottom: 12rpx;
+        width: 34rpx;
+        height: 34rpx;
+      }
+
+      &.puff-m {
+        left: 50%;
+        bottom: 18rpx;
+        transform: translateX(-50%);
+        width: 40rpx;
+        height: 40rpx;
+      }
+
+      &.puff-r {
+        right: 8rpx;
+        bottom: 12rpx;
+        width: 34rpx;
+        height: 34rpx;
+      }
+    }
+  }
+}
+
+/* --- 相框周围的漂浮小装饰 --- */
+.floatie {
+  position: absolute;
+  font-size: 22rpx;
+  line-height: 1;
+  animation: floatieDrift 3.6s ease-in-out infinite;
+  z-index: 3;
+
+  &.floatie-heart {
+    top: 12rpx;
+    left: 14rpx;
+    color: #F7608A;
+  }
+
+  &.floatie-star {
+    bottom: 16rpx;
+    right: 12rpx;
+    color: #FFB020;
+    animation-delay: -1.8s;
+  }
+
+  &.floatie-leaf {
+    top: 14rpx;
+    right: 16rpx;
+    color: #4A9E5C;
+    animation-delay: -0.9s;
+  }
+}
+
+@keyframes floatieDrift {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+    opacity: 0.75;
+  }
+  50% {
+    transform: translateY(-8rpx) scale(1.15);
+    opacity: 1;
   }
 }
 

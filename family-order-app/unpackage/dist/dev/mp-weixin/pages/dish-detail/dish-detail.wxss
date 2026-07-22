@@ -146,6 +146,8 @@
   background-color: var(--theme-secondary);
   overflow: hidden;
   border-radius: 0 0 40rpx 40rpx;
+  /* === 冷热氛围动效层（与列表 dish-card 同款语言，纯图形不涉及文字） === */
+  /* === 冷热浮动标识：大图右下角的渐变胶囊（文字静止，无动画） === */
 }
 .hero .hero-img.data-v-f1b4097a {
   position: absolute;
@@ -171,6 +173,100 @@
   background: linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.28) 100%);
   pointer-events: none;
 }
+.hero .temp-fx.data-v-f1b4097a {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  /* 热饮：三缕热气自杯中袅袅升起（大图版，更高更长） */
+  /* 冰饮：一道冰霜流光周期性扫过杯面（大图版） */
+}
+.hero .temp-fx.hot .steam-wisp.data-v-f1b4097a {
+  position: absolute;
+  bottom: 160rpx;
+  width: 10rpx;
+  height: 34rpx;
+  border-radius: 9999px;
+  background-color: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 16rpx rgba(255, 255, 255, 0.8);
+  opacity: 0;
+  animation: steamRise-f1b4097a 2.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+.hero .temp-fx.hot .wisp-1.data-v-f1b4097a {
+  left: 42%;
+}
+.hero .temp-fx.hot .wisp-2.data-v-f1b4097a {
+  left: 50%;
+  height: 44rpx;
+  animation-delay: 0.9s;
+}
+.hero .temp-fx.hot .wisp-3.data-v-f1b4097a {
+  left: 58%;
+  animation-delay: 1.8s;
+}
+.hero .temp-fx.ice .frost-sheen.data-v-f1b4097a {
+  position: absolute;
+  top: -40%;
+  left: -30%;
+  width: 80rpx;
+  height: 180%;
+  transform: rotate(22deg);
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.55) 50%, rgba(255, 255, 255, 0) 100%);
+  animation: frostSweep-f1b4097a 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+@keyframes steamRise-f1b4097a {
+0% {
+    transform: translateY(16rpx) scaleX(1);
+    opacity: 0;
+}
+30% {
+    opacity: 0.85;
+}
+60% {
+    transform: translateY(-32rpx) scaleX(1.4);
+}
+100% {
+    transform: translateY(-72rpx) scaleX(0.8);
+    opacity: 0;
+}
+}
+@keyframes frostSweep-f1b4097a {
+0% {
+    left: -30%;
+}
+60%, 100% {
+    left: 110%;
+}
+}
+.hero .temp-chip.data-v-f1b4097a {
+  position: absolute;
+  right: 32rpx;
+  bottom: 80rpx;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 8rpx 26rpx;
+  border-radius: 9999px;
+  line-height: 1.5;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.18);
+}
+.hero .temp-chip .temp-chip-icon.data-v-f1b4097a {
+  font-size: 26rpx;
+  line-height: 1;
+  color: #fff;
+}
+.hero .temp-chip .temp-chip-text.data-v-f1b4097a {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: 2rpx;
+}
+.hero .temp-chip.ice.data-v-f1b4097a {
+  background: linear-gradient(135deg, #7cb3f7 0%, #4a8cef 100%);
+}
+.hero .temp-chip.hot.data-v-f1b4097a {
+  background: linear-gradient(135deg, #fbb25c 0%, #ef7d1a 100%);
+}
 
 /* === 信息卡 === */
 .info-card.data-v-f1b4097a {
@@ -183,6 +279,17 @@
   box-shadow: 0 2px 8px rgba(44, 27, 20, 0.06), 0 4px 16px rgba(44, 27, 20, 0.04);
   display: flex;
   flex-direction: column;
+  border: 2rpx solid transparent;
+  transition: border-color 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  /* 冷热氛围晕染（与列表卡片同款，呼应大图标识） */
+}
+.info-card.temp-ice.data-v-f1b4097a {
+  background: linear-gradient(160deg, #FFFFFF 48%, rgba(191, 219, 254, 0.35) 100%);
+  border-color: rgba(147, 197, 253, 0.5);
+}
+.info-card.temp-hot.data-v-f1b4097a {
+  background: linear-gradient(160deg, #FFFFFF 48%, rgba(254, 215, 170, 0.4) 100%);
+  border-color: rgba(253, 186, 116, 0.5);
 }
 .info-card .pill-row.data-v-f1b4097a {
   display: flex;
@@ -199,33 +306,6 @@
   font-size: 10px;
   color: var(--theme-secondary-foreground);
   font-weight: 500;
-}
-.info-card .temp-pill.data-v-f1b4097a {
-  display: inline-flex;
-  align-items: center;
-  gap: 4rpx;
-  padding: 6rpx 20rpx;
-  border-radius: 9999px;
-}
-.info-card .temp-pill .temp-pill-icon.data-v-f1b4097a {
-  font-size: 20rpx;
-  line-height: 1;
-}
-.info-card .temp-pill .temp-pill-text.data-v-f1b4097a {
-  font-size: 10px;
-  font-weight: 500;
-}
-.info-card .temp-pill.ice.data-v-f1b4097a {
-  background-color: #EFF6FF;
-}
-.info-card .temp-pill.ice .temp-pill-icon.data-v-f1b4097a, .info-card .temp-pill.ice .temp-pill-text.data-v-f1b4097a {
-  color: #2563EB;
-}
-.info-card .temp-pill.hot.data-v-f1b4097a {
-  background-color: #FEF2F2;
-}
-.info-card .temp-pill.hot .temp-pill-icon.data-v-f1b4097a, .info-card .temp-pill.hot .temp-pill-text.data-v-f1b4097a {
-  color: #DC2626;
 }
 .info-card .name.data-v-f1b4097a {
   display: block;

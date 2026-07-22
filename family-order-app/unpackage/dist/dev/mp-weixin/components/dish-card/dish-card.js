@@ -21,6 +21,8 @@ const _sfc_main = {
     const props = __props;
     const emit = __emit;
     const emoji = common_vendor.computed(() => props.dish.type === "food" ? "🍲" : "☕");
+    const showTemp = common_vendor.computed(() => props.dish.type === "coffee" && !!props.dish.temp);
+    const tempClass = common_vendor.computed(() => showTemp.value ? `temp-${props.dish.temp}` : "");
     const instance = common_vendor.getCurrentInstance();
     const onCardTap = () => {
       emit("tap", props.dish);
@@ -41,26 +43,33 @@ const _sfc_main = {
       } : {
         c: common_vendor.t(emoji.value)
       }, {
-        d: common_vendor.t(__props.dish.name),
-        e: __props.dish.type === "coffee" && __props.dish.temp
-      }, __props.dish.type === "coffee" && __props.dish.temp ? {
-        f: common_vendor.t(__props.dish.temp === "ice" ? "❄" : "🔥"),
-        g: common_vendor.t(__props.dish.temp === "ice" ? "冰" : "热"),
-        h: common_vendor.n(__props.dish.temp)
+        d: showTemp.value
+      }, showTemp.value ? common_vendor.e({
+        e: __props.dish.temp === "hot"
+      }, __props.dish.temp === "hot" ? {} : {}, {
+        f: common_vendor.n(__props.dish.temp)
+      }) : {}, {
+        g: showTemp.value
+      }, showTemp.value ? {
+        h: common_vendor.t(__props.dish.temp === "ice" ? "❄" : "🔥"),
+        i: common_vendor.t(__props.dish.temp === "ice" ? "冰" : "热"),
+        j: common_vendor.n(__props.dish.temp)
       } : {}, {
-        i: common_vendor.t(__props.dish.description || "暂无描述"),
-        j: __props.dish.categoryName
+        k: common_vendor.t(__props.dish.name),
+        l: common_vendor.t(__props.dish.description || "暂无描述"),
+        m: __props.dish.categoryName
       }, __props.dish.categoryName ? {
-        k: common_vendor.t(__props.dish.categoryName)
+        n: common_vendor.t(__props.dish.categoryName)
       } : {}, {
-        l: common_vendor.p({
+        o: common_vendor.p({
           name: "plus",
           size: 18,
           color: "#fff"
         }),
-        m: common_vendor.o(onAddTap, "b1"),
-        n: `${__props.index * 50}ms`,
-        o: common_vendor.o(onCardTap, "e2")
+        p: common_vendor.o(onAddTap, "6c"),
+        q: common_vendor.n(tempClass.value),
+        r: `${__props.index * 50}ms`,
+        s: common_vendor.o(onCardTap, "24")
       });
     };
   }

@@ -16,10 +16,12 @@ const _sfc_main = {
     const { statusBarHeight } = composables_useSafeArea.useSafeArea();
     const userStore = store_user.useUserStore();
     const submitting = common_vendor.ref(false);
+    const selectingRole = common_vendor.ref("");
     const onSelect = async (role) => {
       if (submitting.value)
         return;
       submitting.value = true;
+      selectingRole.value = role;
       try {
         await userStore.setRole(role);
         common_vendor.index.showToast({
@@ -32,33 +34,28 @@ const _sfc_main = {
       } catch (e) {
         common_vendor.index.showToast({ title: e.message || "设置失败", icon: "none" });
         submitting.value = false;
+        selectingRole.value = "";
       }
     };
     return (_ctx, _cache) => {
       return {
         a: common_vendor.unref(statusBarHeight) + 76 + "px",
-        b: common_vendor.p({
-          name: "coffee",
-          size: 18,
-          color: "#fff"
-        }),
+        b: selectingRole.value === "orderer" ? 1 : "",
         c: common_vendor.p({
           name: "chevron-right",
           size: 14,
           color: "#6F4E37"
         }),
-        d: common_vendor.o(($event) => onSelect("orderer"), "a1"),
-        e: common_vendor.p({
-          name: "settings",
-          size: 18,
-          color: "#fff"
-        }),
-        f: common_vendor.p({
+        d: selectingRole.value === "orderer" ? 1 : "",
+        e: common_vendor.o(($event) => onSelect("orderer"), "a4"),
+        f: selectingRole.value === "admin" ? 1 : "",
+        g: common_vendor.p({
           name: "chevron-right",
           size: 14,
           color: "#15803D"
         }),
-        g: common_vendor.o(($event) => onSelect("admin"), "03")
+        h: selectingRole.value === "admin" ? 1 : "",
+        i: common_vendor.o(($event) => onSelect("admin"), "fa")
       };
     };
   }

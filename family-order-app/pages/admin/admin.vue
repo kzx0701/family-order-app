@@ -7,11 +7,6 @@
           <text class="title">管理中心</text>
           <text class="subtitle">管理家庭菜单与订单</text>
         </view>
-        <!-- 切换为下单人按钮 -->
-        <view class="role-switch-btn" @tap="onSwitchRole">
-          <Icon name="utensils-crossed" :size="14" />
-          <text>切换为下单人</text>
-        </view>
       </view>
       <!-- 统计卡片：今日订单 + 待制作 -->
       <view class="stats-card">
@@ -44,15 +39,15 @@
       <view
         class="tab"
         :class="{ active: activeTab === 'orders' }"
-        @tap="activeTab = 'orders'"
+        @tap="onOrdersTabTap"
       >
         订单管理
       </view>
     </view>
 
     <!-- 菜单管理 -->
-    <view v-if="activeTab === 'menu'" class="menu-pane">
-      <!-- 菜单类型切换 + 分类入口 -->
+    <view v-if="activeTab === 'menu'" class="menu-pane" @tap="closeDishSwipe">
+      <!-- 菜单类型切换 -->
       <view class="menu-switch-row">
         <view class="menu-switch">
           <view class="menu-switch-btn coffee" :class="{ active: menuType === 'coffee' }" @tap="onMenuTypeChange('coffee')">
@@ -62,9 +57,31 @@
             <text>🍲 美食菜单</text>
           </view>
         </view>
+      </view>
+
+      <!-- 分类入口 + 分类筛选（第二行） -->
+      <view class="cat-row">
         <view class="cat-entry" @tap="openCategoryManager">
           <Icon name="settings" :size="16" />
           <text>分类</text>
+        </view>
+        <view class="cat-filter-scroll">
+          <view
+            class="cat-filter-pill"
+            :class="{ active: filterCategoryId === '' }"
+            @tap="filterCategoryId = ''"
+          >
+            全部
+          </view>
+          <view
+            v-for="cat in currentCategories"
+            :key="cat._id"
+            class="cat-filter-pill"
+            :class="{ active: filterCategoryId === cat._id }"
+            @tap="filterCategoryId = cat._id"
+          >
+            {{ cat.name }}
+          </view>
         </view>
       </view>
 
@@ -73,36 +90,46 @@
         <skeleton type="dish" :count="4" />
       </view>
 
-      <!-- 菜品列表（带过渡动效） -->
+      <!-- 菜品列表（带过渡动效，左滑删除） -->
       <view class="dish-list" v-else-if="filteredDishes.length">
         <transition-group name="dish">
-          <view class="dish-card" v-for="dish in filteredDishes" :key="dish._id" :class="dish.type" @tap="onEditDish(dish)">
-            <view class="dish-image">
-              <image v-if="dish.image" :src="dish.image" mode="aspectFill" class="dish-img" />
-              <view v-else class="dish-img-placeholder">{{ dish.type === 'coffee' ? '☕' : '🍲' }}</view>
-              <view class="dish-off-badge" v-if="!dish.isOnSale">已下架</view>
-              <view class="dish-recommend-badge" v-if="dish.isRecommended">推荐</view>
+          <view class="dish-swipe-item" v-for="dish in filteredDishes" :key="dish._id">
+            <!-- 滑动露出的删除按钮 -->
+            <view class="dish-swipe-actions" @tap.stop>
+              <view class="dish-swipe-btn delete" @tap.stop="onDishSwipeDelete(dish)">删除</view>
             </view>
-            <view class="dish-info">
-              <view class="dish-name-row">
-                <text class="dish-name">{{ dish.name }}</text>
-                <view v-if="dish.type === 'coffee' && dish.temp" class="temp-badge" :class="dish.temp">
-                  <text class="temp-badge-icon">{{ dish.temp === 'ice' ? '❄' : '🔥' }}</text>
-                  <text class="temp-badge-text">{{ dish.temp === 'ice' ? '冰' : '热' }}</text>
+            <!-- 菜品卡片主体：可滑动 -->
+            <view
+              class="dish-card"
+              :class="[dish.type, { 'swipe-animating': dishSwipeAnimating[dish._id] }]"
+              :style="{ transform: `translateX(${dishSwipeOffset[dish._id] || 0}px)` }"
+              @touchstart="onDishTouchStart($event, dish._id)"
+              @touchmove="onDishTouchMove($event, dish._id)"
+              @touchend="onDishTouchEnd($event, dish._id)"
+              @tap="onDishCardTap(dish)"
+            >
+              <view class="dish-image">
+                <image v-if="dish.image" :src="dish.image" mode="aspectFill" class="dish-img" />
+                <view v-else class="dish-img-placeholder">{{ dish.type === 'coffee' ? '☕' : '🍲' }}</view>
+                <view class="dish-off-badge" v-if="!dish.isOnSale">已下架</view>
+                <view class="dish-recommend-badge" v-if="dish.isRecommended">推荐</view>
+              </view>
+              <view class="dish-info">
+                <view class="dish-name-row">
+                  <text class="dish-name">{{ dish.name }}</text>
+                  <view v-if="dish.type === 'coffee' && dish.temp" class="temp-badge" :class="dish.temp">
+                    <text class="temp-badge-icon">{{ dish.temp === 'ice' ? '❄' : '🔥' }}</text>
+                    <text class="temp-badge-text">{{ dish.temp === 'ice' ? '冰' : '热' }}</text>
+                  </view>
+                </view>
+                <view class="dish-desc" v-if="dish.description">{{ dish.description }}</view>
+                <view class="dish-cat" v-if="dish.categoryName">
+                  <text class="dish-cat-dot">●</text>
+                  <text>{{ dish.categoryName }}</text>
                 </view>
               </view>
-              <view class="dish-desc" v-if="dish.description">{{ dish.description }}</view>
-              <view class="dish-cat" v-if="dish.categoryName">
-                <text class="dish-cat-dot">●</text>
-                <text>{{ dish.categoryName }}</text>
-              </view>
-            </view>
-            <view class="dish-actions" @tap.stop>
-              <view class="sale-switch" @tap.stop>
+              <view class="dish-sale-toggle" @tap.stop>
                 <fo-switch :modelValue="dish.isOnSale" @change="onToggleSale(dish, $event)" />
-              </view>
-              <view class="icon-btn danger" @tap.stop="onDeleteDish(dish)">
-                <Icon name="trash" :size="18" />
               </view>
             </view>
           </view>
@@ -119,7 +146,7 @@
     </view>
 
     <!-- 订单管理 -->
-    <view v-else class="orders-pane">
+    <view v-else class="orders-pane" @tap="closeOrderSwipe">
       <!-- 状态筛选 pill -->
       <view class="order-filter-row">
         <view
@@ -138,19 +165,52 @@
         <skeleton type="card" :count="3" />
       </view>
 
-      <!-- 订单列表 -->
+      <!-- 订单列表（左滑取消/删除） -->
       <view v-else-if="filteredOrders.length" class="order-list">
-        <order-card
+        <view
           v-for="(order, idx) in filteredOrders"
           :key="order._id"
-          :order="order"
-          show-user
-          cancelable
-          class="order-card-item animate-item-enter"
+          class="order-swipe-item animate-item-enter"
           :style="{ animationDelay: `${idx * 60}ms` }"
-          @tap="onOrderTap"
-          @cancel="onOrderCancel"
-        />
+        >
+          <!-- 滑动露出的操作区 -->
+          <view class="order-swipe-actions" @tap.stop>
+            <view
+              v-if="order.status === 'pending'"
+              class="order-swipe-btn cancel"
+              @tap.stop="onOrderSwipeCancel(order)"
+            >取消</view>
+            <view
+              class="order-swipe-btn delete"
+              @tap.stop="onOrderSwipeDelete(order)"
+            >删除</view>
+          </view>
+          <!-- 订单卡片主体：可滑动 -->
+          <view
+            class="order-swipe-card"
+            :class="{ 'is-flashing': orderFlashMap[order._id], 'swipe-animating': orderSwipeAnimating[order._id] }"
+            :style="{ transform: `translateX(${orderSwipeOffset[order._id] || 0}px)` }"
+            @touchstart="onOrderTouchStart($event, order._id)"
+            @touchmove="onOrderTouchMove($event, order._id)"
+            @touchend="onOrderTouchEnd($event, order._id)"
+            @tap="onOrderCardTap(order)"
+          >
+            <!-- 左侧：emoji 图标 -->
+            <view class="order-card-icon">{{ order.summaryEmoji || '🍽️' }}</view>
+            <!-- 中部：摘要 + 时间/下单人 -->
+            <view class="order-card-body">
+              <text class="order-card-summary">{{ order.summary || '订单详情' }}</text>
+              <view class="order-card-meta">
+                <text class="meta-time">{{ formatOrderTime(order.createTime) }}</text>
+                <text v-if="order.userName" class="meta-user">· {{ order.userName }}</text>
+              </view>
+            </view>
+            <!-- 右侧：状态徽章 -->
+            <view class="order-card-right">
+              <status-badge :status="order.status" />
+            </view>
+          </view>
+        </view>
       </view>
 
       <!-- 空状态（按筛选显示不同文案） -->
@@ -287,8 +347,8 @@
       </view>
     </fo-sheet>
 
-    <!-- 分类管理 sheet -->
-    <fo-sheet :visible="catManagerVisible" title="分类管理" max-height="85vh" @close="closeCategoryManager">
+    <!-- 分类管理 sheet（只显示当前菜单类型的分类） -->
+    <fo-sheet :visible="catManagerVisible" :title="catManagerTitle" max-height="85vh" @close="closeCategoryManager">
       <view class="cat-manager">
         <!-- 新增/编辑表单 -->
         <view class="cat-form" v-if="catFormVisible">
@@ -300,62 +360,24 @@
             :error="catFormError"
             :maxlength="20"
           />
-          <view class="form-label">
-            <text class="label-text">类型</text>
-            <text class="label-required">*</text>
-          </view>
-          <view class="type-chips">
-            <view class="type-chip coffee" :class="{ active: catForm.type === 'coffee' }" @tap="catForm.type = 'coffee'">
-              <text>☕ 咖啡</text>
-            </view>
-            <view class="type-chip food" :class="{ active: catForm.type === 'food' }" @tap="catForm.type = 'food'">
-              <text>🍲 美食</text>
-            </view>
-          </view>
           <view class="cat-form-actions">
             <view class="cat-btn cancel" @tap="cancelCatForm">取消</view>
             <view class="cat-btn save" @tap="onSaveCategory">{{ editingCatId ? '保存' : '添加' }}</view>
           </view>
         </view>
 
-        <!-- 咖啡分类组 -->
-        <view class="cat-group" v-if="coffeeCats.length">
-          <view class="cat-group-title">☕ 咖啡分类</view>
-          <view class="cat-item" v-for="(cat, idx) in coffeeCats" :key="cat._id">
+        <!-- 当前菜单类型的分类列表 -->
+        <view class="cat-group" v-if="currentCategories.length">
+          <view class="cat-item" v-for="(cat, idx) in currentCategories" :key="cat._id">
             <view class="cat-item-name">
               <text>{{ cat.name }}</text>
               <text class="cat-system-tag" v-if="cat.name === '推荐'">内置</text>
             </view>
             <view class="cat-item-actions">
-              <view class="cat-icon-btn" :class="{ disabled: idx === 0 }" @tap="moveCategory(coffeeCats, idx, -1)">
+              <view class="cat-icon-btn" :class="{ disabled: idx === 0 }" @tap="moveCategory(currentCategories, idx, -1)">
                 <Icon name="chevron-up" :size="16" />
               </view>
-              <view class="cat-icon-btn" :class="{ disabled: idx === coffeeCats.length - 1 }" @tap="moveCategory(coffeeCats, idx, 1)">
-                <Icon name="chevron-down" :size="16" />
-              </view>
-              <view class="cat-icon-btn" @tap="onEditCategory(cat)">
-                <Icon name="edit" :size="16" />
-              </view>
-              <view class="cat-icon-btn danger" v-if="cat.name !== '推荐'" @tap="onDeleteCategory(cat)">
-                <Icon name="trash" :size="16" />
-              </view>
-            </view>
-          </view>
-        </view>
-
-        <!-- 美食分类组 -->
-        <view class="cat-group" v-if="foodCats.length">
-          <view class="cat-group-title">🍲 美食分类</view>
-          <view class="cat-item" v-for="(cat, idx) in foodCats" :key="cat._id">
-            <view class="cat-item-name">
-              <text>{{ cat.name }}</text>
-              <text class="cat-system-tag" v-if="cat.name === '推荐'">内置</text>
-            </view>
-            <view class="cat-item-actions">
-              <view class="cat-icon-btn" :class="{ disabled: idx === 0 }" @tap="moveCategory(foodCats, idx, -1)">
-                <Icon name="chevron-up" :size="16" />
-              </view>
-              <view class="cat-icon-btn" :class="{ disabled: idx === foodCats.length - 1 }" @tap="moveCategory(foodCats, idx, 1)">
+              <view class="cat-icon-btn" :class="{ disabled: idx === currentCategories.length - 1 }" @tap="moveCategory(currentCategories, idx, 1)">
                 <Icon name="chevron-down" :size="16" />
               </view>
               <view class="cat-icon-btn" @tap="onEditCategory(cat)">
@@ -369,7 +391,7 @@
         </view>
 
         <!-- 空状态 -->
-        <fo-empty v-if="!coffeeCats.length && !foodCats.length && !catFormVisible" text="还没有分类，先添加一个吧" icon="📂" />
+        <fo-empty v-if="!currentCategories.length && !catFormVisible" text="还没有分类，先添加一个吧" icon="📂" />
 
         <!-- 新增按钮 -->
         <view class="cat-add-btn" v-if="!catFormVisible" @tap="onAddCategory">
@@ -387,6 +409,7 @@ import { onPullDownRefresh } from '@dcloudio/uni-app'
 import { useUserStore } from '@/store/user.js'
 import { useSafeArea } from '@/composables/useSafeArea.js'
 import { useHeaderFixed } from '@/composables/useHeaderFixed.js'
+import { WX_CONFIG } from '@/utils/wx-config.js'
 
 const { statusBarHeight } = useSafeArea()
 const { headerHeight } = useHeaderFixed('.header')
@@ -402,20 +425,35 @@ const dishList = ref([])
 const categoryList = ref([])
 const loadingDishes = ref(false)
 
-// 按当前菜单类型筛选菜品
+// 分类筛选：空字符串表示"全部"
+const filterCategoryId = ref('')
+
+// 按当前菜单类型筛选分类
+const currentCategories = computed(() =>
+  categoryList.value.filter((c) => c.type === menuType.value)
+)
+
+// 分类管理标题（根据当前菜单类型）
+const catManagerTitle = computed(() =>
+  menuType.value === 'coffee' ? '☕ 咖啡分类管理' : '🍲 美食分类管理'
+)
+
+// 按当前菜单类型 + 分类筛选菜品
 const filteredDishes = computed(() => {
-  return dishList.value.filter((d) => d.type === menuType.value)
+  let list = dishList.value.filter((d) => d.type === menuType.value)
+  if (filterCategoryId.value) {
+    list = list.filter((d) => d.categoryId === filterCategoryId.value)
+  }
+  return list
 })
 
-// 切换菜单类型
+// 切换菜单类型：重置分类筛选并收起菜品滑动
 const onMenuTypeChange = (type) => {
   if (menuType.value === type) return
   menuType.value = type
+  filterCategoryId.value = ''
+  closeDishSwipe()
 }
-
-// 咖啡 / 美食分类
-const coffeeCats = computed(() => categoryList.value.filter((c) => c.type === 'coffee'))
-const foodCats = computed(() => categoryList.value.filter((c) => c.type === 'food'))
 
 // 表单可选分类（按当前选择的类型）
 const availableCategories = computed(() =>
@@ -439,6 +477,88 @@ const dishForm = reactive({
   isRecommended: false,
   temp: 'hot' // 冷热配置：仅咖啡有效，ice（冰）/ hot（热）
 })
+
+// === 菜品左滑删除 ===
+// 右侧删除按钮宽度 160rpx，按屏幕宽度换算成 px
+const DISH_SWIPE_WIDTH = Math.round((160 / 750) * uni.getSystemInfoSync().windowWidth)
+const dishSwipeOffset = reactive({})      // 各卡片当前 x 偏移
+const dishSwipeAnimating = reactive({})   // 各卡片是否处于动画态（吸附/回弹时启用 transition）
+const dishTouchStartX = reactive({})       // 触摸起点
+const dishTouchStartOffset = reactive({})  // 触摸时已有偏移
+const dishTouchMoved = reactive({})        // 是否发生水平移动（用于区分点击）
+const dishActiveSwipeId = ref('')           // 当前展开的卡片 _id
+
+const onDishTouchStart = (e, id) => {
+  const touch = e.touches[0]
+  dishTouchStartX[id] = touch.clientX
+  dishTouchStartOffset[id] = dishSwipeOffset[id] || 0
+  dishTouchMoved[id] = false
+  dishSwipeAnimating[id] = false
+  // 点击新卡片时，收起其他展开的卡片
+  if (dishActiveSwipeId.value && dishActiveSwipeId.value !== id) {
+    dishSwipeAnimating[dishActiveSwipeId.value] = true
+    dishSwipeOffset[dishActiveSwipeId.value] = 0
+    dishActiveSwipeId.value = ''
+  }
+}
+
+const onDishTouchMove = (e, id) => {
+  const touch = e.touches[0]
+  const dx = touch.clientX - dishTouchStartX[id]
+  if (Math.abs(dx) > 5) dishTouchMoved[id] = true
+  let next = dishTouchStartOffset[id] + dx
+  // 限制范围：[-DISH_SWIPE_WIDTH, 0]，向右不超过 0
+  if (next > 0) next = 0
+  if (next < -DISH_SWIPE_WIDTH) next = -DISH_SWIPE_WIDTH
+  dishSwipeOffset[id] = next
+}
+
+const onDishTouchEnd = (e, id) => {
+  const offset = dishSwipeOffset[id] || 0
+  dishSwipeAnimating[id] = true
+  if (offset < -DISH_SWIPE_WIDTH / 2) {
+    dishSwipeOffset[id] = -DISH_SWIPE_WIDTH
+    dishActiveSwipeId.value = id
+  } else {
+    dishSwipeOffset[id] = 0
+    if (dishActiveSwipeId.value === id) dishActiveSwipeId.value = ''
+  }
+  // 动画结束后关闭 transition 标志，避免拖拽时不跟手
+  setTimeout(() => { dishSwipeAnimating[id] = false }, 300)
+  // touchMoved 延迟清零，确保 tap 事件能正确判断是否发生过滑动
+  setTimeout(() => { dishTouchMoved[id] = false }, 0)
+}
+
+// 点击菜品卡片：进入编辑，但滑动后点击先收起不跳转
+const onDishCardTap = (dish) => {
+  // 若发生过滑动，不触发点击
+  if (dishTouchMoved[dish._id]) return
+  // 若当前卡片展开，先收起不跳转
+  if ((dishSwipeOffset[dish._id] || 0) < 0) {
+    dishSwipeAnimating[dish._id] = true
+    dishSwipeOffset[dish._id] = 0
+    dishActiveSwipeId.value = ''
+    setTimeout(() => { dishSwipeAnimating[dish._id] = false }, 300)
+    return
+  }
+  onEditDish(dish)
+}
+
+// 点击空白区域：收起当前展开的菜品卡片
+const closeDishSwipe = () => {
+  if (dishActiveSwipeId.value) {
+    dishSwipeAnimating[dishActiveSwipeId.value] = true
+    dishSwipeOffset[dishActiveSwipeId.value] = 0
+    const id = dishActiveSwipeId.value
+    dishActiveSwipeId.value = ''
+    setTimeout(() => { dishSwipeAnimating[id] = false }, 300)
+  }
+}
+
+// 滑动删除：调用原有 onDeleteDish 逻辑
+const onDishSwipeDelete = (dish) => {
+  onDeleteDish(dish)
+}
 
 // === 分类管理状态 ===
 const catManagerVisible = ref(false)
@@ -507,6 +627,147 @@ const todayOrderCount = computed(() => {
 const pendingOrderCount = computed(() => {
   return orderList.value.filter((o) => o.status === 'pending').length
 })
+
+// === 订单左滑取消/删除 ===
+// 右侧操作区：取消 160rpx + 删除 160rpx，按屏幕宽度换算成 px
+const ORDER_SWIPE_WIDTH_FULL = Math.round((320 / 750) * uni.getSystemInfoSync().windowWidth)
+const ORDER_SWIPE_WIDTH_DELETE_ONLY = Math.round((160 / 750) * uni.getSystemInfoSync().windowWidth)
+const orderSwipeOffset = reactive({})      // 各卡片当前 x 偏移
+const orderSwipeAnimating = reactive({})    // 各卡片是否处于动画态
+const orderTouchStartX = reactive({})       // 触摸起点
+const orderTouchStartOffset = reactive({})  // 触摸时已有偏移
+const orderTouchMoved = reactive({})        // 是否发生水平移动
+const orderActiveSwipeId = ref('')          // 当前展开的卡片 _id
+const orderFlashMap = reactive({})          // 状态变化时的闪光动效
+
+const triggerOrderFlash = (id) => {
+  orderFlashMap[id] = true
+  setTimeout(() => { orderFlashMap[id] = false }, 600)
+}
+
+// 根据订单状态决定可滑出的最大宽度（pending 有取消+删除，其他只有删除）
+const getOrderSwipeWidth = (order) => {
+  if (order.status === 'pending') return ORDER_SWIPE_WIDTH_FULL
+  return ORDER_SWIPE_WIDTH_DELETE_ONLY
+}
+
+const onOrderTouchStart = (e, id) => {
+  const touch = e.touches[0]
+  orderTouchStartX[id] = touch.clientX
+  orderTouchStartOffset[id] = orderSwipeOffset[id] || 0
+  orderTouchMoved[id] = false
+  orderSwipeAnimating[id] = false
+  // 点击新卡片时，收起其他展开的卡片
+  if (orderActiveSwipeId.value && orderActiveSwipeId.value !== id) {
+    orderSwipeAnimating[orderActiveSwipeId.value] = true
+    orderSwipeOffset[orderActiveSwipeId.value] = 0
+    orderActiveSwipeId.value = ''
+  }
+}
+
+const onOrderTouchMove = (e, id) => {
+  const touch = e.touches[0]
+  const dx = touch.clientX - orderTouchStartX[id]
+  if (Math.abs(dx) > 5) orderTouchMoved[id] = true
+  let next = orderTouchStartOffset[id] + dx
+  // 限制范围：[-ORDER_SWIPE_WIDTH_FULL, 0]，向右不超过 0
+  if (next > 0) next = 0
+  if (next < -ORDER_SWIPE_WIDTH_FULL) next = -ORDER_SWIPE_WIDTH_FULL
+  orderSwipeOffset[id] = next
+}
+
+const onOrderTouchEnd = (e, id) => {
+  // 读取绑定的 order 状态来决定吸附宽度
+  const order = filteredOrders.value.find((o) => o._id === id)
+  const maxW = order ? getOrderSwipeWidth(order) : ORDER_SWIPE_WIDTH_FULL
+  const offset = orderSwipeOffset[id] || 0
+  orderSwipeAnimating[id] = true
+  if (offset < -maxW / 2) {
+    orderSwipeOffset[id] = -maxW
+    orderActiveSwipeId.value = id
+  } else {
+    orderSwipeOffset[id] = 0
+    if (orderActiveSwipeId.value === id) orderActiveSwipeId.value = ''
+  }
+  // 动画结束后关闭 transition 标志，避免拖拽时不跟手
+  setTimeout(() => { orderSwipeAnimating[id] = false }, 300)
+  // touchMoved 延迟清零，确保 tap 事件能正确判断是否发生过滑动
+  setTimeout(() => { orderTouchMoved[id] = false }, 0)
+}
+
+// 点击订单卡片：跳转详情页，但滑动后点击先收起不跳转
+const onOrderCardTap = (order) => {
+  // 若发生过滑动，不触发点击
+  if (orderTouchMoved[order._id]) return
+  // 若当前卡片展开，先收起不跳转
+  if ((orderSwipeOffset[order._id] || 0) < 0) {
+    orderSwipeAnimating[order._id] = true
+    orderSwipeOffset[order._id] = 0
+    orderActiveSwipeId.value = ''
+    setTimeout(() => { orderSwipeAnimating[order._id] = false }, 300)
+    return
+  }
+  uni.navigateTo({
+    url: `/pages/order-detail/order-detail?id=${order._id}`
+  })
+}
+
+// 点击空白区域：收起当前展开的订单卡片
+const closeOrderSwipe = () => {
+  if (orderActiveSwipeId.value) {
+    orderSwipeAnimating[orderActiveSwipeId.value] = true
+    orderSwipeOffset[orderActiveSwipeId.value] = 0
+    const id = orderActiveSwipeId.value
+    orderActiveSwipeId.value = ''
+    setTimeout(() => { orderSwipeAnimating[id] = false }, 300)
+  }
+}
+
+// 滑动取消：收起后调用 onOrderCancel
+const onOrderSwipeCancel = (order) => {
+  orderSwipeAnimating[order._id] = true
+  orderSwipeOffset[order._id] = 0
+  orderActiveSwipeId.value = ''
+  setTimeout(() => { orderSwipeAnimating[order._id] = false }, 300)
+  onOrderCancel(order)
+}
+
+// 滑动删除：调用 onOrderDelete
+const onOrderSwipeDelete = (order) => {
+  onOrderDelete(order)
+}
+
+// 订单时间格式化：HH:mm
+const formatOrderTime = (ts) => {
+  if (!ts) return ''
+  const d = new Date(ts)
+  const hh = String(d.getHours()).padStart(2, '0')
+  const mm = String(d.getMinutes()).padStart(2, '0')
+  return `${hh}:${mm}`
+}
+
+// === 订阅消息：首次进入订单管理时引导订阅 ===
+const onOrdersTabTap = () => {
+  activeTab.value = 'orders'
+  const asked = uni.getStorageSync('fo_admin_notify_asked')
+  if (!asked) {
+    onSubscribeOrderNotify()
+  }
+}
+
+const onSubscribeOrderNotify = () => {
+  // #ifdef MP-WEIXIN
+  uni.requestSubscribeMessage({
+    tmplIds: [WX_CONFIG.subscribeTemplates.orderNotify],
+    success: () => {
+      uni.setStorageSync('fo_admin_notify_asked', '1')
+    },
+    fail: () => {
+      // 用户拒绝或失败不标记，下次进入仍可提示
+    }
+  })
+  // #endif
+}
 
 // === 生命周期 ===
 onMounted(() => {
@@ -612,22 +873,14 @@ const loadOrders = async () => {
   }
 }
 
-// === 订单状态操作（乐观更新 + 失败回滚） ===
-// 注：列表内直接推进状态的入口已移除，管理员点击订单卡片进入详情页操作
-//     order-card 仅保留 cancel（取消订单）能力
-
-// 点击订单卡片：跳转订单详情页（管理员在详情页推进状态）
-const onOrderTap = ({ order }) => {
-  uni.navigateTo({
-    url: `/pages/order-detail/order-detail?id=${order._id}`
-  })
-}
+// === 订单状态操作（乐观更新 + 失败回滚 + 闪光动效） ===
 
 // 取消订单：调 orders-crud cancel（仅 pending 可取消）
-const onOrderCancel = async ({ order }) => {
+const onOrderCancel = async (order) => {
   const oldStatus = order.status
   // 乐观更新
   order.status = 'cancelled'
+  triggerOrderFlash(order._id)
   try {
     const res = await uniCloud.callFunction({
       name: 'orders-crud',
@@ -650,25 +903,34 @@ const onOrderCancel = async ({ order }) => {
   }
 }
 
-// === 切换为下单人 ===
-const onSwitchRole = () => {
+// 删除订单记录（任意状态，二次确认，物理删除）
+const onOrderDelete = (order) => {
   uni.showModal({
-    title: '切换角色',
-    content: '确定切换为下单人吗？切换后将隐藏管理功能，底部 tab 变为 3 个。',
-    confirmText: '切换',
-    confirmColor: '#6F4E37',
-    success: async (res) => {
-      if (!res.confirm) return
+    title: '删除订单',
+    content: '确定要删除这条订单记录吗？删除后不可恢复。',
+    confirmText: '删除',
+    confirmColor: '#EF4444',
+    success: async (r) => {
+      if (!r.confirm) return
       try {
-        uni.showLoading({ title: '切换中...', mask: true })
-        await userStore.setRole('orderer')
-        uni.hideLoading()
-        // reLaunch 重新加载应用，更新底部 tab 配置
-        uni.reLaunch({ url: '/pages/home/home' })
+        const res = await uniCloud.callFunction({
+          name: 'orders-crud',
+          data: {
+            action: 'delete',
+            _id: order._id,
+            token: userStore.token
+          }
+        })
+        if (res.result.code !== 0) {
+          uni.showToast({ title: res.result.message || '删除失败', icon: 'none' })
+          return
+        }
+        // 从本地列表移除
+        orderList.value = orderList.value.filter((o) => o._id !== order._id)
+        uni.showToast({ title: '已删除', icon: 'success' })
       } catch (e) {
-        uni.hideLoading()
-        console.error('[admin] onSwitchRole error', e)
-        uni.showToast({ title: e.message || '切换失败', icon: 'none' })
+        console.error('[admin] onOrderDelete error', e)
+        uni.showToast({ title: '删除失败', icon: 'none' })
       }
     }
   })
@@ -902,13 +1164,14 @@ const closeCategoryManager = () => {
 
 const resetCatForm = () => {
   catForm.name = ''
-  catForm.type = 'coffee'
+  catForm.type = menuType.value
   catFormError.value = ''
   editingCatId.value = ''
 }
 
 const onAddCategory = () => {
   resetCatForm()
+  catForm.type = menuType.value
   catFormVisible.value = true
 }
 
@@ -1075,23 +1338,6 @@ const moveCategory = async (list, idx, direction) => {
     color: $color-text-muted;
   }
 
-  /* 切换为下单人按钮 */
-  .role-switch-btn {
-    display: flex;
-    align-items: center;
-    gap: 6rpx;
-    padding: 10rpx 20rpx;
-    border-radius: $radius-full;
-    background-color: $color-card;
-    border: 2rpx solid $color-coffee-200;
-    color: $color-coffee-600;
-    font-size: $font-size-xs;
-    font-weight: $font-weight-medium;
-    @include tap-feedback;
-    flex-shrink: 0;
-    box-shadow: $shadow-sm;
-  }
-
   /* 统计卡片：今日订单 + 待制作 */
   .stats-card {
     display: flex;
@@ -1191,12 +1437,12 @@ const moveCategory = async (list, idx, direction) => {
   to { width: 48rpx; }
 }
 
-/* === 菜单类型切换行 === */
+/* === 菜单类型切换行（仅菜单切换按钮） === */
 .menu-switch-row {
   display: flex;
   align-items: center;
   gap: 16rpx;
-  padding: 0 32rpx 24rpx;
+  padding: 0 32rpx 16rpx;
 
   .menu-switch {
     flex: 1;
@@ -1229,6 +1475,14 @@ const moveCategory = async (list, idx, direction) => {
       box-shadow: 0 4rpx 12rpx rgba(22, 163, 74, 0.25);
     }
   }
+}
+
+/* === 分类行：分类入口 + 横向分类筛选 === */
+.cat-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  padding: 0 32rpx 24rpx;
 
   .cat-entry {
     flex-shrink: 0;
@@ -1242,6 +1496,39 @@ const moveCategory = async (list, idx, direction) => {
     font-size: $font-size-sm;
     font-weight: $font-weight-medium;
     @include tap-feedback;
+  }
+
+  .cat-filter-scroll {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 12rpx;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  .cat-filter-pill {
+    flex-shrink: 0;
+    padding: 12rpx 24rpx;
+    border-radius: $radius-full;
+    background-color: $color-card;
+    color: $color-text-muted;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-medium;
+    @include tap-feedback;
+    transition: all $dur-base $ease-smooth;
+    box-shadow: $shadow-sm;
+
+    &.active {
+      background: linear-gradient(135deg, $color-coffee-500, $color-coffee-600);
+      color: #fff;
+      box-shadow: 0 4rpx 12rpx rgba(111, 78, 55, 0.25);
+    }
   }
 }
 
@@ -1259,17 +1546,55 @@ const moveCategory = async (list, idx, direction) => {
   padding: 0 32rpx;
 }
 
+/* === 菜品滑动删除容器 === */
+.dish-swipe-item {
+  position: relative;
+  overflow: hidden;
+  border-radius: $radius-2xl;
+  margin-bottom: 20rpx;
+}
+
+/* 右侧滑动操作区 */
+.dish-swipe-actions {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: stretch;
+  z-index: 1;
+
+  .dish-swipe-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 160rpx;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-medium;
+    color: #fff;
+
+    &:active {
+      opacity: 0.85;
+    }
+  }
+
+  .delete {
+    background-color: #EF4444;
+  }
+}
+
 .dish-card {
+  position: relative;
+  z-index: 2;
   display: flex;
   align-items: center;
   gap: 20rpx;
   padding: 20rpx;
-  margin-bottom: 20rpx;
   background-color: $color-card;
   border-radius: $radius-2xl;
   box-shadow: $shadow-sm;
   border-left: 8rpx solid transparent;
-  transition: transform $dur-base $ease-smooth, box-shadow $dur-base $ease-smooth;
+  transition: box-shadow $dur-base $ease-smooth;
 
   &.coffee {
     border-left-color: $color-coffee-400;
@@ -1279,8 +1604,9 @@ const moveCategory = async (list, idx, direction) => {
     border-left-color: $color-food-400;
   }
 
-  &:active {
-    transform: scale(0.99);
+  /* 吸附/回弹时的丝滑过渡 */
+  &.swipe-animating {
+    transition: transform 0.3s $ease-smooth;
   }
 }
 
@@ -1400,27 +1726,13 @@ const moveCategory = async (list, idx, direction) => {
   }
 }
 
-.dish-actions {
+/* 菜品上架开关（卡片内右侧） */
+.dish-sale-toggle {
+  flex-shrink: 0;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12rpx;
-  flex-shrink: 0;
-
-  .icon-btn {
-    width: 56rpx;
-    height: 56rpx;
-    border-radius: 50%;
-    @include flex-center;
-    color: $color-neutral-500;
-    background-color: $color-neutral-100;
-    @include tap-feedback(0.9);
-
-    &.danger {
-      color: $color-state-error;
-    }
-  }
+  padding: 8rpx;
 }
 
 .fab {
@@ -1724,14 +2036,6 @@ const moveCategory = async (list, idx, direction) => {
 
 .cat-group {
   margin-bottom: 24rpx;
-
-  .cat-group-title {
-    font-size: $font-size-sm;
-    color: $color-coffee-600;
-    font-weight: $font-weight-semibold;
-    margin-bottom: 12rpx;
-    padding-left: 8rpx;
-  }
 }
 
 .cat-item {
@@ -1866,6 +2170,118 @@ const moveCategory = async (list, idx, direction) => {
   @include flex-column;
   gap: 20rpx;
   padding: 0 32rpx;
+}
+
+/* === 订单滑动卡片容器 === */
+.order-swipe-item {
+  position: relative;
+  overflow: hidden;
+  border-radius: $radius-xl;
+}
+
+/* 右侧滑动操作区 */
+.order-swipe-actions {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: stretch;
+  z-index: 1;
+
+  .order-swipe-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 160rpx;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-medium;
+    color: #fff;
+
+    &:active {
+      opacity: 0.85;
+    }
+  }
+
+  .cancel {
+    background-color: #9CA3AF;
+  }
+
+  .delete {
+    background-color: #EF4444;
+  }
+}
+
+/* === 订单卡片主体 === */
+.order-swipe-card {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  padding: 20rpx;
+  background-color: $color-card;
+  border-radius: $radius-xl;
+  box-shadow: $shadow-sm;
+  transition: box-shadow $dur-base $ease-smooth;
+
+  /* 吸附/回弹时的丝滑过渡 */
+  &.swipe-animating {
+    transition: transform 0.3s $ease-smooth;
+  }
+
+  /* 状态变化时整体闪光，强化动效反馈 */
+  &.is-flashing {
+    box-shadow: 0 0 0 4rpx rgba(255, 167, 38, 0.22), $shadow-md;
+  }
+
+  /* 左侧 emoji 图标 */
+  .order-card-icon {
+    flex-shrink: 0;
+    width: 88rpx;
+    height: 88rpx;
+    border-radius: $radius-lg;
+    background-color: $color-bg-soft;
+    @include flex-center;
+    font-size: 44rpx;
+  }
+
+  /* 中部内容 */
+  .order-card-body {
+    flex: 1;
+    min-width: 0;
+    @include flex-column;
+    gap: 8rpx;
+
+    .order-card-summary {
+      font-size: $font-size-base;
+      font-weight: $font-weight-semibold;
+      color: $color-text-strong;
+      line-height: $line-height-tight;
+      @include ellipsis(2);
+    }
+
+    .order-card-meta {
+      display: flex;
+      align-items: center;
+      gap: 8rpx;
+      font-size: $font-size-xs;
+      color: $color-text-muted;
+
+      .meta-user {
+        color: $color-coffee-500;
+        font-weight: $font-weight-medium;
+      }
+    }
+  }
+
+  /* 右侧：状态徽章 */
+  .order-card-right {
+    flex-shrink: 0;
+    @include flex-column;
+    align-items: flex-end;
+    justify-content: center;
+  }
 }
 
 /* 加载占位（与首页风格一致的三点动画） */

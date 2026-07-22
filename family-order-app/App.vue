@@ -1,5 +1,6 @@
 <script>
 import { useUserStore } from '@/store/user.js'
+import { ensureRoleSelected } from '@/utils/role-guard.js'
 
 export default {
   onLaunch(options) {
@@ -9,43 +10,25 @@ export default {
     // 注：pages.json 已设置 tabBar.custom = true，原生 tabBar 不渲染，
     // custom-tabbar 组件按角色差异化展示，无需调用 uni.hideTabBar（自定义模式下会报错）
 
-    // 隐私合规：监听隐私接口首次调用，弹出授权确认（chooseMedia 等需要）
-    // manifest.json 已开启 __usePrivacyCheck__: true
-    this.setupPrivacyHandler()
+    // 隐私合规：manifest.json 已开启 __usePrivacyCheck__: true
+    // 不监听 onNeedPrivacyAuthorization，让微信自动弹出内置隐私授权弹窗
+    // 内置弹窗的"同意"按钮即为 <button open-type="agreePrivacyAuthorization">，可直接授权
 
     this.bootstrap()
   },
   onShow() {
     console.log('[App] onShow')
+    // 前台守卫：从后台切回时身份为空（如数据库被重置），跳身份选择页
+    // 仅在已登录但无身份时触发；未登录的情况交给 bootstrap 登录后统一处理
+    const userStore = useUserStore()
+    if (userStore.isLoggedIn && !userStore.role) {
+      ensureRoleSelected()
+    }
   },
   onHide() {
     console.log('[App] onHide')
   },
   methods: {
-    // 隐私授权处理：当用户首次使用相册/摄像头等隐私接口时弹窗确认
-    setupPrivacyHandler() {
-      // #ifdef MP-WEIXIN
-      if (wx.onNeedPrivacyAuthorization) {
-        wx.onNeedPrivacyAuthorization((resolve) => {
-          wx.showModal({
-            title: '隐私保护提示',
-            content: '为了上传菜品图片，需要使用您的相册和摄像头权限，是否同意？',
-            confirmText: '同意',
-            cancelText: '拒绝',
-            success: (res) => {
-              if (res.confirm) {
-                // 使用 showModal 方式同意，不传 buttonId
-                // buttonId 仅在使用 <button open-type="agreePrivacyAuthorization"> 时才需要
-                resolve({ event: 'agree' })
-              } else {
-                resolve({ event: 'disagree' })
-              }
-            }
-          })
-        })
-      }
-      // #endif
-    },
     async bootstrap() {
       // 启动引导：恢复登录态 -> 未登录则微信登录 -> 无角色则跳角色选择页
       try {
@@ -59,9 +42,8 @@ export default {
           await userStore.login()
         }
 
-        // 3. 登录后检查角色：为空表示首次登录，跳转角色选择页（reLaunch 防止返回）
-        if (!userStore.role) {
-          uni.reLaunch({ url: '/pages/role-select/role-select' })
+        // 3. 登录后检查角色：为空表示首次登录，跳转角色选择页（守卫内部用 reLaunch 防止返回）
+        if (ensureRoleSelected({ silent: true })) {
           return
         }
 
