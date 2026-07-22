@@ -14,39 +14,51 @@ if (!Math) {
   "./pages/order-success/order-success.js";
   "./pages/role-select/role-select.js";
 }
+function showLoginError(message, retry) {
+  common_vendor.index.showModal({
+    title: "登录失败",
+    content: message || "请检查网络后重试",
+    showCancel: false,
+    confirmText: "重新登录",
+    success: () => retry()
+  });
+}
 const _sfc_main = {
   onLaunch(options) {
-    common_vendor.index.__f__("log", "at App.vue:8", "[App] onLaunch", options);
+    common_vendor.index.__f__("log", "at App.vue:23", "[App] onLaunch", options);
     this.bootstrap();
   },
   onShow() {
-    common_vendor.index.__f__("log", "at App.vue:20", "[App] onShow");
+    common_vendor.index.__f__("log", "at App.vue:35", "[App] onShow");
     const userStore = store_user.useUserStore();
     if (userStore.isLoggedIn && !userStore.role) {
       utils_roleGuard.ensureRoleSelected();
     }
   },
   onHide() {
-    common_vendor.index.__f__("log", "at App.vue:29", "[App] onHide");
+    common_vendor.index.__f__("log", "at App.vue:44", "[App] onHide");
   },
   methods: {
     async bootstrap() {
+      common_vendor.index.showLoading({ title: "正在登录...", mask: true });
       try {
         const userStore = store_user.useUserStore();
         await userStore.restore();
         if (!userStore.isLoggedIn) {
+          common_vendor.index.__f__("log", "at App.vue:59", "[App] 未检测到登录态，开始微信一键登录");
           await userStore.login();
+          common_vendor.index.__f__("log", "at App.vue:61", "[App] 微信一键登录成功", userStore.openid);
+        } else {
+          common_vendor.index.__f__("log", "at App.vue:63", "[App] 已从本地恢复登录态", userStore.openid);
         }
+        common_vendor.index.hideLoading();
         if (utils_roleGuard.ensureRoleSelected({ silent: true })) {
           return;
         }
       } catch (e) {
-        common_vendor.index.__f__("error", "at App.vue:53", "[App] bootstrap error", e);
-        common_vendor.index.showToast({
-          title: "登录失败，请重试",
-          icon: "none",
-          duration: 2e3
-        });
+        common_vendor.index.hideLoading();
+        common_vendor.index.__f__("error", "at App.vue:77", "[App] bootstrap error", e);
+        showLoginError(e.message || "登录失败，请重试", () => this.bootstrap());
       }
     }
     // applyTabBarByRole 已移除：自定义 tabBar 模式下原生 API 不可用，

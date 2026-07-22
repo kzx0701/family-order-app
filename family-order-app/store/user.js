@@ -1,6 +1,25 @@
 import { defineStore } from 'pinia'
 
 /**
+ * 合法的角色值白名单
+ * 任何不在白名单中的角色值都将被归一化为 null
+ */
+const VALID_ROLES = ['orderer', 'admin']
+
+/**
+ * 将任意角色值归一化为合法值或 null
+ * @param {*} role - 原始角色值
+ * @returns {string|null}
+ */
+const sanitizeRole = (role) => {
+  if (role && VALID_ROLES.includes(role)) return role
+  if (role && role !== '') {
+    console.warn('[user] 检测到异常角色值，已重置为 null:', role)
+  }
+  return null
+}
+
+/**
  * 用户 Store
  * 管理用户登录态、角色、基本信息
  * 角色系统：orderer（下单人）/ admin（管理员），单家庭共享
@@ -50,11 +69,17 @@ export const useUserStore = defineStore('user', {
         }
 
         // 3. 写入 state
-        const { userInfo, token } = res.result
+        const { userInfo, token, isNewUser } = res.result
         this.userInfo = userInfo
         this.token = token
-        this.role = userInfo.role || null
+        // 新用户强制 role=null（防止数据库 schema 校验层意外设值），
+        // 老用户使用 sanitizeRole 过滤掉异常值
+        this.role = isNewUser ? null : sanitizeRole(userInfo.role)
         this.familyId = userInfo.familyId || null
+
+        if (isNewUser) {
+          console.log('[user] 新用户登录，role 已置为 null，待选择身份')
+        }
 
         // 4. 持久化
         this.persist()
@@ -67,24 +92,29 @@ export const useUserStore = defineStore('user', {
 
     /**
      * 获取微信登录 code
-     * 仅在微信小程序环境调用 uni.login，其他环境返回空字符串
+     * 仅在微信小程序环境调用 uni.login；其他环境直接 reject（本项目仅支持微信小程序）
      * @returns {Promise<string>}
      */
     getWxCode() {
-      return new Promise((resolve) => {
+      return new Promise((resolve, reject) => {
         // #ifdef MP-WEIXIN
         uni.login({
           provider: 'weixin',
-          success: (res) => resolve(res.code || ''),
+          success: (res) => {
+            if (res.code) {
+              resolve(res.code)
+            } else {
+              reject(new Error('未获取到微信登录凭证'))
+            }
+          },
           fail: (err) => {
             console.error('[user] uni.login fail', err)
-            resolve('')
+            reject(new Error(err?.errMsg || '微信登录调用失败'))
           }
         })
         // #endif
         // #ifndef MP-WEIXIN
-        // H5 / App 等环境无微信 code，返回空字符串触发云函数 mock 流程
-        resolve('')
+        reject(new Error('请在微信小程序环境中使用'))
         // #endif
       })
     },
@@ -107,6 +137,19 @@ export const useUserStore = defineStore('user', {
           token: this.token
         }
       })
+
+      // 缺少登录凭证（token 未正确设置），重新登录获取 token 后重试
+      if (res.result.code === 401) {
+        console.warn('[user] setRole 缺少登录凭证，尝试重新登录')
+        await this.login()
+        res = await uniCloud.callFunction({
+          name: 'user-update-role',
+          data: {
+            role,
+            token: this.token
+          }
+        })
+      }
 
       // 用户记录不存在：本地 token 与数据库不匹配
       // （开发期切换登录方式/数据库重置），重新登录获取有效 token 后重试
@@ -136,7 +179,7 @@ export const useUserStore = defineStore('user', {
      */
     setUserInfo(info) {
       this.userInfo = info
-      this.role = info?.role || null
+      this.role = sanitizeRole(info?.role)
       this.familyId = info?.familyId || null
       this.persist()
     },
@@ -249,7 +292,7 @@ export const useUserStore = defineStore('user', {
         const data = uni.getStorageSync('fo_user_state')
         if (data) {
           this.userInfo = data.userInfo || null
-          this.role = data.role || null
+          this.role = sanitizeRole(data.role)
           this.token = data.token || null
           this.familyId = data.familyId || null
         }

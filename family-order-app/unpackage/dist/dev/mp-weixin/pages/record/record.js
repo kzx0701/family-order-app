@@ -230,7 +230,7 @@ const _sfc_main = {
         page.value += 1;
       }
       try {
-        const res = await common_vendor.wr.callFunction({
+        const res = await common_vendor._r.callFunction({
           name: "orders-crud",
           data: {
             action: "list",
@@ -273,7 +273,7 @@ const _sfc_main = {
           order.status = "cancelled";
           triggerFlash(order._id);
           try {
-            const res = await common_vendor.wr.callFunction({
+            const res = await common_vendor._r.callFunction({
               name: "orders-crud",
               data: {
                 action: "cancel",
@@ -305,7 +305,7 @@ const _sfc_main = {
           if (!r.confirm)
             return;
           try {
-            const res = await common_vendor.wr.callFunction({
+            const res = await common_vendor._r.callFunction({
               name: "orders-crud",
               data: {
                 action: "delete",
@@ -402,7 +402,7 @@ const _sfc_main = {
         i: !hasMore.value && orders.value.length > 0
       }), {
         e: orders.value.length === 0,
-        j: common_vendor.o(onPageTap, "93")
+        j: common_vendor.o(onPageTap, "25")
       });
     };
   }

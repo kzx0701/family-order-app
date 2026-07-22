@@ -2,6 +2,21 @@
 import { useUserStore } from '@/store/user.js'
 import { ensureRoleSelected } from '@/utils/role-guard.js'
 
+/**
+ * 显示登录失败弹窗，并提供重试入口
+ * @param {string} message
+ * @param {Function} retry
+ */
+function showLoginError(message, retry) {
+  uni.showModal({
+    title: '登录失败',
+    content: message || '请检查网络后重试',
+    showCancel: false,
+    confirmText: '重新登录',
+    success: () => retry()
+  })
+}
+
 export default {
   onLaunch(options) {
     // 应用启动逻辑：恢复登录态 -> 微信登录 -> 角色未选则跳角色选择页
@@ -31,6 +46,8 @@ export default {
   methods: {
     async bootstrap() {
       // 启动引导：恢复登录态 -> 未登录则微信登录 -> 无角色则跳角色选择页
+      uni.showLoading({ title: '正在登录...', mask: true })
+
       try {
         const userStore = useUserStore()
 
@@ -39,8 +56,14 @@ export default {
 
         // 2. 未登录（无 token）则执行微信一键登录
         if (!userStore.isLoggedIn) {
+          console.log('[App] 未检测到登录态，开始微信一键登录')
           await userStore.login()
+          console.log('[App] 微信一键登录成功', userStore.openid)
+        } else {
+          console.log('[App] 已从本地恢复登录态', userStore.openid)
         }
+
+        uni.hideLoading()
 
         // 3. 登录后检查角色：为空表示首次登录，跳转角色选择页（守卫内部用 reLaunch 防止返回）
         if (ensureRoleSelected({ silent: true })) {
@@ -50,15 +73,12 @@ export default {
         // 4. 已有角色：正常进入首页（custom-tabbar 组件自动响应 role 变化）
         // 注：自定义 tabBar 模式下，原生 hideTabBar/showTabBar 不可用，组件内部响应式渲染
       } catch (e) {
+        uni.hideLoading()
         console.error('[App] bootstrap error', e)
-        // 登录失败：提示用户重启重试，避免卡在空白首页
-        uni.showToast({
-          title: '登录失败，请重试',
-          icon: 'none',
-          duration: 2000
-        })
+        // 登录失败：弹窗提示具体原因，并提供重试按钮
+        showLoginError(e.message || '登录失败，请重试', () => this.bootstrap())
       }
-    },
+    }
     // applyTabBarByRole 已移除：自定义 tabBar 模式下原生 API 不可用，
     // 由 custom-tabbar 组件根据 userStore.role 响应式渲染 tab 数量
   }

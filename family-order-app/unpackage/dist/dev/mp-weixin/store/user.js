@@ -1,5 +1,14 @@
 "use strict";
 const common_vendor = require("../common/vendor.js");
+const VALID_ROLES = ["orderer", "admin"];
+const sanitizeRole = (role) => {
+  if (role && VALID_ROLES.includes(role))
+    return role;
+  if (role && role !== "") {
+    common_vendor.index.__f__("warn", "at store/user.js:17", "[user] 检测到异常角色值，已重置为 null:", role);
+  }
+  return null;
+};
 const useUserStore = common_vendor.defineStore("user", {
   state: () => ({
     // 用户信息（来自 users 集合）
@@ -39,38 +48,47 @@ const useUserStore = common_vendor.defineStore("user", {
     async login() {
       try {
         const code = await this.getWxCode();
-        const res = await common_vendor.wr.callFunction({
+        const res = await common_vendor._r.callFunction({
           name: "user-login",
           data: { code }
         });
         if (res.result.code !== 0) {
           throw new Error(res.result.message || "登录失败");
         }
-        const { userInfo, token } = res.result;
+        const { userInfo, token, isNewUser } = res.result;
         this.userInfo = userInfo;
         this.token = token;
-        this.role = userInfo.role || null;
+        this.role = isNewUser ? null : sanitizeRole(userInfo.role);
         this.familyId = userInfo.familyId || null;
+        if (isNewUser) {
+          common_vendor.index.__f__("log", "at store/user.js:81", "[user] 新用户登录，role 已置为 null，待选择身份");
+        }
         this.persist();
         return userInfo;
       } catch (e) {
-        common_vendor.index.__f__("error", "at store/user.js:63", "[user] login error", e);
+        common_vendor.index.__f__("error", "at store/user.js:88", "[user] login error", e);
         throw e;
       }
     },
     /**
      * 获取微信登录 code
-     * 仅在微信小程序环境调用 uni.login，其他环境返回空字符串
+     * 仅在微信小程序环境调用 uni.login；其他环境直接 reject（本项目仅支持微信小程序）
      * @returns {Promise<string>}
      */
     getWxCode() {
-      return new Promise((resolve) => {
+      return new Promise((resolve, reject) => {
         common_vendor.index.login({
           provider: "weixin",
-          success: (res) => resolve(res.code || ""),
+          success: (res) => {
+            if (res.code) {
+              resolve(res.code);
+            } else {
+              reject(new Error("未获取到微信登录凭证"));
+            }
+          },
           fail: (err) => {
-            common_vendor.index.__f__("error", "at store/user.js:80", "[user] uni.login fail", err);
-            resolve("");
+            common_vendor.index.__f__("error", "at store/user.js:111", "[user] uni.login fail", err);
+            reject(new Error((err == null ? void 0 : err.errMsg) || "微信登录调用失败"));
           }
         });
       });
@@ -85,16 +103,27 @@ const useUserStore = common_vendor.defineStore("user", {
       if (!["orderer", "admin"].includes(role)) {
         throw new Error("无效的角色");
       }
-      let res = await common_vendor.wr.callFunction({
+      let res = await common_vendor._r.callFunction({
         name: "user-update-role",
         data: {
           role,
           token: this.token
         }
       });
+      if (res.result.code === 401) {
+        common_vendor.index.__f__("warn", "at store/user.js:143", "[user] setRole 缺少登录凭证，尝试重新登录");
+        await this.login();
+        res = await common_vendor._r.callFunction({
+          name: "user-update-role",
+          data: {
+            role,
+            token: this.token
+          }
+        });
+      }
       if (res.result.code === 404) {
         await this.login();
-        res = await common_vendor.wr.callFunction({
+        res = await common_vendor._r.callFunction({
           name: "user-update-role",
           data: {
             role,
@@ -114,7 +143,7 @@ const useUserStore = common_vendor.defineStore("user", {
      */
     setUserInfo(info) {
       this.userInfo = info;
-      this.role = (info == null ? void 0 : info.role) || null;
+      this.role = sanitizeRole(info == null ? void 0 : info.role);
       this.familyId = (info == null ? void 0 : info.familyId) || null;
       this.persist();
     },
@@ -128,7 +157,7 @@ const useUserStore = common_vendor.defineStore("user", {
       if (!name) {
         throw new Error("昵称不能为空");
       }
-      const res = await common_vendor.wr.callFunction({
+      const res = await common_vendor._r.callFunction({
         name: "user-update-profile",
         data: {
           nickname: name,
@@ -153,14 +182,14 @@ const useUserStore = common_vendor.defineStore("user", {
       }
       const ext = filePath.split(".").pop() || "png";
       const cloudPath = `avatars/${this.token || "anonymous"}_${Date.now()}.${ext}`;
-      const uploadRes = await common_vendor.wr.uploadFile({
+      const uploadRes = await common_vendor._r.uploadFile({
         filePath,
         cloudPath
       });
       if (!uploadRes.fileID) {
         throw new Error("头像上传失败");
       }
-      const res = await common_vendor.wr.callFunction({
+      const res = await common_vendor._r.callFunction({
         name: "user-update-profile",
         data: {
           avatar: uploadRes.fileID,
@@ -184,7 +213,7 @@ const useUserStore = common_vendor.defineStore("user", {
       try {
         common_vendor.index.removeStorageSync("fo_user_state");
       } catch (e) {
-        common_vendor.index.__f__("error", "at store/user.js:224", "[user] logout clear storage error", e);
+        common_vendor.index.__f__("error", "at store/user.js:267", "[user] logout clear storage error", e);
       }
     },
     /**
@@ -199,7 +228,7 @@ const useUserStore = common_vendor.defineStore("user", {
           familyId: this.familyId
         });
       } catch (e) {
-        common_vendor.index.__f__("error", "at store/user.js:240", "[user] persist error", e);
+        common_vendor.index.__f__("error", "at store/user.js:283", "[user] persist error", e);
       }
     },
     /**
@@ -210,12 +239,12 @@ const useUserStore = common_vendor.defineStore("user", {
         const data = common_vendor.index.getStorageSync("fo_user_state");
         if (data) {
           this.userInfo = data.userInfo || null;
-          this.role = data.role || null;
+          this.role = sanitizeRole(data.role);
           this.token = data.token || null;
           this.familyId = data.familyId || null;
         }
       } catch (e) {
-        common_vendor.index.__f__("error", "at store/user.js:257", "[user] restore error", e);
+        common_vendor.index.__f__("error", "at store/user.js:300", "[user] restore error", e);
       }
     }
   }

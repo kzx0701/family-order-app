@@ -30,7 +30,8 @@
         "role": {
             "bsonType": "string",
             "description": "角色：orderer 下单人 / admin 管理员；新用户为空字符串待选择",
-            "enum": ["orderer", "admin"]
+            "enum": ["", "orderer", "admin"],
+            "defaultValue": ""
         },
         "familyId": {
             "bsonType": "string",
