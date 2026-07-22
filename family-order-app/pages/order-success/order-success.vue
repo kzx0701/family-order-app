@@ -1,7 +1,7 @@
 <template>
   <view class="page-success page-enter" :class="themeClass">
     <!-- 成功动效区 -->
-    <view class="hero" :style="{ paddingTop: statusBarHeight + 48 + 'px' }">
+    <view class="hero" :style="{ paddingTop: statusBarHeight + 56 + 'px' }">
       <!-- 成功圆圈容器：CSS 对勾 + Lottie canvas + 光环 + 彩屑层 全部基于此容器居中定位 -->
       <view class="circle-wrap">
         <!-- 扩散光环（持续脉动，相对 circle-wrap 居中） -->

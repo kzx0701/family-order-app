@@ -9,7 +9,8 @@
  *   - get          查询单个订单
  *   - updateStatus 更新订单状态（admin 推进 / owner 或 admin 取消）
  *   - cancel       取消订单（便捷方法，等价于 updateStatus cancelled）
- *   - urge         下单人催单，触发 sendUrgeNotify 推送给管理员
+ *   - pickup       管理员提醒取餐，触发 sendPickupNotify 推送给下单人
+ *   - delete       管理员删除订单记录（物理删除，任意状态可删）
  *
  * 鉴权方式：
  *   前端传入 token（user-login 返回的 openid），云函数查询 users 集合获取用户信息与角色。
@@ -54,15 +55,17 @@ exports.main = async (event, context) => {
     case 'create':
       return await createOrder(payload, caller, orderCol)
     case 'list':
-      return await listOrders(payload, orderCol, cmd)
+      return await listOrders(payload, orderCol, cmd, caller)
     case 'get':
       return await getOrder(payload, orderCol)
     case 'updateStatus':
       return await updateOrderStatus(payload, caller, orderCol)
     case 'cancel':
       return await cancelOrder(payload, caller, orderCol)
-    case 'urge':
-      return await urgeOrder(payload, caller, orderCol)
+    case 'pickup':
+      return await pickupOrder(payload, caller, orderCol)
+    case 'delete':
+      return await deleteOrder(payload, caller, orderCol)
     default:
       return { code: 400, message: '未知 action：' + action }
   }
@@ -169,8 +172,7 @@ async function createOrder({ items, reservationType, reservationTime, note } = {
         userId: caller._id,
         userName: doc.userName,
         items: doc.items,
-        reservationType: doc.reservationType,
-        reservationTime: doc.reservationTime
+        note: doc.note
       }
     })
   } catch (e) {
@@ -185,7 +187,7 @@ async function createOrder({ items, reservationType, reservationTime, note } = {
  * 入参（可选）：status、userId、dateStart、dateEnd、page、pageSize
  * 单家庭共享：返回所有订单，默认按 createTime 倒序
  */
-async function listOrders({ status, userId, dateStart, dateEnd, page, pageSize } = {}, orderCol, cmd) {
+async function listOrders({ status, userId, dateStart, dateEnd, page, pageSize, scope } = {}, orderCol, cmd, caller) {
   const where = {}
 
   // 状态筛选：支持单值或数组（如 ['pending', 'preparing']）
@@ -197,8 +199,12 @@ async function listOrders({ status, userId, dateStart, dateEnd, page, pageSize }
     }
   }
 
-  // 用户筛选
-  if (userId) where.userId = userId
+  // 数据范围：scope='mine' 仅查本人订单（点单记录页），否则查全部（管理员）
+  if (scope === 'mine') {
+    where.userId = caller._id
+  } else if (userId) {
+    where.userId = userId
+  }
 
   // 日期范围筛选（毫秒时间戳）
   if (dateStart && dateEnd) {
@@ -356,13 +362,12 @@ async function cancelOrder({ _id } = {}, caller, orderCol) {
 }
 
 /**
- * 下单人催单
- * 入参：_id
- * 鉴权：仅下单人本人可催单，且仅 pending / preparing 状态可催单
- * 触发 subscribe-message 云函数 sendUrgeNotify 推送给所有管理员
- * 防刷：同一订单 60 秒内只能催一次（基于订单 urgeAt 字段）
+ * 取餐提醒（管理员向下单人发送取餐通知）
+ * 入参：_id、pickupMethod、pickupTip
+ * 鉴权：仅管理员可操作，且仅 completed 状态可提醒
+ * 触发 subscribe-message 云函数 sendPickupNotify 推送给下单人
  */
-async function urgeOrder({ _id } = {}, caller, orderCol) {
+async function pickupOrder({ _id, pickupMethod, pickupTip } = {}, caller, orderCol) {
   if (!_id) {
     return { code: 400, message: '缺少 _id' }
   }
@@ -373,45 +378,61 @@ async function urgeOrder({ _id } = {}, caller, orderCol) {
   }
   const order = originRes.data[0]
 
-  // 鉴权：仅下单人本人可催单
-  if (order.userId !== caller._id) {
-    return { code: 403, message: '无权限：仅下单人可催单' }
+  // 鉴权：仅管理员可操作
+  const authRes = requireAdmin(caller)
+  if (!authRes.ok) return { code: 403, message: authRes.message }
+
+  // 状态校验：仅 completed 可提醒取餐
+  if (order.status !== 'completed') {
+    return { code: 400, message: '仅已完成订单可提醒取餐' }
   }
 
-  // 状态校验：仅 pending / preparing 可催单
-  if (!['pending', 'preparing'].includes(order.status)) {
-    return { code: 400, message: '当前状态不可催单' }
-  }
-
-  // 防刷：60 秒内只能催一次
-  const now = Date.now()
-  if (order.urgeAt && now - order.urgeAt < 60 * 1000) {
-    const remain = Math.ceil((60 * 1000 - (now - order.urgeAt)) / 1000)
-    return { code: 429, message: `操作太频繁，请 ${remain} 秒后再试` }
-  }
-
-  // 记录催单时间
-  await orderCol.doc(_id).update({
-    urgeAt: now,
-    updateTime: now
-  })
-
-  // 触发订阅消息推送给管理员
+  // 触发取餐提醒订阅消息推送给下单人
   try {
     await uniCloud.callFunction({
       name: 'subscribe-message',
       data: {
-        action: 'sendUrgeNotify',
+        action: 'sendPickupNotify',
         orderId: _id,
-        userId: caller._id,
-        userName: caller.nickname || '',
-        items: order.items
+        userId: order.userId,
+        items: order.items,
+        pickupMethod: pickupMethod || '',
+        pickupTip: pickupTip || ''
       }
     })
   } catch (e) {
-    console.error('[orders-crud] subscribe-message (sendUrgeNotify) error', e)
-    // 推送失败不阻塞主流程，但仍返回成功（已记录催单）
+    console.error('[orders-crud] subscribe-message (sendPickupNotify) error', e)
+    // 推送失败不阻塞主流程
   }
 
-  return { code: 0, urgeAt: now }
+  return { code: 0 }
+}
+
+/**
+ * 删除订单记录（管理员）
+ * 入参：_id
+ * 鉴权：下单人本人 或 admin 可操作，任意状态均可删除
+ * 物理删除订单文档，不可恢复
+ */
+async function deleteOrder({ _id } = {}, caller, orderCol) {
+  if (!_id) {
+    return { code: 400, message: '缺少 _id' }
+  }
+
+  // 查询原订单，鉴权：下单人本人 或 admin
+  const originRes = await orderCol.doc(_id).get()
+  if (originRes.data.length === 0) {
+    return { code: 404, message: '订单不存在' }
+  }
+  const order = originRes.data[0]
+  const authRes = requireOwnerOrAdmin(caller, order)
+  if (!authRes.ok) return { code: 403, message: authRes.message }
+
+  // 物理删除
+  const deleteRes = await orderCol.doc(_id).remove()
+  if (deleteRes.deleted === 0) {
+    return { code: 404, message: '订单不存在' }
+  }
+
+  return { code: 0 }
 }

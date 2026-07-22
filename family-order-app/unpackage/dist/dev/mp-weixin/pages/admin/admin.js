@@ -63,7 +63,9 @@ const _sfc_main = {
       type: "coffee",
       categoryId: "",
       isOnSale: true,
-      isRecommended: false
+      isRecommended: false,
+      temp: "hot"
+      // 冷热配置：仅咖啡有效，ice（冰）/ hot（热）
     });
     const catManagerVisible = common_vendor.ref(false);
     const catFormVisible = common_vendor.ref(false);
@@ -137,7 +139,7 @@ const _sfc_main = {
     const loadDishes = async () => {
       loadingDishes.value = true;
       try {
-        const res = await common_vendor._r.callFunction({
+        const res = await common_vendor.wr.callFunction({
           name: "dishes-crud",
           data: { action: "list", token: userStore.token }
         });
@@ -147,7 +149,7 @@ const _sfc_main = {
           common_vendor.index.showToast({ title: res.result.message || "加载失败", icon: "none" });
         }
       } catch (e) {
-        common_vendor.index.__f__("error", "at pages/admin/admin.vue:527", "[admin] loadDishes error", e);
+        common_vendor.index.__f__("error", "at pages/admin/admin.vue:548", "[admin] loadDishes error", e);
         common_vendor.index.showToast({ title: "加载菜品失败", icon: "none" });
       } finally {
         loadingDishes.value = false;
@@ -155,7 +157,7 @@ const _sfc_main = {
     };
     const loadCategories = async () => {
       try {
-        const res = await common_vendor._r.callFunction({
+        const res = await common_vendor.wr.callFunction({
           name: "categories-crud",
           data: { action: "list", token: userStore.token }
         });
@@ -163,7 +165,7 @@ const _sfc_main = {
           categoryList.value = res.result.list;
         }
       } catch (e) {
-        common_vendor.index.__f__("error", "at pages/admin/admin.vue:544", "[admin] loadCategories error", e);
+        common_vendor.index.__f__("error", "at pages/admin/admin.vue:565", "[admin] loadCategories error", e);
       }
     };
     const buildOrderSummary = (items) => {
@@ -192,7 +194,7 @@ const _sfc_main = {
     const loadOrders = async () => {
       loadingOrders.value = true;
       try {
-        const res = await common_vendor._r.callFunction({
+        const res = await common_vendor.wr.callFunction({
           name: "orders-crud",
           data: { action: "list", token: userStore.token, pageSize: 100 }
         });
@@ -207,7 +209,7 @@ const _sfc_main = {
           common_vendor.index.showToast({ title: res.result.message || "加载订单失败", icon: "none" });
         }
       } catch (e) {
-        common_vendor.index.__f__("error", "at pages/admin/admin.vue:587", "[admin] loadOrders error", e);
+        common_vendor.index.__f__("error", "at pages/admin/admin.vue:608", "[admin] loadOrders error", e);
         common_vendor.index.showToast({ title: "加载订单失败", icon: "none" });
       } finally {
         loadingOrders.value = false;
@@ -222,7 +224,7 @@ const _sfc_main = {
       const oldStatus = order.status;
       order.status = "cancelled";
       try {
-        const res = await common_vendor._r.callFunction({
+        const res = await common_vendor.wr.callFunction({
           name: "orders-crud",
           data: {
             action: "cancel",
@@ -237,7 +239,7 @@ const _sfc_main = {
         }
         common_vendor.index.showToast({ title: "已取消", icon: "success" });
       } catch (e) {
-        common_vendor.index.__f__("error", "at pages/admin/admin.vue:626", "[admin] onOrderCancel error", e);
+        common_vendor.index.__f__("error", "at pages/admin/admin.vue:647", "[admin] onOrderCancel error", e);
         order.status = oldStatus;
         common_vendor.index.showToast({ title: "取消失败", icon: "none" });
       }
@@ -258,7 +260,7 @@ const _sfc_main = {
             common_vendor.index.reLaunch({ url: "/pages/home/home" });
           } catch (e) {
             common_vendor.index.hideLoading();
-            common_vendor.index.__f__("error", "at pages/admin/admin.vue:649", "[admin] onSwitchRole error", e);
+            common_vendor.index.__f__("error", "at pages/admin/admin.vue:670", "[admin] onSwitchRole error", e);
             common_vendor.index.showToast({ title: e.message || "切换失败", icon: "none" });
           }
         }
@@ -272,6 +274,7 @@ const _sfc_main = {
       dishForm.categoryId = "";
       dishForm.isOnSale = true;
       dishForm.isRecommended = false;
+      dishForm.temp = "hot";
       dishFormError.value = "";
       editingDishId.value = "";
     };
@@ -289,6 +292,7 @@ const _sfc_main = {
       dishForm.categoryId = dish.categoryId;
       dishForm.isOnSale = dish.isOnSale;
       dishForm.isRecommended = dish.isRecommended || false;
+      dishForm.temp = dish.temp === "ice" || dish.temp === "hot" ? dish.temp : "hot";
       dishFormVisible.value = true;
     };
     const closeDishForm = () => {
@@ -300,6 +304,11 @@ const _sfc_main = {
       const belongs = categoryList.value.some((c) => c._id === dishForm.categoryId && c.type === type);
       if (!belongs) {
         dishForm.categoryId = "";
+      }
+      if (type !== "coffee") {
+        dishForm.temp = "";
+      } else if (!dishForm.temp) {
+        dishForm.temp = "hot";
       }
     };
     const onChooseImage = () => {
@@ -318,7 +327,7 @@ const _sfc_main = {
           },
           fail: (err) => {
             if (String(err.errMsg || "").indexOf("cancel") === -1) {
-              common_vendor.index.__f__("error", "at pages/admin/admin.vue:719", "[admin] chooseMedia fail", err);
+              common_vendor.index.__f__("error", "at pages/admin/admin.vue:748", "[admin] chooseMedia fail", err);
             }
           }
         });
@@ -333,7 +342,7 @@ const _sfc_main = {
           },
           fail: (err) => {
             if (String(err.errMsg || "").indexOf("cancel") === -1) {
-              common_vendor.index.__f__("error", "at pages/admin/admin.vue:734", "[admin] chooseImage fail", err);
+              common_vendor.index.__f__("error", "at pages/admin/admin.vue:763", "[admin] chooseImage fail", err);
             }
           }
         });
@@ -346,7 +355,7 @@ const _sfc_main = {
       uploading.value = true;
       uploadProgress.value = 0;
       try {
-        const res = await common_vendor._r.uploadFile({
+        const res = await common_vendor.wr.uploadFile({
           filePath,
           cloudPath,
           onProgressCall: (p) => {
@@ -356,7 +365,7 @@ const _sfc_main = {
         dishForm.image = res.fileID;
         common_vendor.index.showToast({ title: "上传成功", icon: "success" });
       } catch (e) {
-        common_vendor.index.__f__("error", "at pages/admin/admin.vue:758", "[admin] uploadDishImage error", e);
+        common_vendor.index.__f__("error", "at pages/admin/admin.vue:787", "[admin] uploadDishImage error", e);
         common_vendor.index.showToast({ title: "上传失败，请重试", icon: "none" });
       } finally {
         uploading.value = false;
@@ -379,12 +388,13 @@ const _sfc_main = {
           type: dishForm.type,
           categoryId: dishForm.categoryId,
           isOnSale: dishForm.isOnSale,
-          isRecommended: dishForm.isRecommended
+          isRecommended: dishForm.isRecommended,
+          temp: dishForm.type === "coffee" ? dishForm.temp : ""
         };
         if (editingDishId.value) {
           payload._id = editingDishId.value;
         }
-        const res = await common_vendor._r.callFunction({
+        const res = await common_vendor.wr.callFunction({
           name: "dishes-crud",
           data: payload
         });
@@ -399,7 +409,7 @@ const _sfc_main = {
         closeDishForm();
         await loadDishes();
       } catch (e) {
-        common_vendor.index.__f__("error", "at pages/admin/admin.vue:804", "[admin] onSaveDish error", e);
+        common_vendor.index.__f__("error", "at pages/admin/admin.vue:834", "[admin] onSaveDish error", e);
         common_vendor.index.showToast({ title: "保存异常", icon: "none" });
       } finally {
         saving.value = false;
@@ -414,7 +424,7 @@ const _sfc_main = {
           if (!res.confirm)
             return;
           try {
-            const r = await common_vendor._r.callFunction({
+            const r = await common_vendor.wr.callFunction({
               name: "dishes-crud",
               data: { action: "delete", token: userStore.token, _id: dish._id }
             });
@@ -425,7 +435,7 @@ const _sfc_main = {
             common_vendor.index.showToast({ title: "已删除", icon: "success" });
             dishList.value = dishList.value.filter((d) => d._id !== dish._id);
           } catch (e) {
-            common_vendor.index.__f__("error", "at pages/admin/admin.vue:832", "[admin] onDeleteDish error", e);
+            common_vendor.index.__f__("error", "at pages/admin/admin.vue:862", "[admin] onDeleteDish error", e);
             common_vendor.index.showToast({ title: "删除异常", icon: "none" });
           }
         }
@@ -435,7 +445,7 @@ const _sfc_main = {
       const oldVal = dish.isOnSale;
       dish.isOnSale = value;
       try {
-        const res = await common_vendor._r.callFunction({
+        const res = await common_vendor.wr.callFunction({
           name: "dishes-crud",
           data: { action: "toggleSale", token: userStore.token, _id: dish._id, isOnSale: value }
         });
@@ -445,7 +455,7 @@ const _sfc_main = {
         }
       } catch (e) {
         dish.isOnSale = oldVal;
-        common_vendor.index.__f__("error", "at pages/admin/admin.vue:855", "[admin] onToggleSale error", e);
+        common_vendor.index.__f__("error", "at pages/admin/admin.vue:885", "[admin] onToggleSale error", e);
         common_vendor.index.showToast({ title: "切换失败", icon: "none" });
       }
     };
@@ -496,7 +506,7 @@ const _sfc_main = {
         if (editingCatId.value) {
           payload._id = editingCatId.value;
         }
-        const res = await common_vendor._r.callFunction({
+        const res = await common_vendor.wr.callFunction({
           name: "categories-crud",
           data: payload
         });
@@ -511,7 +521,7 @@ const _sfc_main = {
         cancelCatForm();
         await loadCategories();
       } catch (e) {
-        common_vendor.index.__f__("error", "at pages/admin/admin.vue:930", "[admin] onSaveCategory error", e);
+        common_vendor.index.__f__("error", "at pages/admin/admin.vue:960", "[admin] onSaveCategory error", e);
         common_vendor.index.showToast({ title: "保存异常", icon: "none" });
       }
     };
@@ -524,7 +534,7 @@ const _sfc_main = {
           if (!res.confirm)
             return;
           try {
-            const r = await common_vendor._r.callFunction({
+            const r = await common_vendor.wr.callFunction({
               name: "categories-crud",
               data: { action: "delete", token: userStore.token, _id: cat._id }
             });
@@ -535,7 +545,7 @@ const _sfc_main = {
             common_vendor.index.showToast({ title: "已删除", icon: "success" });
             await loadCategories();
           } catch (e) {
-            common_vendor.index.__f__("error", "at pages/admin/admin.vue:955", "[admin] onDeleteCategory error", e);
+            common_vendor.index.__f__("error", "at pages/admin/admin.vue:985", "[admin] onDeleteCategory error", e);
             common_vendor.index.showToast({ title: "删除异常", icon: "none" });
           }
         }
@@ -559,7 +569,7 @@ const _sfc_main = {
         return c;
       });
       try {
-        await common_vendor._r.callFunction({
+        await common_vendor.wr.callFunction({
           name: "categories-crud",
           data: {
             action: "sort",
@@ -572,7 +582,7 @@ const _sfc_main = {
         });
         await loadCategories();
       } catch (e) {
-        common_vendor.index.__f__("error", "at pages/admin/admin.vue:998", "[admin] moveCategory error", e);
+        common_vendor.index.__f__("error", "at pages/admin/admin.vue:1028", "[admin] moveCategory error", e);
         common_vendor.index.showToast({ title: "排序失败", icon: "none" });
         await loadCategories();
       }
@@ -583,7 +593,7 @@ const _sfc_main = {
           name: "utensils-crossed",
           size: 14
         }),
-        b: common_vendor.o(onSwitchRole, "e4"),
+        b: common_vendor.o(onSwitchRole, "f4"),
         c: common_vendor.t(todayOrderCount.value),
         d: common_vendor.t(pendingOrderCount.value),
         e: pendingOrderCount.value > 0 ? 1 : "",
@@ -592,20 +602,20 @@ const _sfc_main = {
         g: common_vendor.unref(statusBarHeight) + 28 + "px",
         h: common_vendor.unref(headerHeight) + "px",
         i: activeTab.value === "menu" ? 1 : "",
-        j: common_vendor.o(($event) => activeTab.value = "menu", "ea"),
+        j: common_vendor.o(($event) => activeTab.value = "menu", "63"),
         k: activeTab.value === "orders" ? 1 : "",
-        l: common_vendor.o(($event) => activeTab.value = "orders", "3f"),
+        l: common_vendor.o(($event) => activeTab.value = "orders", "ca"),
         m: activeTab.value === "menu"
       }, activeTab.value === "menu" ? common_vendor.e({
         n: menuType.value === "coffee" ? 1 : "",
-        o: common_vendor.o(($event) => onMenuTypeChange("coffee"), "df"),
+        o: common_vendor.o(($event) => onMenuTypeChange("coffee"), "4f"),
         p: menuType.value === "food" ? 1 : "",
-        q: common_vendor.o(($event) => onMenuTypeChange("food"), "3c"),
+        q: common_vendor.o(($event) => onMenuTypeChange("food"), "bc"),
         r: common_vendor.p({
           name: "settings",
           size: 16
         }),
-        s: common_vendor.o(openCategoryManager, "53"),
+        s: common_vendor.o(openCategoryManager, "8c"),
         t: loadingDishes.value && filteredDishes.value.length === 0
       }, loadingDishes.value && filteredDishes.value.length === 0 ? {
         v: common_vendor.p({
@@ -626,28 +636,34 @@ const _sfc_main = {
             e: dish.isRecommended
           }, dish.isRecommended ? {} : {}, {
             f: common_vendor.t(dish.name),
-            g: dish.description
+            g: dish.type === "coffee" && dish.temp
+          }, dish.type === "coffee" && dish.temp ? {
+            h: common_vendor.t(dish.temp === "ice" ? "❄" : "🔥"),
+            i: common_vendor.t(dish.temp === "ice" ? "冰" : "热"),
+            j: common_vendor.n(dish.temp)
+          } : {}, {
+            k: dish.description
           }, dish.description ? {
-            h: common_vendor.t(dish.description)
+            l: common_vendor.t(dish.description)
           } : {}, {
-            i: dish.categoryName
+            m: dish.categoryName
           }, dish.categoryName ? {
-            j: common_vendor.t(dish.categoryName)
+            n: common_vendor.t(dish.categoryName)
           } : {}, {
-            k: common_vendor.o(($event) => onToggleSale(dish, $event), dish._id),
-            l: "dbc77958-4-" + i0 + ",dbc77958-3",
-            m: common_vendor.p({
+            o: common_vendor.o(($event) => onToggleSale(dish, $event), dish._id),
+            p: "dbc77958-4-" + i0 + ",dbc77958-3",
+            q: common_vendor.p({
               modelValue: dish.isOnSale
             }),
-            n: common_vendor.o(() => {
+            r: common_vendor.o(() => {
             }, dish._id),
-            o: "dbc77958-5-" + i0 + ",dbc77958-3",
-            p: common_vendor.o(($event) => onDeleteDish(dish), dish._id),
-            q: common_vendor.o(() => {
+            s: "dbc77958-5-" + i0 + ",dbc77958-3",
+            t: common_vendor.o(($event) => onDeleteDish(dish), dish._id),
+            v: common_vendor.o(() => {
             }, dish._id),
-            r: dish._id,
-            s: common_vendor.n(dish.type),
-            t: common_vendor.o(($event) => onEditDish(dish), dish._id)
+            w: dish._id,
+            x: common_vendor.n(dish.type),
+            y: common_vendor.o(($event) => onEditDish(dish), dish._id)
           });
         }),
         y: common_vendor.p({
@@ -669,7 +685,7 @@ const _sfc_main = {
           size: 28,
           color: "#fff"
         }),
-        C: common_vendor.o(onAddDish, "b1")
+        C: common_vendor.o(onAddDish, "c6")
       }) : common_vendor.e({
         D: common_vendor.f(orderFilters, (f, k0, i0) => {
           return {
@@ -708,7 +724,7 @@ const _sfc_main = {
       }, {
         G: filteredOrders.value.length
       }), {
-        J: common_vendor.o(($event) => dishForm.name = $event, "b1"),
+        J: common_vendor.o(($event) => dishForm.name = $event, "ec"),
         K: common_vendor.p({
           label: "菜品名称",
           placeholder: "如：拿铁咖啡",
@@ -729,8 +745,8 @@ const _sfc_main = {
         P: dishForm.image
       }, {
         N: uploading.value,
-        Q: common_vendor.o(onChooseImage, "c7"),
-        R: common_vendor.o(($event) => dishForm.description = $event, "42"),
+        Q: common_vendor.o(onChooseImage, "f1"),
+        R: common_vendor.o(($event) => dishForm.description = $event, "83"),
         S: common_vendor.p({
           label: "描述",
           type: "textarea",
@@ -739,14 +755,21 @@ const _sfc_main = {
           modelValue: dishForm.description
         }),
         T: dishForm.type === "coffee" ? 1 : "",
-        U: common_vendor.o(($event) => onTypeChange("coffee"), "72"),
+        U: common_vendor.o(($event) => onTypeChange("coffee"), "44"),
         V: dishForm.type === "food" ? 1 : "",
-        W: common_vendor.o(($event) => onTypeChange("food"), "7d"),
-        X: availableCategories.value.length
+        W: common_vendor.o(($event) => onTypeChange("food"), "0c"),
+        X: dishForm.type === "coffee"
+      }, dishForm.type === "coffee" ? {
+        Y: dishForm.temp === "ice" ? 1 : "",
+        Z: common_vendor.o(($event) => dishForm.temp = "ice", "b6"),
+        aa: dishForm.temp === "hot" ? 1 : "",
+        ab: common_vendor.o(($event) => dishForm.temp = "hot", "5b")
+      } : {}, {
+        ac: availableCategories.value.length
       }, availableCategories.value.length ? {
-        Y: !dishForm.categoryId ? 1 : "",
-        Z: common_vendor.o(($event) => dishForm.categoryId = "", "bd"),
-        aa: common_vendor.f(availableCategories.value, (cat, k0, i0) => {
+        ad: !dishForm.categoryId ? 1 : "",
+        ae: common_vendor.o(($event) => dishForm.categoryId = "", "44"),
+        af: common_vendor.f(availableCategories.value, (cat, k0, i0) => {
           return {
             a: common_vendor.t(cat.name),
             b: cat._id,
@@ -755,30 +778,30 @@ const _sfc_main = {
           };
         })
       } : {
-        ab: common_vendor.o(openCategoryManager, "30")
+        ag: common_vendor.o(openCategoryManager, "d1")
       }, {
-        ac: common_vendor.o(($event) => dishForm.isOnSale = $event, "be"),
-        ad: common_vendor.p({
+        ah: common_vendor.o(($event) => dishForm.isOnSale = $event, "e3"),
+        ai: common_vendor.p({
           modelValue: dishForm.isOnSale
         }),
-        ae: common_vendor.o(($event) => dishForm.isRecommended = $event, "e4"),
-        af: common_vendor.p({
+        aj: common_vendor.o(($event) => dishForm.isRecommended = $event, "dc"),
+        ak: common_vendor.p({
           modelValue: dishForm.isRecommended
         }),
-        ag: common_vendor.o(closeDishForm, "c5"),
-        ah: common_vendor.t(saving.value ? "保存中..." : "保存"),
-        ai: saving.value ? 1 : "",
-        aj: common_vendor.o(onSaveDish, "4a"),
-        ak: common_vendor.o(closeDishForm, "6a"),
-        al: common_vendor.p({
+        al: common_vendor.o(closeDishForm, "5d"),
+        am: common_vendor.t(saving.value ? "保存中..." : "保存"),
+        an: saving.value ? 1 : "",
+        ao: common_vendor.o(onSaveDish, "cd"),
+        ap: common_vendor.o(closeDishForm, "21"),
+        aq: common_vendor.p({
           visible: dishFormVisible.value,
           title: editingDishId.value ? "编辑菜品" : "新增菜品",
           ["max-height"]: "88vh"
         }),
-        am: catFormVisible.value
+        ar: catFormVisible.value
       }, catFormVisible.value ? {
-        an: common_vendor.o(($event) => catForm.name = $event, "1f"),
-        ao: common_vendor.p({
+        as: common_vendor.o(($event) => catForm.name = $event, "72"),
+        at: common_vendor.p({
           label: "分类名称",
           placeholder: "如：拿铁系列、甜品",
           required: true,
@@ -786,17 +809,17 @@ const _sfc_main = {
           maxlength: 20,
           modelValue: catForm.name
         }),
-        ap: catForm.type === "coffee" ? 1 : "",
-        aq: common_vendor.o(($event) => catForm.type = "coffee", "2b"),
-        ar: catForm.type === "food" ? 1 : "",
-        as: common_vendor.o(($event) => catForm.type = "food", "96"),
-        at: common_vendor.o(cancelCatForm, "d5"),
-        av: common_vendor.t(editingCatId.value ? "保存" : "添加"),
-        aw: common_vendor.o(onSaveCategory, "f3")
+        av: catForm.type === "coffee" ? 1 : "",
+        aw: common_vendor.o(($event) => catForm.type = "coffee", "a9"),
+        ax: catForm.type === "food" ? 1 : "",
+        ay: common_vendor.o(($event) => catForm.type = "food", "a1"),
+        az: common_vendor.o(cancelCatForm, "5b"),
+        aA: common_vendor.t(editingCatId.value ? "保存" : "添加"),
+        aB: common_vendor.o(onSaveCategory, "94")
       } : {}, {
-        ax: coffeeCats.value.length
+        aC: coffeeCats.value.length
       }, coffeeCats.value.length ? {
-        ay: common_vendor.f(coffeeCats.value, (cat, idx, i0) => {
+        aD: common_vendor.f(coffeeCats.value, (cat, idx, i0) => {
           return common_vendor.e({
             a: common_vendor.t(cat.name),
             b: cat.name === "推荐"
@@ -821,22 +844,22 @@ const _sfc_main = {
             o: cat._id
           });
         }),
-        az: common_vendor.p({
+        aE: common_vendor.p({
           name: "chevron-up",
           size: 16
         }),
-        aA: common_vendor.p({
+        aF: common_vendor.p({
           name: "chevron-down",
           size: 16
         }),
-        aB: common_vendor.p({
+        aG: common_vendor.p({
           name: "edit",
           size: 16
         })
       } : {}, {
-        aC: foodCats.value.length
+        aH: foodCats.value.length
       }, foodCats.value.length ? {
-        aD: common_vendor.f(foodCats.value, (cat, idx, i0) => {
+        aI: common_vendor.f(foodCats.value, (cat, idx, i0) => {
           return common_vendor.e({
             a: common_vendor.t(cat.name),
             b: cat.name === "推荐"
@@ -861,37 +884,37 @@ const _sfc_main = {
             o: cat._id
           });
         }),
-        aE: common_vendor.p({
+        aJ: common_vendor.p({
           name: "chevron-up",
           size: 16
         }),
-        aF: common_vendor.p({
+        aK: common_vendor.p({
           name: "chevron-down",
           size: 16
         }),
-        aG: common_vendor.p({
+        aL: common_vendor.p({
           name: "edit",
           size: 16
         })
       } : {}, {
-        aH: !coffeeCats.value.length && !foodCats.value.length && !catFormVisible.value
+        aM: !coffeeCats.value.length && !foodCats.value.length && !catFormVisible.value
       }, !coffeeCats.value.length && !foodCats.value.length && !catFormVisible.value ? {
-        aI: common_vendor.p({
+        aN: common_vendor.p({
           text: "还没有分类，先添加一个吧",
           icon: "📂"
         })
       } : {}, {
-        aJ: !catFormVisible.value
+        aO: !catFormVisible.value
       }, !catFormVisible.value ? {
-        aK: common_vendor.p({
+        aP: common_vendor.p({
           name: "plus",
           size: 18,
           color: "#6F4E37"
         }),
-        aL: common_vendor.o(onAddCategory, "27")
+        aQ: common_vendor.o(onAddCategory, "f8")
       } : {}, {
-        aM: common_vendor.o(closeCategoryManager, "c3"),
-        aN: common_vendor.p({
+        aR: common_vendor.o(closeCategoryManager, "49"),
+        aS: common_vendor.p({
           visible: catManagerVisible.value,
           title: "分类管理",
           ["max-height"]: "85vh"

@@ -86,6 +86,10 @@
             <view class="dish-info">
               <view class="dish-name-row">
                 <text class="dish-name">{{ dish.name }}</text>
+                <view v-if="dish.type === 'coffee' && dish.temp" class="temp-badge" :class="dish.temp">
+                  <text class="temp-badge-icon">{{ dish.temp === 'ice' ? '❄' : '🔥' }}</text>
+                  <text class="temp-badge-text">{{ dish.temp === 'ice' ? '冰' : '热' }}</text>
+                </view>
               </view>
               <view class="dish-desc" v-if="dish.description">{{ dish.description }}</view>
               <view class="dish-cat" v-if="dish.categoryName">
@@ -209,6 +213,22 @@
           </view>
           <view class="type-chip food" :class="{ active: dishForm.type === 'food' }" @tap="onTypeChange('food')">
             <text>🍲 美食</text>
+          </view>
+        </view>
+
+        <!-- 冷热配置（仅咖啡） -->
+        <view v-if="dishForm.type === 'coffee'">
+          <view class="form-label">
+            <text class="label-text">冷热</text>
+            <text class="label-required">*</text>
+          </view>
+          <view class="type-chips">
+            <view class="type-chip ice" :class="{ active: dishForm.temp === 'ice' }" @tap="dishForm.temp = 'ice'">
+              <text>❄ 冰</text>
+            </view>
+            <view class="type-chip hot" :class="{ active: dishForm.temp === 'hot' }" @tap="dishForm.temp = 'hot'">
+              <text>🔥 热</text>
+            </view>
           </view>
         </view>
 
@@ -416,7 +436,8 @@ const dishForm = reactive({
   type: 'coffee',
   categoryId: '',
   isOnSale: true,
-  isRecommended: false
+  isRecommended: false,
+  temp: 'hot' // 冷热配置：仅咖啡有效，ice（冰）/ hot（热）
 })
 
 // === 分类管理状态 ===
@@ -662,6 +683,7 @@ const resetDishForm = () => {
   dishForm.categoryId = ''
   dishForm.isOnSale = true
   dishForm.isRecommended = false
+  dishForm.temp = 'hot'
   dishFormError.value = ''
   editingDishId.value = ''
 }
@@ -681,6 +703,7 @@ const onEditDish = (dish) => {
   dishForm.categoryId = dish.categoryId
   dishForm.isOnSale = dish.isOnSale
   dishForm.isRecommended = dish.isRecommended || false
+  dishForm.temp = dish.temp === 'ice' || dish.temp === 'hot' ? dish.temp : 'hot'
   dishFormVisible.value = true
 }
 
@@ -689,13 +712,19 @@ const closeDishForm = () => {
   resetDishForm()
 }
 
-// 类型变化时重置分类
+// 类型变化时重置分类与冷热
 const onTypeChange = (type) => {
   dishForm.type = type
   // 若当前分类不属于该类型，则清空
   const belongs = categoryList.value.some((c) => c._id === dishForm.categoryId && c.type === type)
   if (!belongs) {
     dishForm.categoryId = ''
+  }
+  // 切换为美食时清空冷热配置
+  if (type !== 'coffee') {
+    dishForm.temp = ''
+  } else if (!dishForm.temp) {
+    dishForm.temp = 'hot'
   }
 }
 
@@ -781,7 +810,8 @@ const onSaveDish = async () => {
       type: dishForm.type,
       categoryId: dishForm.categoryId,
       isOnSale: dishForm.isOnSale,
-      isRecommended: dishForm.isRecommended
+      isRecommended: dishForm.isRecommended,
+      temp: dishForm.type === 'coffee' ? dishForm.temp : ''
     }
     if (editingDishId.value) {
       payload._id = editingDishId.value
@@ -1316,6 +1346,38 @@ const moveCategory = async (list, idx, direction) => {
     font-weight: $font-weight-semibold;
     color: $color-text;
     @include ellipsis;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .temp-badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 2rpx;
+    padding: 2rpx 12rpx;
+    border-radius: $radius-full;
+    line-height: 1.6;
+
+    .temp-badge-icon {
+      font-size: 18rpx;
+      line-height: 1;
+    }
+
+    .temp-badge-text {
+      font-size: $font-size-xs;
+      font-weight: $font-weight-medium;
+    }
+
+    &.ice {
+      background-color: #EFF6FF;
+      .temp-badge-icon, .temp-badge-text { color: #2563EB; }
+    }
+
+    &.hot {
+      background-color: #FEF2F2;
+      .temp-badge-icon, .temp-badge-text { color: #DC2626; }
+    }
   }
 
   .dish-desc {
@@ -1514,6 +1576,20 @@ const moveCategory = async (list, idx, direction) => {
       background-color: $color-food-100;
       border-color: $color-food-500;
       color: $color-food-700;
+      font-weight: $font-weight-semibold;
+    }
+
+    &.ice.active {
+      background-color: #EFF6FF;
+      border-color: #3B82F6;
+      color: #1D4ED8;
+      font-weight: $font-weight-semibold;
+    }
+
+    &.hot.active {
+      background-color: #FEF2F2;
+      border-color: #EF4444;
+      color: #B91C1C;
       font-weight: $font-weight-semibold;
     }
   }

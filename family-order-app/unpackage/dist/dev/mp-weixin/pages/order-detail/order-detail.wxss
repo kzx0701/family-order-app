@@ -328,7 +328,7 @@
   color: #fff;
   /* 开始制作：暖橙系渐变 */
   /* 标记完成：绿色系渐变 */
-  /* 催单：咖啡色系渐变，与品牌色呼应 */
+  /* 提醒取餐：咖啡色系渐变，与品牌色呼应 */
 }
 .bottom-bar .action-btn.data-v-71729483:active {
   transform: scale(0.96);
@@ -353,7 +353,7 @@
   background: linear-gradient(135deg, #22C55E, #16A34A);
   box-shadow: 0 6rpx 20rpx rgba(22, 163, 74, 0.32);
 }
-.bottom-bar .action-btn.btn-urge.data-v-71729483 {
+.bottom-bar .action-btn.btn-pickup.data-v-71729483 {
   background: linear-gradient(135deg, #A8826A, #6F4E37);
   box-shadow: 0 6rpx 20rpx rgba(111, 78, 55, 0.32);
 }
@@ -377,4 +377,107 @@
 to {
     transform: rotate(360deg);
 }
+}
+/* === 取餐提醒弹框 === */
+.pickup-modal-mask.data-v-71729483 {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background-color: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn-71729483 0.2s ease;
+}
+@keyframes fadeIn-71729483 {
+from {
+    opacity: 0;
+}
+to {
+    opacity: 1;
+}
+}
+.pickup-modal.data-v-71729483 {
+  width: 600rpx;
+  background-color: #fff;
+  border-radius: 20px;
+  padding: 48rpx 40rpx 36rpx;
+  animation: popIn-71729483 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+@keyframes popIn-71729483 {
+from {
+    transform: scale(0.92);
+    opacity: 0;
+}
+to {
+    transform: scale(1);
+    opacity: 1;
+}
+}
+.pickup-modal-title.data-v-71729483 {
+  display: block;
+  font-size: 18px;
+  font-weight: 700;
+  color: #2C1B14;
+  text-align: center;
+  margin-bottom: 12rpx;
+}
+.pickup-modal-desc.data-v-71729483 {
+  display: block;
+  font-size: 12px;
+  color: #78716C;
+  text-align: center;
+  margin-bottom: 40rpx;
+}
+.pickup-field.data-v-71729483 {
+  margin-bottom: 28rpx;
+}
+.pickup-label.data-v-71729483 {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: #2C1B14;
+  margin-bottom: 12rpx;
+}
+.pickup-input.data-v-71729483 {
+  width: 100%;
+  height: 80rpx;
+  padding: 0 24rpx;
+  border-radius: 12px;
+  background-color: #FFFBF5;
+  border: 2rpx solid #E7E5E4;
+  font-size: 14px;
+  color: #2C1B14;
+  box-sizing: border-box;
+}
+.pickup-placeholder.data-v-71729483 {
+  color: #A8A29E;
+  font-size: 14px;
+}
+.pickup-actions.data-v-71729483 {
+  display: flex;
+  gap: 24rpx;
+  margin-top: 16rpx;
+}
+.pickup-btn.data-v-71729483 {
+  flex: 1;
+  height: 80rpx;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 500;
+}
+.pickup-btn.pickup-btn-cancel.data-v-71729483 {
+  background-color: #FFFBF5;
+  color: #78716C;
+}
+.pickup-btn.pickup-btn-confirm.data-v-71729483 {
+  background: linear-gradient(135deg, #A8826A, #6F4E37);
+  color: #fff;
+  box-shadow: 0 6rpx 20rpx rgba(111, 78, 55, 0.28);
+}
+.pickup-btn.pickup-btn-confirm.disabled.data-v-71729483 {
+  opacity: 0.6;
 }

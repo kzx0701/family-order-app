@@ -2,9 +2,14 @@
 const common_vendor = require("../../common/vendor.js");
 const _sfc_main = {
   __name: "default-avatar",
+  props: {
+    role: { type: String, default: "admin" }
+  },
   setup(__props) {
     return (_ctx, _cache) => {
-      return {};
+      return common_vendor.e({
+        a: __props.role === "admin"
+      }, __props.role === "admin" ? {} : {});
     };
   }
 };

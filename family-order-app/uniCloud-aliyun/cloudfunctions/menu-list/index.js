@@ -66,7 +66,9 @@ exports.main = async (event, context) => {
       categoryId: d.categoryId || '',
       categoryName: (catMap[d.categoryId] && catMap[d.categoryId].name) || '',
       sortOrder: d.sortOrder || 0,
-      isRecommended: !!d.isRecommended
+      isRecommended: !!d.isRecommended,
+      // 冷热配置：仅咖啡有值（ice/hot），美食为空字符串
+      temp: d.temp === 'ice' || d.temp === 'hot' ? d.temp : ''
     }))
 
     // 6. 构造分类列表（推荐置顶）

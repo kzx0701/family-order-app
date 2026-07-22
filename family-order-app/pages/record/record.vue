@@ -1,9 +1,9 @@
 <template>
-  <view class="page-record page-enter">
+  <view class="page-record page-enter" @tap="onPageTap">
     <!-- 顶部 header：标题 + 副标题（fixed 固定，滚动时常驻顶部） -->
-    <view class="header" :style="{ paddingTop: statusBarHeight + 28 + 'px' }">
+    <view class="header" :style="{ paddingTop: statusBarHeight + 40 + 'px' }">
       <text class="title">点单记录</text>
-      <text class="subtitle">看看大家的点单吧</text>
+      <text class="subtitle">查看我的点单历史</text>
     </view>
     <!-- header 固定后的占位 view -->
     <view class="header-spacer" :style="{ height: headerHeight + 'px' }"></view>
@@ -35,51 +35,57 @@
           <view
             v-for="(order, oIdx) in group.orders"
             :key="order._id"
-            class="order-card animate-fade-in"
-            :class="{ 'is-flashing': flashMap[order._id] }"
+            class="swipe-item animate-fade-in"
             :style="{ animationDelay: cardDelay(gIdx, oIdx) }"
-            @tap="onCardTap(order)"
           >
-            <!-- 左侧：首道菜图片（或 emoji 占位） -->
-            <view class="card-thumb">
-              <image
-                v-if="firstItemImage(order)"
-                class="thumb-img"
-                :src="firstItemImage(order)"
-                mode="aspectFill"
-              />
-              <view v-else class="thumb-placeholder">{{ firstItemEmoji(order) }}</view>
-              <!-- 多菜品角标 -->
-              <view v-if="order.items.length > 1" class="thumb-badge">
-                +{{ order.items.length - 1 }}
-              </view>
+            <!-- 滑动露出的操作区 -->
+            <view class="swipe-actions" @tap.stop>
+              <view
+                v-if="order.status === 'pending'"
+                class="swipe-btn swipe-cancel"
+                @tap.stop="onSwipeCancel(order)"
+              >取消</view>
+              <view
+                class="swipe-btn swipe-delete"
+                @tap.stop="onSwipeDelete(order)"
+              >删除</view>
             </view>
-
-            <!-- 中部：菜品摘要 + 点单人/时间 -->
-            <view class="card-body">
-              <text class="card-summary">{{ buildSummary(order.items) }}</text>
-              <view class="card-meta">
-                <text class="meta-user">{{ order.userName || '神秘食客' }}</text>
-                <text class="meta-dot">·</text>
-                <text class="meta-time">{{ formatTime(order.createTime) }}</text>
+            <!-- 卡片主体：可滑动 -->
+            <view
+              class="order-card"
+              :class="{ 'is-flashing': flashMap[order._id], 'swipe-animating': swipeAnimating[order._id] }"
+              :style="{ transform: `translateX(${swipeOffset[order._id] || 0}px)` }"
+              @touchstart="onTouchStart($event, order._id)"
+              @touchmove="onTouchMove($event, order._id)"
+              @touchend="onTouchEnd($event, order._id)"
+              @tap="onCardTap(order)"
+            >
+              <!-- 左侧：首道菜图片（或 emoji 占位） -->
+              <view class="card-thumb">
+                <image
+                  v-if="firstItemImage(order)"
+                  class="thumb-img"
+                  :src="firstItemImage(order)"
+                  mode="aspectFill"
+                />
+                <view v-else class="thumb-placeholder">{{ firstItemEmoji(order) }}</view>
+                <!-- 多菜品角标 -->
+                <view v-if="order.items.length > 1" class="thumb-badge">
+                  +{{ order.items.length - 1 }}
+                </view>
               </view>
-            </view>
 
-            <!-- 右侧：状态徽章（垂直居中） + 管理员操作按钮 -->
-            <view class="card-right">
-              <status-badge :status="order.status" />
-              <!-- 管理员操作区：仅 admin 可见，按状态切换按钮 -->
-              <view v-if="userStore.isAdmin" class="meta-actions">
-                <!-- pending：可取消 + 开始制作 -->
-                <template v-if="order.status === 'pending'">
-                  <view class="action-btn btn-cancel" @tap.stop="onCancel(order)">取消</view>
-                  <view class="action-btn btn-prep" @tap.stop="onAdvance(order, 'preparing')">开始制作</view>
-                </template>
-                <!-- preparing：完成 -->
-                <template v-else-if="order.status === 'preparing'">
-                  <view class="action-btn btn-done" @tap.stop="onAdvance(order, 'completed')">完成</view>
-                </template>
-                <!-- completed / cancelled：终态，无操作 -->
+              <!-- 中部：菜品摘要 + 时间 -->
+              <view class="card-body">
+                <text class="card-summary">{{ buildSummary(order.items) }}</text>
+                <view class="card-meta">
+                  <text class="meta-time">{{ formatTime(order.createTime) }}</text>
+                </view>
+              </view>
+
+              <!-- 右侧：仅状态徽章 -->
+              <view class="card-right">
+                <status-badge :status="order.status" />
               </view>
             </view>
           </view>
@@ -124,6 +130,71 @@ const triggerFlash = (id) => {
   setTimeout(() => {
     flashMap[id] = false
   }, 600)
+}
+
+/* === 左滑显示取消/删除按钮（仅管理员） === */
+// 右侧操作区：取消 160rpx + 删除 160rpx，按屏幕宽度换算成 px
+const SWIPE_ACTION_WIDTH_FULL = Math.round((320 / 750) * uni.getSystemInfoSync().windowWidth)
+const SWIPE_ACTION_WIDTH_DELETE_ONLY = Math.round((160 / 750) * uni.getSystemInfoSync().windowWidth)
+const swipeOffset = reactive({})     // 各卡片当前 x 偏移
+const swipeAnimating = reactive({})  // 各卡片是否处于动画态（吸附/回弹时启用 transition）
+const touchStartX = reactive({})     // 触摸起点
+const touchStartOffset = reactive({})// 触摸时已有偏移
+const touchMoved = reactive({})      // 是否发生水平移动（用于区分点击）
+const activeSwipeId = ref('')        // 当前展开的卡片 _id
+
+// 根据订单状态决定可滑出的最大宽度（已取消只有删除按钮）
+const getSwipeWidth = (order) => {
+  if (order.status === 'pending') return SWIPE_ACTION_WIDTH_FULL
+  return SWIPE_ACTION_WIDTH_DELETE_ONLY
+}
+
+const onTouchStart = (e, id) => {
+  const touch = e.touches[0]
+  touchStartX[id] = touch.clientX
+  touchStartOffset[id] = swipeOffset[id] || 0
+  touchMoved[id] = false
+  swipeAnimating[id] = false
+  // 点击新卡片时，收起其他展开的卡片
+  if (activeSwipeId.value && activeSwipeId.value !== id) {
+    swipeAnimating[activeSwipeId.value] = true
+    swipeOffset[activeSwipeId.value] = 0
+    activeSwipeId.value = ''
+  }
+}
+
+const onTouchMove = (e, id) => {
+  const touch = e.touches[0]
+  const dx = touch.clientX - touchStartX[id]
+  if (Math.abs(dx) > 5) touchMoved[id] = true
+  let next = touchStartOffset[id] + dx
+  // 限制范围：[-SWIPE_ACTION_WIDTH_FULL, 0]，向右不超过 0
+  if (next > 0) next = 0
+  if (next < -SWIPE_ACTION_WIDTH_FULL) next = -SWIPE_ACTION_WIDTH_FULL
+  swipeOffset[id] = next
+}
+
+const onTouchEnd = (e, id) => {
+  // 读取绑定的 order 状态来决定吸附宽度
+  const order = orders.value.find((o) => o._id === id)
+  const maxW = order ? getSwipeWidth(order) : SWIPE_ACTION_WIDTH_FULL
+  const offset = swipeOffset[id] || 0
+  swipeAnimating[id] = true
+  if (offset < -maxW / 2) {
+    swipeOffset[id] = -maxW
+    activeSwipeId.value = id
+  } else {
+    swipeOffset[id] = 0
+    if (activeSwipeId.value === id) activeSwipeId.value = ''
+  }
+  // 动画结束后关闭 transition 标志，避免拖拽时不跟手
+  setTimeout(() => {
+    swipeAnimating[id] = false
+  }, 300)
+  // touchMoved 延迟清零，确保 tap 事件能正确判断是否发生过滑动
+  setTimeout(() => {
+    touchMoved[id] = false
+  }, 0)
 }
 
 /* === 入场动效延迟（封顶 500ms，避免长列表等待过久） === */
@@ -206,9 +277,44 @@ const firstItemEmoji = (order) => {
 
 // 点击订单卡片：跳转订单详情页
 const onCardTap = (order) => {
+  // 若发生过滑动，不触发点击
+  if (touchMoved[order._id]) return
+  // 若当前卡片展开，先收起不跳转
+  if (swipeOffset[order._id] < 0) {
+    swipeAnimating[order._id] = true
+    swipeOffset[order._id] = 0
+    activeSwipeId.value = ''
+    setTimeout(() => { swipeAnimating[order._id] = false }, 300)
+    return
+  }
   uni.navigateTo({
     url: `/pages/order-detail/order-detail?id=${order._id}`
   })
+}
+
+// 滑动取消：调用原有 onCancel，完成后收起
+const onSwipeCancel = (order) => {
+  swipeAnimating[order._id] = true
+  swipeOffset[order._id] = 0
+  activeSwipeId.value = ''
+  setTimeout(() => { swipeAnimating[order._id] = false }, 300)
+  onCancel(order)
+}
+
+// 删除：直接调用 onDelete（弹出确认框，确认后从列表移除）
+const onSwipeDelete = (order) => {
+  onDelete(order)
+}
+
+// 点击页面空白区域：收起当前展开的卡片
+const onPageTap = () => {
+  if (activeSwipeId.value) {
+    swipeAnimating[activeSwipeId.value] = true
+    swipeOffset[activeSwipeId.value] = 0
+    const id = activeSwipeId.value
+    activeSwipeId.value = ''
+    setTimeout(() => { swipeAnimating[id] = false }, 300)
+  }
 }
 
 // 提交时间格式化：HH:mm（+8 时区）
@@ -221,6 +327,8 @@ const formatTime = (ts) => {
 /* === 加载订单列表 === */
 // reset=true 重置为第一页（首次/下拉刷新）；reset=false 加载下一页
 const loadOrders = async (reset = true) => {
+  // token 未就绪时跳过（App.vue bootstrap 异步恢复登录态）
+  if (!userStore.token) return
   if (reset) {
     if (loading.value) return
     loading.value = true
@@ -237,6 +345,7 @@ const loadOrders = async (reset = true) => {
         action: 'list',
         page: page.value,
         pageSize,
+        scope: 'mine',
         token: userStore.token
       }
     })
@@ -248,6 +357,9 @@ const loadOrders = async (reset = true) => {
       } else {
         orders.value = orders.value.concat(list)
       }
+    } else if (res.result.code === 401) {
+      // 登录态未就绪或失效：静默不提示
+      console.warn('[record] orders-crud 401', res.result.message)
     } else {
       uni.showToast({ title: res.result.message || '加载失败', icon: 'none' })
     }
@@ -257,39 +369,6 @@ const loadOrders = async (reset = true) => {
   } finally {
     loading.value = false
     loadingMore.value = false
-  }
-}
-
-/* === 管理员：推进订单状态（pending → preparing → completed） === */
-const onAdvance = async (order, target) => {
-  const oldStatus = order.status
-  // 1. 乐观更新：状态徽章颜色丝滑过渡
-  order.status = target
-  triggerFlash(order._id)
-  try {
-    const res = await uniCloud.callFunction({
-      name: 'orders-crud',
-      data: {
-        action: 'updateStatus',
-        _id: order._id,
-        status: target,
-        token: userStore.token
-      }
-    })
-    if (res.result.code !== 0) {
-      // 2. 失败回滚
-      order.status = oldStatus
-      uni.showToast({ title: res.result.message || '操作失败', icon: 'none' })
-      return
-    }
-    uni.showToast({
-      title: target === 'preparing' ? '已开始制作' : '已完成',
-      icon: 'success'
-    })
-  } catch (e) {
-    console.error('[record] onAdvance error', e)
-    order.status = oldStatus
-    uni.showToast({ title: '操作失败', icon: 'none' })
   }
 }
 
@@ -324,6 +403,40 @@ const onCancel = (order) => {
         console.error('[record] onCancel error', e)
         order.status = oldStatus
         uni.showToast({ title: '取消失败', icon: 'none' })
+      }
+    }
+  })
+}
+
+/* === 管理员：删除订单记录（任意状态，二次确认，物理删除） === */
+const onDelete = (order) => {
+  uni.showModal({
+    title: '删除订单',
+    content: '确定要删除这条订单记录吗？删除后不可恢复。',
+    confirmText: '删除',
+    confirmColor: '#EF4444',
+    success: async (r) => {
+      if (!r.confirm) return
+      try {
+        const res = await uniCloud.callFunction({
+          name: 'orders-crud',
+          data: {
+            action: 'delete',
+            _id: order._id,
+            token: userStore.token
+          }
+        })
+        if (res.result.code !== 0) {
+          uni.showToast({ title: res.result.message || '删除失败', icon: 'none' })
+          return
+        }
+        // 从本地列表移除
+        orders.value = orders.value.filter((o) => o._id !== order._id)
+        total.value = Math.max(0, total.value - 1)
+        uni.showToast({ title: '已删除', icon: 'success' })
+      } catch (e) {
+        console.error('[record] onDelete error', e)
+        uni.showToast({ title: '删除失败', icon: 'none' })
       }
     }
   })
@@ -436,8 +549,50 @@ onReachBottom(() => {
   }
 }
 
+/* === 滑动卡片容器 === */
+.swipe-item {
+  position: relative;
+  overflow: hidden;
+  border-radius: $radius-xl;
+}
+
+/* 右侧滑动操作区 */
+.swipe-actions {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: stretch;
+  z-index: 1;
+
+  .swipe-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 160rpx;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-medium;
+    color: #fff;
+
+    &:active {
+      opacity: 0.85;
+    }
+  }
+
+  .swipe-cancel {
+    background-color: #9CA3AF;
+  }
+
+  .swipe-delete {
+    background-color: #EF4444;
+  }
+}
+
 /* === 订单卡片 === */
 .order-card {
+  position: relative;
+  z-index: 2;
   display: flex;
   align-items: center;
   gap: 20rpx;
@@ -445,10 +600,11 @@ onReachBottom(() => {
   background-color: $color-card;
   border-radius: $radius-xl;
   box-shadow: $shadow-sm;
-  transition: box-shadow $dur-base $ease-smooth, transform $dur-fast $ease-bounce;
+  transition: box-shadow $dur-base $ease-smooth;
 
-  &:active {
-    transform: scale(0.98);
+  /* 吸附/回弹时的丝滑过渡 */
+  &.swipe-animating {
+    transition: transform 0.3s $ease-smooth;
   }
 
   /* 状态变化时整体闪光，强化动效反馈 */
@@ -513,18 +669,6 @@ onReachBottom(() => {
       align-items: center;
       gap: 8rpx;
 
-      .meta-user {
-        font-size: $font-size-xs;
-        color: $color-coffee-500;
-        font-weight: $font-weight-medium;
-        @include ellipsis(1);
-      }
-
-      .meta-dot {
-        font-size: $font-size-xs;
-        color: $color-text-disabled;
-      }
-
       .meta-time {
         font-size: $font-size-xs;
         color: $color-text-disabled;
@@ -532,54 +676,12 @@ onReachBottom(() => {
     }
   }
 
-  /* 右侧：状态徽章 + 操作按钮（垂直居中） */
+  /* 右侧：状态徽章（垂直居中） */
   .card-right {
     flex-shrink: 0;
     @include flex-column;
     align-items: flex-end;
     justify-content: center;
-    gap: 12rpx;
-
-    .meta-actions {
-      display: flex;
-      align-items: center;
-      gap: 12rpx;
-    }
-  }
-}
-
-/* === 操作按钮 === */
-.action-btn {
-  padding: 10rpx 24rpx;
-  border-radius: $radius-full;
-  font-size: $font-size-xs;
-  font-weight: $font-weight-semibold;
-  line-height: 1.2;
-  transition: transform $dur-fast $ease-smooth, opacity $dur-fast $ease-smooth;
-
-  &:active {
-    transform: scale(0.92);
-    opacity: 0.85;
-  }
-
-  /* 取消：灰色轻量按钮，不喧宾夺主 */
-  &.btn-cancel {
-    background-color: $color-neutral-100;
-    color: $color-text-muted;
-  }
-
-  /* 开始制作：暖橙渐变 */
-  &.btn-prep {
-    background: linear-gradient(135deg, #FFA726, #FB8C00);
-    color: #fff;
-    box-shadow: 0 4rpx 12rpx rgba(251, 140, 0, 0.28);
-  }
-
-  /* 完成：绿色渐变 */
-  &.btn-done {
-    background: linear-gradient(135deg, #22C55E, #16A34A);
-    color: #fff;
-    box-shadow: 0 4rpx 12rpx rgba(22, 163, 74, 0.28);
   }
 }
 

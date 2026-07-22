@@ -141,7 +141,7 @@ async function listDishes({ type, categoryId, isOnSale } = {}, dishCol, catCol) 
  * 新增菜品
  * 必填：name、type
  */
-async function createDish({ name, image, description, type, categoryId, isOnSale, isRecommended, sortOrder } = {}, dishCol) {
+async function createDish({ name, image, description, type, categoryId, isOnSale, isRecommended, sortOrder, temp } = {}, dishCol) {
   if (!name || !String(name).trim()) {
     return { code: 400, message: '菜品名称必填' }
   }
@@ -159,6 +159,8 @@ async function createDish({ name, image, description, type, categoryId, isOnSale
     isOnSale: isOnSale !== false,
     isRecommended: !!isRecommended,
     sortOrder: Number(sortOrder) || 0,
+    // 冷热配置：仅咖啡有效，美食留空
+    temp: type === 'coffee' && (temp === 'ice' || temp === 'hot') ? temp : '',
     createTime: now,
     updateTime: now
   }
@@ -195,6 +197,13 @@ async function updateDish({ _id, ...patch } = {}, dishCol) {
   }
   if (patch.isRecommended !== undefined) {
     patch.isRecommended = !!patch.isRecommended
+  }
+  // 冷热配置：仅 coffee 有效；切换为 food 时清空 temp
+  if (patch.temp !== undefined) {
+    patch.temp = (patch.type === 'coffee' || patch.type === undefined) && (patch.temp === 'ice' || patch.temp === 'hot') ? patch.temp : ''
+  }
+  if (patch.type === 'food') {
+    patch.temp = ''
   }
   patch.updateTime = Date.now()
 

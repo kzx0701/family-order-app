@@ -43,9 +43,15 @@
 
       <!-- 信息卡（与大图重叠，圆角浮起） -->
       <view class="info-card animate-slide-up">
-        <!-- 分类标签 pill -->
-        <view v-if="categoryName" class="category-pill">
-          <text class="pill-text">{{ categoryName }}</text>
+        <!-- 标签行：分类 pill + 冷热徽章 -->
+        <view class="pill-row" v-if="categoryName || (dish.type === 'coffee' && dish.temp)">
+          <view v-if="categoryName" class="category-pill">
+            <text class="pill-text">{{ categoryName }}</text>
+          </view>
+          <view v-if="dish.type === 'coffee' && dish.temp" class="temp-pill" :class="dish.temp">
+            <text class="temp-pill-icon">{{ dish.temp === 'ice' ? '❄' : '🔥' }}</text>
+            <text class="temp-pill-text">{{ dish.temp === 'ice' ? '冰饮' : '热饮' }}</text>
+          </view>
         </view>
 
         <!-- 菜品名称 -->
@@ -379,18 +385,51 @@ onLoad((options) => {
   display: flex;
   flex-direction: column;
 
-  // 分类标签 pill
+  // 标签行：分类 pill + 冷热徽章
+  .pill-row {
+    display: flex;
+    align-items: center;
+    gap: 12rpx;
+    margin-bottom: 20rpx;
+  }
+
   .category-pill {
-    align-self: flex-start;
     padding: 6rpx 20rpx;
     border-radius: $radius-full;
     background-color: var(--theme-secondary);
-    margin-bottom: 20rpx;
 
     .pill-text {
       font-size: $font-size-xs;
       color: var(--theme-secondary-foreground);
       font-weight: $font-weight-medium;
+    }
+  }
+
+  .temp-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4rpx;
+    padding: 6rpx 20rpx;
+    border-radius: $radius-full;
+
+    .temp-pill-icon {
+      font-size: 20rpx;
+      line-height: 1;
+    }
+
+    .temp-pill-text {
+      font-size: $font-size-xs;
+      font-weight: $font-weight-medium;
+    }
+
+    &.ice {
+      background-color: #EFF6FF;
+      .temp-pill-icon, .temp-pill-text { color: #2563EB; }
+    }
+
+    &.hot {
+      background-color: #FEF2F2;
+      .temp-pill-icon, .temp-pill-text { color: #DC2626; }
     }
   }
 

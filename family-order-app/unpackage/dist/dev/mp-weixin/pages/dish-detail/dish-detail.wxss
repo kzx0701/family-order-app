@@ -184,17 +184,48 @@
   display: flex;
   flex-direction: column;
 }
+.info-card .pill-row.data-v-f1b4097a {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-bottom: 20rpx;
+}
 .info-card .category-pill.data-v-f1b4097a {
-  align-self: flex-start;
   padding: 6rpx 20rpx;
   border-radius: 9999px;
   background-color: var(--theme-secondary);
-  margin-bottom: 20rpx;
 }
 .info-card .category-pill .pill-text.data-v-f1b4097a {
   font-size: 10px;
   color: var(--theme-secondary-foreground);
   font-weight: 500;
+}
+.info-card .temp-pill.data-v-f1b4097a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4rpx;
+  padding: 6rpx 20rpx;
+  border-radius: 9999px;
+}
+.info-card .temp-pill .temp-pill-icon.data-v-f1b4097a {
+  font-size: 20rpx;
+  line-height: 1;
+}
+.info-card .temp-pill .temp-pill-text.data-v-f1b4097a {
+  font-size: 10px;
+  font-weight: 500;
+}
+.info-card .temp-pill.ice.data-v-f1b4097a {
+  background-color: #EFF6FF;
+}
+.info-card .temp-pill.ice .temp-pill-icon.data-v-f1b4097a, .info-card .temp-pill.ice .temp-pill-text.data-v-f1b4097a {
+  color: #2563EB;
+}
+.info-card .temp-pill.hot.data-v-f1b4097a {
+  background-color: #FEF2F2;
+}
+.info-card .temp-pill.hot .temp-pill-icon.data-v-f1b4097a, .info-card .temp-pill.hot .temp-pill-text.data-v-f1b4097a {
+  color: #DC2626;
 }
 .info-card .name.data-v-f1b4097a {
   display: block;

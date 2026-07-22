@@ -11,7 +11,7 @@
     </view>
 
     <!-- 顶部问候 -->
-    <view class="hero" :style="{ paddingTop: statusBarHeight + 70 + 'px' }">
+    <view class="hero" :style="{ paddingTop: statusBarHeight + 76 + 'px' }">
       <view class="hero-emoji-row">
         <text class="hero-emoji">👀</text>
       </view>
@@ -64,7 +64,7 @@
 
     <!-- 底部提示 -->
     <view class="footer-hint">
-      <text class="hint-text">后续可在设置中切换哦</text>
+      <text class="hint-text">角色选择后不可更改，请慎重选择</text>
     </view>
   </view>
 </template>

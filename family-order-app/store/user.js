@@ -90,8 +90,9 @@ export const useUserStore = defineStore('user', {
     },
 
     /**
-     * 设置角色（角色选择页调用）
-     * 调用 user-update-role 云函数更新 users 集合的 role 字段，同步本地 state
+     * 设置角色（仅角色选择页首次选择时调用）
+     * 调用 user-update-role 云函数写入 users 集合的 role 字段，同步本地 state
+     * 角色一经选择不可更改：服务端校验已有非空 role 且不同时返回 403
      * @param {string} role - 'orderer' | 'admin'
      */
     async setRole(role) {
@@ -99,13 +100,26 @@ export const useUserStore = defineStore('user', {
         throw new Error('无效的角色')
       }
 
-      const res = await uniCloud.callFunction({
+      let res = await uniCloud.callFunction({
         name: 'user-update-role',
         data: {
           role,
           token: this.token
         }
       })
+
+      // 用户记录不存在：本地 token 与数据库不匹配
+      // （开发期切换登录方式/数据库重置），重新登录获取有效 token 后重试
+      if (res.result.code === 404) {
+        await this.login()
+        res = await uniCloud.callFunction({
+          name: 'user-update-role',
+          data: {
+            role,
+            token: this.token
+          }
+        })
+      }
 
       if (res.result.code !== 0) {
         throw new Error(res.result.message || '角色设置失败')

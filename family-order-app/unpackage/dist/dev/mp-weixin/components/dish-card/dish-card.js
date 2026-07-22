@@ -42,19 +42,25 @@ const _sfc_main = {
         c: common_vendor.t(emoji.value)
       }, {
         d: common_vendor.t(__props.dish.name),
-        e: common_vendor.t(__props.dish.description || "暂无描述"),
-        f: __props.dish.categoryName
-      }, __props.dish.categoryName ? {
-        g: common_vendor.t(__props.dish.categoryName)
+        e: __props.dish.type === "coffee" && __props.dish.temp
+      }, __props.dish.type === "coffee" && __props.dish.temp ? {
+        f: common_vendor.t(__props.dish.temp === "ice" ? "❄" : "🔥"),
+        g: common_vendor.t(__props.dish.temp === "ice" ? "冰" : "热"),
+        h: common_vendor.n(__props.dish.temp)
       } : {}, {
-        h: common_vendor.p({
+        i: common_vendor.t(__props.dish.description || "暂无描述"),
+        j: __props.dish.categoryName
+      }, __props.dish.categoryName ? {
+        k: common_vendor.t(__props.dish.categoryName)
+      } : {}, {
+        l: common_vendor.p({
           name: "plus",
           size: 18,
           color: "#fff"
         }),
-        i: common_vendor.o(onAddTap, "b8"),
-        j: `${__props.index * 50}ms`,
-        k: common_vendor.o(onCardTap, "df")
+        m: common_vendor.o(onAddTap, "b1"),
+        n: `${__props.index * 50}ms`,
+        o: common_vendor.o(onCardTap, "e2")
       });
     };
   }

@@ -2,16 +2,15 @@
   <view class="default-avatar">
     <!-- 背景高光 -->
     <view class="bg-glow"></view>
-    <!-- 卡通厨师角色 -->
-    <view class="chef-char">
-      <!-- 厨师帽 -->
+
+    <!-- 管理员：卡通厨师角色 -->
+    <view v-if="role === 'admin'" class="chef-char">
       <view class="chef-hat">
         <view class="hat-puff p-center"></view>
         <view class="hat-puff p-left"></view>
         <view class="hat-puff p-right"></view>
         <view class="hat-band"></view>
       </view>
-      <!-- 脸 -->
       <view class="face">
         <view class="eye eye-l"></view>
         <view class="eye eye-r"></view>
@@ -20,17 +19,46 @@
         <view class="smile"></view>
       </view>
     </view>
+
+    <!-- 下单人：卡通女主人角色 -->
+    <view v-else class="lady-char">
+      <!-- 两侧长发：自然垂下包裹脸部 -->
+      <view class="long-hair hair-l"></view>
+      <view class="long-hair hair-r"></view>
+      <!-- 头顶头发：覆盖头顶，无刘海 -->
+      <view class="hair-top"></view>
+      <!-- 脸 -->
+      <view class="face">
+        <view class="eye eye-l"></view>
+        <view class="eye eye-r"></view>
+        <view class="blush blush-l"></view>
+        <view class="blush blush-r"></view>
+        <view class="smile"></view>
+      </view>
+      <!-- 蝴蝶结 -->
+      <view class="bow">
+        <view class="bow-knot knot-l"></view>
+        <view class="bow-knot knot-r"></view>
+        <view class="bow-center"></view>
+      </view>
+    </view>
   </view>
 </template>
 
 <script setup>
 /**
  * 默认头像组件
- * 纯 CSS 绘制的卡通厨师头像，带眨眼和浮动动画
+ * 纯 CSS 绘制的卡通头像，带眨眼和浮动动画
  * 尺寸由父容器决定（width/height: 100%）
  *
- * 用法：<default-avatar />  放在任意尺寸的圆形父容器中
+ * 用法：
+ *   <default-avatar role="admin" />   管理员：卡通厨师（戴厨师帽）
+ *   <default-avatar role="orderer" /> 下单人：卡通女主人（长发+蝴蝶结）
+ *   <default-avatar />                默认管理员风格
  */
+defineProps({
+  role: { type: String, default: 'admin' }
+})
 </script>
 
 <style lang="scss" scoped>
@@ -55,67 +83,7 @@
   pointer-events: none;
 }
 
-/* 厨师角色容器：整体上下浮动 */
-.chef-char {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  /* 帽子在顶部，视觉重心略偏上，padding-bottom 让角色整体上移一点更协调 */
-  padding-bottom: 6%;
-  animation: chefFloat 3s ease-in-out infinite;
-}
-
-/* 厨师帽 */
-.chef-hat {
-  position: relative;
-  width: 58%;
-  height: 30%;
-  margin-bottom: -6%;
-  z-index: 2;
-
-  .hat-puff {
-    position: absolute;
-    background: #fff;
-    border-radius: 50%;
-    box-shadow: 0 2rpx 4rpx rgba(0,0,0,0.08);
-  }
-
-  .p-center {
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 55%;
-    height: 75%;
-  }
-  .p-left {
-    top: 18%;
-    left: 0;
-    width: 38%;
-    height: 55%;
-  }
-  .p-right {
-    top: 18%;
-    right: 0;
-    width: 38%;
-    height: 55%;
-  }
-
-  .hat-band {
-    position: absolute;
-    bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 88%;
-    height: 28%;
-    background: #fff;
-    border-radius: 4rpx 4rpx 8rpx 8rpx;
-  }
-}
-
-/* 脸 */
+/* ==================== 公共面部组件 ==================== */
 .face {
   position: relative;
   width: 48%;
@@ -165,7 +133,146 @@
   }
 }
 
+/* ==================== 管理员：厨师角色 ==================== */
+.chef-char {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 6%;
+  animation: chefFloat 3s ease-in-out infinite;
+}
+
+.chef-hat {
+  position: relative;
+  width: 58%;
+  height: 30%;
+  margin-bottom: -6%;
+  z-index: 2;
+
+  .hat-puff {
+    position: absolute;
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 0 2rpx 4rpx rgba(0,0,0,0.08);
+  }
+
+  .p-center {
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 55%;
+    height: 75%;
+  }
+  .p-left {
+    top: 18%;
+    left: 0;
+    width: 38%;
+    height: 55%;
+  }
+  .p-right {
+    top: 18%;
+    right: 0;
+    width: 38%;
+    height: 55%;
+  }
+
+  .hat-band {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 88%;
+    height: 28%;
+    background: #fff;
+    border-radius: 4rpx 4rpx 8rpx 8rpx;
+  }
+}
+
+/* ==================== 下单人：女主人角色 ==================== */
+.lady-char {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 6%;
+  animation: ladyFloat 3s ease-in-out infinite;
+}
+
+/* 两侧长发：自然垂下，包裹脸侧，露出全脸 */
+.long-hair {
+  position: absolute;
+  top: 22%;
+  width: 26%;
+  height: 62%;
+  background: linear-gradient(180deg, #5C3A21 0%, #4A2E1A 100%);
+  z-index: 0;
+
+  &.hair-l {
+    left: 10%;
+    border-radius: 50% 30% 35% 45%;
+    transform: rotate(-6deg);
+  }
+  &.hair-r {
+    right: 10%;
+    border-radius: 30% 50% 45% 35%;
+    transform: rotate(6deg);
+  }
+}
+
+/* 头顶头发：覆盖头顶，无刘海，自然中分向两侧 */
+.hair-top {
+  position: relative;
+  width: 50%;
+  height: 16%;
+  margin-bottom: -4%;
+  background: linear-gradient(180deg, #5C3A21 0%, #4A2E1A 100%);
+  border-radius: 50% 50% 8% 8%;
+  z-index: 2;
+}
+
+/* 蝴蝶结：点缀在头顶左侧 */
+.bow {
+  position: absolute;
+  top: 16%;
+  left: 56%;
+  display: flex;
+  align-items: center;
+  z-index: 3;
+
+  .bow-knot {
+    width: 14rpx;
+    height: 12rpx;
+    background: #E87A8F;
+    border-radius: 50%;
+
+    &.knot-l {
+      margin-right: -2rpx;
+    }
+    &.knot-r {
+      margin-left: -2rpx;
+    }
+  }
+
+  .bow-center {
+    width: 6rpx;
+    height: 8rpx;
+    background: #D85F77;
+    border-radius: 2rpx;
+    z-index: 1;
+  }
+}
+
 @keyframes chefFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3%); }
+}
+
+@keyframes ladyFloat {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-3%); }
 }

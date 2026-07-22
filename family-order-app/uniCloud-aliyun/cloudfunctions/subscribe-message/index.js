@@ -6,9 +6,9 @@ const https = require('https')
  * 微信订阅消息推送云函数（双向通知）
  *
  * 支持的 action：
- *   - sendOrderNotify      下单后通知管理员（订单摘要、下单人、提交时间、预约时间）
- *   - sendCompleteNotify   完成后通知下单人（订单摘要、完成时间）
- *   - sendUrgeNotify       下单人催单，通知管理员（订单摘要、下单人、催单时间）
+ *   - sendOrderNotify      下单后通知管理员（商品名称、订单数量、操作备注、提交人）
+ *   - sendCompleteNotify   完成后通知下单人（商品名称、订单状态、温馨提示）
+ *   - sendPickupNotify     取餐提醒通知下单人（商品名、取餐方式、温馨提示）
  *
  * 凭证来源：
  *   优先从环境变量读取（生产环境推荐，uniCloud 控制台配置），
@@ -23,10 +23,6 @@ const https = require('https')
  * 错误处理：
  *   - 推送失败不抛错，记录日志后返回，确保不阻塞订单主流程
  *   - 单个管理员 openid 发送失败不影响其他管理员
- *
- * 微信 API 文档：
- *   - 获取 access_token: https://developers.weixin.qq.com/miniprogram/dev/api-backend/open-api/access-token/auth.getAccessToken.html
- *   - 发送订阅消息: https://developers.weixin.qq.com/miniprogram/dev/api-backend/open-api/subscribe-message/subscribeMessage.send.html
  */
 
 /* ============ 配置读取 ============ */
@@ -51,9 +47,9 @@ const CFG = {
       process.env.WX_TPL_COMPLETE_NOTIFY ||
       (fileConfig.templates && fileConfig.templates.completeNotify) ||
       '',
-    urgeNotify:
-      process.env.WX_TPL_URGE_NOTIFY ||
-      (fileConfig.templates && fileConfig.templates.urgeNotify) ||
+    pickupNotify:
+      process.env.WX_TPL_PICKUP_NOTIFY ||
+      (fileConfig.templates && fileConfig.templates.pickupNotify) ||
       ''
   }
 }
@@ -72,8 +68,8 @@ exports.main = async (event, context) => {
       return await sendOrderNotify(event)
     case 'sendCompleteNotify':
       return await sendCompleteNotify(event)
-    case 'sendUrgeNotify':
-      return await sendUrgeNotify(event)
+    case 'sendPickupNotify':
+      return await sendPickupNotify(event)
     default:
       return { code: 400, message: '未知 action：' + action }
   }
@@ -182,9 +178,9 @@ async function sendSubscribeMessage(openid, templateId, data, page) {
 
 /**
  * 下单后通知管理员
- * 入参：orderId、userId、userName、items、reservationType、reservationTime
+ * 入参：orderId、userId、userName、items、note
  * 查询所有 role=admin 的用户 openid 并逐个发送
- * 模板参数：下单人、菜品摘要、提交时间、预约时间
+ * 模板参数：商品名称(thing6)、订单数量(number11)、操作备注(thing5)、提交人(name3)
  * 返回：{ code: 0, sent: N }
  */
 async function sendOrderNotify({
@@ -192,8 +188,7 @@ async function sendOrderNotify({
   userId,
   userName,
   items,
-  reservationType,
-  reservationTime
+  note
 } = {}) {
   if (!orderId || !Array.isArray(items)) {
     return { code: 400, message: '缺少 orderId 或 items' }
@@ -209,19 +204,18 @@ async function sendOrderNotify({
   }
 
   // 构造模板数据
-  // 注意：模板字段名需与微信公众平台申请的模板字段一致，部署时按实际模板调整
   const dishSummary = buildDishSummary(items)
-  const submitTime = formatTime(Date.now())
-  const reservationText = buildReservationText(reservationType, reservationTime)
+  const totalQty = items.reduce((sum, i) => sum + (Number(i.quantity) || 0), 0)
+  const noteText = truncate(note || '无', 20)
 
   const templateData = {
-    thing1: { value: userName || '下单人' }, // 下单人
-    thing2: { value: dishSummary }, // 菜品摘要
-    time3: { value: submitTime }, // 提交时间
-    thing4: { value: reservationText } // 预约时间
+    thing6: { value: dishSummary },       // 商品名称
+    number11: { value: totalQty },        // 订单数量
+    thing5: { value: noteText },          // 操作备注
+    name3: { value: truncate(userName || '下单人', 20) } // 提交人
   }
 
-  const page = `pages/order/order?id=${orderId}`
+  const page = `pages/order-detail/order-detail?id=${orderId}`
 
   // 逐个管理员发送，单个失败不影响其他
   let sent = 0
@@ -248,7 +242,7 @@ async function sendOrderNotify({
  * 完成后通知下单人
  * 入参：orderId、userId、items
  * userId/items 缺失时回查订单详情补全
- * 模板参数：菜品摘要、完成时间
+ * 模板参数：商品名称(thing2)、订单状态(phrase4)、温馨提示(thing3)
  * 返回：{ code: 0, sent: 1 }（发送成功 sent=1，失败/无 openid sent=0）
  */
 async function sendCompleteNotify({ orderId, userId, items } = {}) {
@@ -289,14 +283,14 @@ async function sendCompleteNotify({ orderId, userId, items } = {}) {
 
   // 构造模板数据
   const dishSummary = buildDishSummary(orderItems || [])
-  const completeTime = formatTime(Date.now())
 
   const templateData = {
-    thing1: { value: dishSummary }, // 菜品摘要
-    time2: { value: completeTime } // 完成时间
+    thing2: { value: dishSummary },                  // 商品名称
+    phrase4: { value: '已完成' },                     // 订单状态
+    thing3: { value: '餐品已完成，请尽快领取' }        // 温馨提示
   }
 
-  const page = `pages/order/order?id=${orderId}`
+  const page = `pages/order-detail/order-detail?id=${orderId}`
 
   let sent = 0
   try {
@@ -314,73 +308,73 @@ async function sendCompleteNotify({ orderId, userId, items } = {}) {
   return { code: 0, sent }
 }
 
-/* ============ action: sendUrgeNotify ============ */
+/* ============ action: sendPickupNotify ============ */
 
 /**
- * 下单人催单，通知管理员
- * 入参：orderId、userId、userName、items
- * 查询所有 role=admin 的用户 openid 并逐个发送催单订阅消息
- * 模板参数：下单人、菜品摘要、催单时间
- * 返回：{ code: 0, sent: N }
+ * 取餐提醒通知下单人
+ * 入参：orderId、userId、items、pickupMethod、pickupTip
+ * userId/items 缺失时回查订单详情补全
+ * 模板参数：商品名(thing15)、取餐方式(thing14)、温馨提示(thing11)
+ * 返回：{ code: 0, sent: 1 }
  */
-async function sendUrgeNotify({ orderId, userId, userName, items } = {}) {
+async function sendPickupNotify({ orderId, userId, items, pickupMethod, pickupTip } = {}) {
   if (!orderId) {
     return { code: 400, message: '缺少 orderId' }
   }
 
   const db = uniCloud.database()
 
-  // 补全订单数据
-  let orderUserName = userName
+  // 优先使用入参的 userId 和 items；缺失时回查订单
+  let orderUserId = userId
   let orderItems = items
-  if (!orderUserName || !Array.isArray(orderItems)) {
+  if (!orderUserId || !Array.isArray(orderItems)) {
     const orderRes = await db.collection('orders').doc(orderId).get()
     if (orderRes.data.length === 0) {
       return { code: 404, message: '订单不存在' }
     }
     const order = orderRes.data[0]
-    if (!orderUserName) {
-      // 通过 userId 查 nickname
-      const userRes = await db.collection('users').doc(order.userId).get()
-      orderUserName = (userRes.data[0] && userRes.data[0].nickname) || '下单人'
-    }
+    orderUserId = orderUserId || order.userId
     orderItems = orderItems || order.items
   }
 
-  // 查询所有管理员用户
-  const adminRes = await db.collection('users').where({ role: 'admin' }).get()
-  const admins = adminRes.data.filter((u) => u.openid)
-  if (admins.length === 0) {
-    console.warn('[subscribe-message] 无管理员用户或管理员无 openid，跳过 sendUrgeNotify')
+  if (!orderUserId) {
+    return { code: 400, message: '缺少下单人 userId' }
+  }
+
+  // 查询下单人 openid
+  const userRes = await db.collection('users').doc(orderUserId).get()
+  if (userRes.data.length === 0) {
+    console.warn('[subscribe-message] 下单人用户不存在', orderUserId)
+    return { code: 0, sent: 0 }
+  }
+  const orderer = userRes.data[0]
+  if (!orderer.openid) {
+    console.warn('[subscribe-message] 下单人无 openid', orderUserId)
     return { code: 0, sent: 0 }
   }
 
   // 构造模板数据
   const dishSummary = buildDishSummary(orderItems || [])
-  const urgeTime = formatTime(Date.now())
 
   const templateData = {
-    thing1: { value: orderUserName || '下单人' }, // 下单人
-    thing2: { value: dishSummary }, // 菜品摘要
-    time3: { value: urgeTime } // 催单时间
+    thing15: { value: dishSummary },                        // 商品名
+    thing14: { value: truncate(pickupMethod || '请到前台取餐', 20) }, // 取餐方式
+    thing11: { value: truncate(pickupTip || '餐品已完成，请尽快领取', 20) } // 温馨提示
   }
 
   const page = `pages/order-detail/order-detail?id=${orderId}`
 
-  // 逐个管理员发送
   let sent = 0
-  for (const admin of admins) {
-    try {
-      const ok = await sendSubscribeMessage(
-        admin.openid,
-        CFG.templates.urgeNotify,
-        templateData,
-        page
-      )
-      if (ok) sent += 1
-    } catch (e) {
-      console.error('[subscribe-message] 催单发送给管理员失败', { openid: admin.openid, error: e })
-    }
+  try {
+    const ok = await sendSubscribeMessage(
+      orderer.openid,
+      CFG.templates.pickupNotify,
+      templateData,
+      page
+    )
+    if (ok) sent = 1
+  } catch (e) {
+    console.error('[subscribe-message] 取餐提醒发送失败', { openid: orderer.openid, error: e })
   }
 
   return { code: 0, sent }
@@ -403,31 +397,14 @@ function buildDishSummary(items) {
 }
 
 /**
- * 格式化时间为 "YYYY-MM-DD HH:mm"（Asia/Shanghai +8 时区）
- * @param {number} ts - 毫秒时间戳
+ * 截断字符串到指定长度
+ * @param {string} str
+ * @param {number} maxLen
  * @returns {string}
  */
-function formatTime(ts) {
-  if (!ts) return ''
-  const d = new Date(Number(ts))
-  // 转为 +8 时区显示
-  const utc = d.getTime() + d.getTimezoneOffset() * 60000
-  const beijing = new Date(utc + 8 * 3600000)
-  const pad = (n) => String(n).padStart(2, '0')
-  return `${beijing.getFullYear()}-${pad(beijing.getMonth() + 1)}-${pad(beijing.getDate())} ${pad(beijing.getHours())}:${pad(beijing.getMinutes())}`
-}
-
-/**
- * 构造预约时间文案
- * @param {string} type - 'asap' | 'scheduled'
- * @param {number} ts - 预约时间戳（毫秒，scheduled 时有效）
- * @returns {string}
- */
-function buildReservationText(type, ts) {
-  if (type === 'scheduled' && ts) {
-    return formatTime(ts)
-  }
-  return '尽快'
+function truncate(str, maxLen) {
+  if (!str) return ''
+  return str.length > maxLen ? str.slice(0, maxLen - 1) + '…' : str
 }
 
 /* ============ HTTP 请求封装 ============ */

@@ -39,7 +39,7 @@ const useUserStore = common_vendor.defineStore("user", {
     async login() {
       try {
         const code = await this.getWxCode();
-        const res = await common_vendor._r.callFunction({
+        const res = await common_vendor.wr.callFunction({
           name: "user-login",
           data: { code }
         });
@@ -76,21 +76,32 @@ const useUserStore = common_vendor.defineStore("user", {
       });
     },
     /**
-     * 设置角色（角色选择页调用）
-     * 调用 user-update-role 云函数更新 users 集合的 role 字段，同步本地 state
+     * 设置角色（仅角色选择页首次选择时调用）
+     * 调用 user-update-role 云函数写入 users 集合的 role 字段，同步本地 state
+     * 角色一经选择不可更改：服务端校验已有非空 role 且不同时返回 403
      * @param {string} role - 'orderer' | 'admin'
      */
     async setRole(role) {
       if (!["orderer", "admin"].includes(role)) {
         throw new Error("无效的角色");
       }
-      const res = await common_vendor._r.callFunction({
+      let res = await common_vendor.wr.callFunction({
         name: "user-update-role",
         data: {
           role,
           token: this.token
         }
       });
+      if (res.result.code === 404) {
+        await this.login();
+        res = await common_vendor.wr.callFunction({
+          name: "user-update-role",
+          data: {
+            role,
+            token: this.token
+          }
+        });
+      }
       if (res.result.code !== 0) {
         throw new Error(res.result.message || "角色设置失败");
       }
@@ -117,7 +128,7 @@ const useUserStore = common_vendor.defineStore("user", {
       if (!name) {
         throw new Error("昵称不能为空");
       }
-      const res = await common_vendor._r.callFunction({
+      const res = await common_vendor.wr.callFunction({
         name: "user-update-profile",
         data: {
           nickname: name,
@@ -142,14 +153,14 @@ const useUserStore = common_vendor.defineStore("user", {
       }
       const ext = filePath.split(".").pop() || "png";
       const cloudPath = `avatars/${this.token || "anonymous"}_${Date.now()}.${ext}`;
-      const uploadRes = await common_vendor._r.uploadFile({
+      const uploadRes = await common_vendor.wr.uploadFile({
         filePath,
         cloudPath
       });
       if (!uploadRes.fileID) {
         throw new Error("头像上传失败");
       }
-      const res = await common_vendor._r.callFunction({
+      const res = await common_vendor.wr.callFunction({
         name: "user-update-profile",
         data: {
           avatar: uploadRes.fileID,
@@ -173,7 +184,7 @@ const useUserStore = common_vendor.defineStore("user", {
       try {
         common_vendor.index.removeStorageSync("fo_user_state");
       } catch (e) {
-        common_vendor.index.__f__("error", "at store/user.js:210", "[user] logout clear storage error", e);
+        common_vendor.index.__f__("error", "at store/user.js:224", "[user] logout clear storage error", e);
       }
     },
     /**
@@ -188,7 +199,7 @@ const useUserStore = common_vendor.defineStore("user", {
           familyId: this.familyId
         });
       } catch (e) {
-        common_vendor.index.__f__("error", "at store/user.js:226", "[user] persist error", e);
+        common_vendor.index.__f__("error", "at store/user.js:240", "[user] persist error", e);
       }
     },
     /**
@@ -204,7 +215,7 @@ const useUserStore = common_vendor.defineStore("user", {
           this.familyId = data.familyId || null;
         }
       } catch (e) {
-        common_vendor.index.__f__("error", "at store/user.js:243", "[user] restore error", e);
+        common_vendor.index.__f__("error", "at store/user.js:257", "[user] restore error", e);
       }
     }
   }

@@ -34,7 +34,9 @@ export default {
             cancelText: '拒绝',
             success: (res) => {
               if (res.confirm) {
-                resolve({ event: 'agree', buttonId: 'agree' })
+                // 使用 showModal 方式同意，不传 buttonId
+                // buttonId 仅在使用 <button open-type="agreePrivacyAuthorization"> 时才需要
+                resolve({ event: 'agree' })
               } else {
                 resolve({ event: 'disagree' })
               }

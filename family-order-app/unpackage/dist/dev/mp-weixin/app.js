@@ -37,7 +37,7 @@ const _sfc_main = {
             cancelText: "拒绝",
             success: (res) => {
               if (res.confirm) {
-                resolve({ event: "agree", buttonId: "agree" });
+                resolve({ event: "agree" });
               } else {
                 resolve({ event: "disagree" });
               }
@@ -58,7 +58,7 @@ const _sfc_main = {
           return;
         }
       } catch (e) {
-        common_vendor.index.__f__("error", "at App.vue:69", "[App] bootstrap error", e);
+        common_vendor.index.__f__("error", "at App.vue:71", "[App] bootstrap error", e);
         common_vendor.index.showToast({
           title: "登录失败，请重试",
           icon: "none",

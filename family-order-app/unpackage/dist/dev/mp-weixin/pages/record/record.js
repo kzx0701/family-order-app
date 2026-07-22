@@ -37,6 +37,63 @@ const _sfc_main = {
         flashMap[id] = false;
       }, 600);
     };
+    const SWIPE_ACTION_WIDTH_FULL = Math.round(320 / 750 * common_vendor.index.getSystemInfoSync().windowWidth);
+    const SWIPE_ACTION_WIDTH_DELETE_ONLY = Math.round(160 / 750 * common_vendor.index.getSystemInfoSync().windowWidth);
+    const swipeOffset = common_vendor.reactive({});
+    const swipeAnimating = common_vendor.reactive({});
+    const touchStartX = common_vendor.reactive({});
+    const touchStartOffset = common_vendor.reactive({});
+    const touchMoved = common_vendor.reactive({});
+    const activeSwipeId = common_vendor.ref("");
+    const getSwipeWidth = (order) => {
+      if (order.status === "pending")
+        return SWIPE_ACTION_WIDTH_FULL;
+      return SWIPE_ACTION_WIDTH_DELETE_ONLY;
+    };
+    const onTouchStart = (e, id) => {
+      const touch = e.touches[0];
+      touchStartX[id] = touch.clientX;
+      touchStartOffset[id] = swipeOffset[id] || 0;
+      touchMoved[id] = false;
+      swipeAnimating[id] = false;
+      if (activeSwipeId.value && activeSwipeId.value !== id) {
+        swipeAnimating[activeSwipeId.value] = true;
+        swipeOffset[activeSwipeId.value] = 0;
+        activeSwipeId.value = "";
+      }
+    };
+    const onTouchMove = (e, id) => {
+      const touch = e.touches[0];
+      const dx = touch.clientX - touchStartX[id];
+      if (Math.abs(dx) > 5)
+        touchMoved[id] = true;
+      let next = touchStartOffset[id] + dx;
+      if (next > 0)
+        next = 0;
+      if (next < -SWIPE_ACTION_WIDTH_FULL)
+        next = -SWIPE_ACTION_WIDTH_FULL;
+      swipeOffset[id] = next;
+    };
+    const onTouchEnd = (e, id) => {
+      const order = orders.value.find((o) => o._id === id);
+      const maxW = order ? getSwipeWidth(order) : SWIPE_ACTION_WIDTH_FULL;
+      const offset = swipeOffset[id] || 0;
+      swipeAnimating[id] = true;
+      if (offset < -maxW / 2) {
+        swipeOffset[id] = -maxW;
+        activeSwipeId.value = id;
+      } else {
+        swipeOffset[id] = 0;
+        if (activeSwipeId.value === id)
+          activeSwipeId.value = "";
+      }
+      setTimeout(() => {
+        swipeAnimating[id] = false;
+      }, 300);
+      setTimeout(() => {
+        touchMoved[id] = false;
+      }, 0);
+    };
     const groupDelay = (gIdx) => `${Math.min(gIdx * 60, 300)}ms`;
     const cardDelay = (gIdx, oIdx) => `${Math.min(gIdx * 60 + oIdx * 40 + 80, 500)}ms`;
     const WEEKDAYS = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
@@ -114,9 +171,43 @@ const _sfc_main = {
       return "🍽️";
     };
     const onCardTap = (order) => {
+      if (touchMoved[order._id])
+        return;
+      if (swipeOffset[order._id] < 0) {
+        swipeAnimating[order._id] = true;
+        swipeOffset[order._id] = 0;
+        activeSwipeId.value = "";
+        setTimeout(() => {
+          swipeAnimating[order._id] = false;
+        }, 300);
+        return;
+      }
       common_vendor.index.navigateTo({
         url: `/pages/order-detail/order-detail?id=${order._id}`
       });
+    };
+    const onSwipeCancel = (order) => {
+      swipeAnimating[order._id] = true;
+      swipeOffset[order._id] = 0;
+      activeSwipeId.value = "";
+      setTimeout(() => {
+        swipeAnimating[order._id] = false;
+      }, 300);
+      onCancel(order);
+    };
+    const onSwipeDelete = (order) => {
+      onDelete(order);
+    };
+    const onPageTap = () => {
+      if (activeSwipeId.value) {
+        swipeAnimating[activeSwipeId.value] = true;
+        swipeOffset[activeSwipeId.value] = 0;
+        const id = activeSwipeId.value;
+        activeSwipeId.value = "";
+        setTimeout(() => {
+          swipeAnimating[id] = false;
+        }, 300);
+      }
     };
     const formatTime = (ts) => {
       if (!ts)
@@ -125,6 +216,8 @@ const _sfc_main = {
       return `${String(p.hours).padStart(2, "0")}:${String(p.minutes).padStart(2, "0")}`;
     };
     const loadOrders = async (reset = true) => {
+      if (!userStore.token)
+        return;
       if (reset) {
         if (loading.value)
           return;
@@ -137,12 +230,13 @@ const _sfc_main = {
         page.value += 1;
       }
       try {
-        const res = await common_vendor._r.callFunction({
+        const res = await common_vendor.wr.callFunction({
           name: "orders-crud",
           data: {
             action: "list",
             page: page.value,
             pageSize,
+            scope: "mine",
             token: userStore.token
           }
         });
@@ -154,44 +248,17 @@ const _sfc_main = {
           } else {
             orders.value = orders.value.concat(list);
           }
+        } else if (res.result.code === 401) {
+          common_vendor.index.__f__("warn", "at pages/record/record.vue:362", "[record] orders-crud 401", res.result.message);
         } else {
           common_vendor.index.showToast({ title: res.result.message || "加载失败", icon: "none" });
         }
       } catch (e) {
-        common_vendor.index.__f__("error", "at pages/record/record.vue:255", "[record] loadOrders error", e);
+        common_vendor.index.__f__("error", "at pages/record/record.vue:367", "[record] loadOrders error", e);
         common_vendor.index.showToast({ title: "加载失败", icon: "none" });
       } finally {
         loading.value = false;
         loadingMore.value = false;
-      }
-    };
-    const onAdvance = async (order, target) => {
-      const oldStatus = order.status;
-      order.status = target;
-      triggerFlash(order._id);
-      try {
-        const res = await common_vendor._r.callFunction({
-          name: "orders-crud",
-          data: {
-            action: "updateStatus",
-            _id: order._id,
-            status: target,
-            token: userStore.token
-          }
-        });
-        if (res.result.code !== 0) {
-          order.status = oldStatus;
-          common_vendor.index.showToast({ title: res.result.message || "操作失败", icon: "none" });
-          return;
-        }
-        common_vendor.index.showToast({
-          title: target === "preparing" ? "已开始制作" : "已完成",
-          icon: "success"
-        });
-      } catch (e) {
-        common_vendor.index.__f__("error", "at pages/record/record.vue:290", "[record] onAdvance error", e);
-        order.status = oldStatus;
-        common_vendor.index.showToast({ title: "操作失败", icon: "none" });
       }
     };
     const onCancel = (order) => {
@@ -206,7 +273,7 @@ const _sfc_main = {
           order.status = "cancelled";
           triggerFlash(order._id);
           try {
-            const res = await common_vendor._r.callFunction({
+            const res = await common_vendor.wr.callFunction({
               name: "orders-crud",
               data: {
                 action: "cancel",
@@ -221,9 +288,41 @@ const _sfc_main = {
             }
             common_vendor.index.showToast({ title: "已取消", icon: "success" });
           } catch (e) {
-            common_vendor.index.__f__("error", "at pages/record/record.vue:324", "[record] onCancel error", e);
+            common_vendor.index.__f__("error", "at pages/record/record.vue:403", "[record] onCancel error", e);
             order.status = oldStatus;
             common_vendor.index.showToast({ title: "取消失败", icon: "none" });
+          }
+        }
+      });
+    };
+    const onDelete = (order) => {
+      common_vendor.index.showModal({
+        title: "删除订单",
+        content: "确定要删除这条订单记录吗？删除后不可恢复。",
+        confirmText: "删除",
+        confirmColor: "#EF4444",
+        success: async (r) => {
+          if (!r.confirm)
+            return;
+          try {
+            const res = await common_vendor.wr.callFunction({
+              name: "orders-crud",
+              data: {
+                action: "delete",
+                _id: order._id,
+                token: userStore.token
+              }
+            });
+            if (res.result.code !== 0) {
+              common_vendor.index.showToast({ title: res.result.message || "删除失败", icon: "none" });
+              return;
+            }
+            orders.value = orders.value.filter((o) => o._id !== order._id);
+            total.value = Math.max(0, total.value - 1);
+            common_vendor.index.showToast({ title: "已删除", icon: "success" });
+          } catch (e) {
+            common_vendor.index.__f__("error", "at pages/record/record.vue:438", "[record] onDelete error", e);
+            common_vendor.index.showToast({ title: "删除失败", icon: "none" });
           }
         }
       });
@@ -240,7 +339,7 @@ const _sfc_main = {
     });
     return (_ctx, _cache) => {
       return common_vendor.e({
-        a: common_vendor.unref(statusBarHeight) + 28 + "px",
+        a: common_vendor.unref(statusBarHeight) + 40 + "px",
         b: common_vendor.unref(headerHeight) + "px",
         c: loading.value && orders.value.length === 0
       }, loading.value && orders.value.length === 0 ? {
@@ -260,49 +359,50 @@ const _sfc_main = {
             b: common_vendor.t(group.orders.length),
             c: common_vendor.f(group.orders, (order, oIdx, i1) => {
               return common_vendor.e({
-                a: firstItemImage(order)
-              }, firstItemImage(order) ? {
-                b: firstItemImage(order)
-              } : {
-                c: common_vendor.t(firstItemEmoji(order))
-              }, {
-                d: order.items.length > 1
-              }, order.items.length > 1 ? {
-                e: common_vendor.t(order.items.length - 1)
-              } : {}, {
-                f: common_vendor.t(buildSummary(order.items)),
-                g: common_vendor.t(order.userName || "神秘食客"),
-                h: common_vendor.t(formatTime(order.createTime)),
-                i: "ef6850c5-2-" + i0 + "-" + i1,
-                j: common_vendor.p({
-                  status: order.status
-                })
-              }, common_vendor.unref(userStore).isAdmin ? common_vendor.e({
-                k: order.status === "pending"
+                a: order.status === "pending"
               }, order.status === "pending" ? {
-                l: common_vendor.o(($event) => onCancel(order), order._id),
-                m: common_vendor.o(($event) => onAdvance(order, "preparing"), order._id)
-              } : order.status === "preparing" ? {
-                o: common_vendor.o(($event) => onAdvance(order, "completed"), order._id)
+                b: common_vendor.o(($event) => onSwipeCancel(order), order._id)
               } : {}, {
-                n: order.status === "preparing"
-              }) : {}, {
-                p: order._id,
-                q: flashMap[order._id] ? 1 : "",
-                r: cardDelay(gIdx, oIdx),
-                s: common_vendor.o(($event) => onCardTap(order), order._id)
+                c: common_vendor.o(($event) => onSwipeDelete(order), order._id),
+                d: common_vendor.o(() => {
+                }, order._id),
+                e: firstItemImage(order)
+              }, firstItemImage(order) ? {
+                f: firstItemImage(order)
+              } : {
+                g: common_vendor.t(firstItemEmoji(order))
+              }, {
+                h: order.items.length > 1
+              }, order.items.length > 1 ? {
+                i: common_vendor.t(order.items.length - 1)
+              } : {}, {
+                j: common_vendor.t(buildSummary(order.items)),
+                k: common_vendor.t(formatTime(order.createTime)),
+                l: "ef6850c5-2-" + i0 + "-" + i1,
+                m: common_vendor.p({
+                  status: order.status
+                }),
+                n: flashMap[order._id] ? 1 : "",
+                o: swipeAnimating[order._id] ? 1 : "",
+                p: `translateX(${swipeOffset[order._id] || 0}px)`,
+                q: common_vendor.o(($event) => onTouchStart($event, order._id), order._id),
+                r: common_vendor.o(($event) => onTouchMove($event, order._id), order._id),
+                s: common_vendor.o(($event) => onTouchEnd($event, order._id), order._id),
+                t: common_vendor.o(($event) => onCardTap(order), order._id),
+                v: order._id,
+                w: cardDelay(gIdx, oIdx)
               });
             }),
             d: group.key,
             e: groupDelay(gIdx)
           };
         }),
-        h: common_vendor.unref(userStore).isAdmin,
-        i: loadingMore.value
+        h: loadingMore.value
       }, loadingMore.value ? {} : !hasMore.value && orders.value.length > 0 ? {} : {}, {
-        j: !hasMore.value && orders.value.length > 0
+        i: !hasMore.value && orders.value.length > 0
       }), {
-        e: orders.value.length === 0
+        e: orders.value.length === 0,
+        j: common_vendor.o(onPageTap, "93")
       });
     };
   }

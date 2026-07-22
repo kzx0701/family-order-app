@@ -438,7 +438,7 @@ const _sfc_main = {
       loading.value = true;
       loadError.value = "";
       try {
-        const res = await common_vendor._r.callFunction({
+        const res = await common_vendor.wr.callFunction({
           name: "dishes-crud",
           data: { action: "detail", _id: dishId }
         });
@@ -457,7 +457,7 @@ const _sfc_main = {
         };
         categoryName.value = d.categoryName || "";
       } catch (e) {
-        common_vendor.index.__f__("error", "at pages/dish-detail/dish-detail.vue:209", "[dish-detail] loadDish error", e);
+        common_vendor.index.__f__("error", "at pages/dish-detail/dish-detail.vue:215", "[dish-detail] loadDish error", e);
         loadError.value = "加载失败，请稍后重试";
       } finally {
         loading.value = false;
@@ -485,7 +485,7 @@ const _sfc_main = {
           size: 20
         }),
         b: common_vendor.unref(statusBarHeight) + 16 + "px",
-        c: common_vendor.o(goBack, "c9"),
+        c: common_vendor.o(goBack, "2d"),
         d: loading.value
       }, loading.value ? {
         e: common_vendor.p({
@@ -494,7 +494,7 @@ const _sfc_main = {
           height: "160rpx"
         })
       } : loadError.value ? {
-        g: common_vendor.o(retryLoad, "0f"),
+        g: common_vendor.o(retryLoad, "78"),
         h: common_vendor.p({
           emoji: "😵",
           title: "加载失败",
@@ -509,31 +509,39 @@ const _sfc_main = {
       } : {
         l: common_vendor.t(heroEmoji.value)
       }, {
-        m: categoryName.value
+        m: categoryName.value || dish.value.type === "coffee" && dish.value.temp
+      }, categoryName.value || dish.value.type === "coffee" && dish.value.temp ? common_vendor.e({
+        n: categoryName.value
       }, categoryName.value ? {
-        n: common_vendor.t(categoryName.value)
+        o: common_vendor.t(categoryName.value)
       } : {}, {
-        o: common_vendor.t(dish.value.name || "菜品名称"),
-        p: common_vendor.t(dish.value.description || "暂无描述"),
-        q: common_vendor.p({
+        p: dish.value.type === "coffee" && dish.value.temp
+      }, dish.value.type === "coffee" && dish.value.temp ? {
+        q: common_vendor.t(dish.value.temp === "ice" ? "❄" : "🔥"),
+        r: common_vendor.t(dish.value.temp === "ice" ? "冰饮" : "热饮"),
+        s: common_vendor.n(dish.value.temp)
+      } : {}) : {}, {
+        t: common_vendor.t(dish.value.name || "菜品名称"),
+        v: common_vendor.t(dish.value.description || "暂无描述"),
+        w: common_vendor.p({
           name: "minus",
           size: 16
         }),
-        r: quantity.value <= 1 ? 1 : "",
-        s: common_vendor.o(onMinus, "db"),
-        t: common_vendor.t(quantity.value),
-        v: common_vendor.p({
+        x: quantity.value <= 1 ? 1 : "",
+        y: common_vendor.o(onMinus, "e7"),
+        z: common_vendor.t(quantity.value),
+        A: common_vendor.p({
           name: "plus",
           size: 16
         }),
-        w: common_vendor.o(onPlus, "b0")
+        B: common_vendor.o(onPlus, "88")
       }), {
         f: loadError.value,
-        x: !loading.value && !loadError.value
+        C: !loading.value && !loadError.value
       }, !loading.value && !loadError.value ? {
-        y: common_vendor.o(onAddToCart, "0e")
+        D: common_vendor.o(onAddToCart, "c7")
       } : {}, {
-        z: common_vendor.n(themeClass.value)
+        E: common_vendor.n(themeClass.value)
       });
     };
   }

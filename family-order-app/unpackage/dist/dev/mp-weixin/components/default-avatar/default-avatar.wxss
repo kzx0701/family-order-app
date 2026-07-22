@@ -72,64 +72,7 @@
   pointer-events: none;
 }
 
-/* 厨师角色容器：整体上下浮动 */
-.chef-char.data-v-aac8b966 {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  /* 帽子在顶部，视觉重心略偏上，padding-bottom 让角色整体上移一点更协调 */
-  padding-bottom: 6%;
-  animation: chefFloat-aac8b966 3s ease-in-out infinite;
-}
-
-/* 厨师帽 */
-.chef-hat.data-v-aac8b966 {
-  position: relative;
-  width: 58%;
-  height: 30%;
-  margin-bottom: -6%;
-  z-index: 2;
-}
-.chef-hat .hat-puff.data-v-aac8b966 {
-  position: absolute;
-  background: #fff;
-  border-radius: 50%;
-  box-shadow: 0 2rpx 4rpx rgba(0, 0, 0, 0.08);
-}
-.chef-hat .p-center.data-v-aac8b966 {
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 55%;
-  height: 75%;
-}
-.chef-hat .p-left.data-v-aac8b966 {
-  top: 18%;
-  left: 0;
-  width: 38%;
-  height: 55%;
-}
-.chef-hat .p-right.data-v-aac8b966 {
-  top: 18%;
-  right: 0;
-  width: 38%;
-  height: 55%;
-}
-.chef-hat .hat-band.data-v-aac8b966 {
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 88%;
-  height: 28%;
-  background: #fff;
-  border-radius: 4rpx 4rpx 8rpx 8rpx;
-}
-
-/* 脸 */
+/* ==================== 公共面部组件 ==================== */
 .face.data-v-aac8b966 {
   position: relative;
   width: 48%;
@@ -181,7 +124,141 @@
   border-top: none;
   border-radius: 0 0 100% 100%;
 }
+
+/* ==================== 管理员：厨师角色 ==================== */
+.chef-char.data-v-aac8b966 {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 6%;
+  animation: chefFloat-aac8b966 3s ease-in-out infinite;
+}
+.chef-hat.data-v-aac8b966 {
+  position: relative;
+  width: 58%;
+  height: 30%;
+  margin-bottom: -6%;
+  z-index: 2;
+}
+.chef-hat .hat-puff.data-v-aac8b966 {
+  position: absolute;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 2rpx 4rpx rgba(0, 0, 0, 0.08);
+}
+.chef-hat .p-center.data-v-aac8b966 {
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 55%;
+  height: 75%;
+}
+.chef-hat .p-left.data-v-aac8b966 {
+  top: 18%;
+  left: 0;
+  width: 38%;
+  height: 55%;
+}
+.chef-hat .p-right.data-v-aac8b966 {
+  top: 18%;
+  right: 0;
+  width: 38%;
+  height: 55%;
+}
+.chef-hat .hat-band.data-v-aac8b966 {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 88%;
+  height: 28%;
+  background: #fff;
+  border-radius: 4rpx 4rpx 8rpx 8rpx;
+}
+
+/* ==================== 下单人：女主人角色 ==================== */
+.lady-char.data-v-aac8b966 {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 6%;
+  animation: ladyFloat-aac8b966 3s ease-in-out infinite;
+}
+
+/* 两侧长发：自然垂下，包裹脸侧，露出全脸 */
+.long-hair.data-v-aac8b966 {
+  position: absolute;
+  top: 22%;
+  width: 26%;
+  height: 62%;
+  background: linear-gradient(180deg, #5C3A21 0%, #4A2E1A 100%);
+  z-index: 0;
+}
+.long-hair.hair-l.data-v-aac8b966 {
+  left: 10%;
+  border-radius: 50% 30% 35% 45%;
+  transform: rotate(-6deg);
+}
+.long-hair.hair-r.data-v-aac8b966 {
+  right: 10%;
+  border-radius: 30% 50% 45% 35%;
+  transform: rotate(6deg);
+}
+
+/* 头顶头发：覆盖头顶，无刘海，自然中分向两侧 */
+.hair-top.data-v-aac8b966 {
+  position: relative;
+  width: 50%;
+  height: 16%;
+  margin-bottom: -4%;
+  background: linear-gradient(180deg, #5C3A21 0%, #4A2E1A 100%);
+  border-radius: 50% 50% 8% 8%;
+  z-index: 2;
+}
+
+/* 蝴蝶结：点缀在头顶左侧 */
+.bow.data-v-aac8b966 {
+  position: absolute;
+  top: 16%;
+  left: 56%;
+  display: flex;
+  align-items: center;
+  z-index: 3;
+}
+.bow .bow-knot.data-v-aac8b966 {
+  width: 14rpx;
+  height: 12rpx;
+  background: #E87A8F;
+  border-radius: 50%;
+}
+.bow .bow-knot.knot-l.data-v-aac8b966 {
+  margin-right: -2rpx;
+}
+.bow .bow-knot.knot-r.data-v-aac8b966 {
+  margin-left: -2rpx;
+}
+.bow .bow-center.data-v-aac8b966 {
+  width: 6rpx;
+  height: 8rpx;
+  background: #D85F77;
+  border-radius: 2rpx;
+  z-index: 1;
+}
 @keyframes chefFloat-aac8b966 {
+0%, 100% {
+    transform: translateY(0);
+}
+50% {
+    transform: translateY(-3%);
+}
+}
+@keyframes ladyFloat-aac8b966 {
 0%, 100% {
     transform: translateY(0);
 }

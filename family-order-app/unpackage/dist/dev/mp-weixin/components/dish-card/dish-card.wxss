@@ -96,7 +96,14 @@
   flex-direction: column;
   gap: 6rpx;
 }
+.dish-info .dish-name-row.data-v-215fb416 {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+}
 .dish-info .dish-name.data-v-215fb416 {
+  flex: 1;
+  min-width: 0;
   font-size: 14px;
   font-weight: 700;
   color: var(--theme-text);
@@ -104,6 +111,35 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.dish-info .temp-badge.data-v-215fb416 {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 2rpx;
+  padding: 2rpx 12rpx;
+  border-radius: 9999px;
+  line-height: 1.6;
+}
+.dish-info .temp-badge .temp-badge-icon.data-v-215fb416 {
+  font-size: 18rpx;
+  line-height: 1;
+}
+.dish-info .temp-badge .temp-badge-text.data-v-215fb416 {
+  font-size: 10px;
+  font-weight: 500;
+}
+.dish-info .temp-badge.ice.data-v-215fb416 {
+  background-color: #EFF6FF;
+}
+.dish-info .temp-badge.ice .temp-badge-icon.data-v-215fb416, .dish-info .temp-badge.ice .temp-badge-text.data-v-215fb416 {
+  color: #2563EB;
+}
+.dish-info .temp-badge.hot.data-v-215fb416 {
+  background-color: #FEF2F2;
+}
+.dish-info .temp-badge.hot .temp-badge-icon.data-v-215fb416, .dish-info .temp-badge.hot .temp-badge-text.data-v-215fb416 {
+  color: #DC2626;
 }
 .dish-info .dish-desc.data-v-215fb416 {
   font-size: 10px;

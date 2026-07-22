@@ -1,1 +1,1 @@
-"use strict";exports.WX_CONFIG={subscribeTemplates:{orderNotify:"",completeNotify:"",urgeNotify:""},appid:"wxbce36fe0e2e44d62"};
+"use strict";exports.WX_CONFIG={subscribeTemplates:{orderNotify:"pTwXlfi9AsqclwXuBl8KDzVViSAb0s5sRTRz_eWC9IA",completeNotify:"Db7Tf9a6ghVEFtgPKsEvh_Dio95Dqjqo1YlI35DxnkQ",pickupNotify:"r_svuDQguRAj5xKzchqduq19JN9KRG23b-bk8EdYaCo"},appid:"wxbce36fe0e2e44d62"};

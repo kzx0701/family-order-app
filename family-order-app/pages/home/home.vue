@@ -1,7 +1,7 @@
 <template>
   <view class="page-home page-enter">
     <!-- 顶部 header：趣味问候 + 头像 + 装饰图案（fixed 固定，滚动时常驻顶部） -->
-    <view class="header" :style="{ paddingTop: statusBarHeight + 28 + 'px' }">
+    <view class="header" :style="{ paddingTop: statusBarHeight + 40 + 'px' }">
       <!-- 背景装饰 emoji（绝对定位，错落漂浮） -->
       <view class="header-deco">
         <!-- Lottie 装饰：咖啡杯冒热气，加载成功时显示动画，失败时 emoji 降级 -->
@@ -31,7 +31,7 @@
             mode="aspectFill"
           />
           <view v-else class="avatar-fallback">
-            <default-avatar />
+            <default-avatar :role="userStore.role || 'admin'" />
           </view>
         </view>
       </view>
@@ -134,7 +134,7 @@
             mode="aspectFill"
           />
           <view v-else class="modal-avatar modal-avatar-fallback">
-            <default-avatar />
+            <default-avatar :role="userStore.role || 'admin'" />
             <view class="modal-avatar-edit-hint">
               <text class="modal-avatar-edit-text">点击更换</text>
             </view>
@@ -371,6 +371,8 @@ const displayOrders = computed(() => {
 /* === 加载今日订单 === */
 const loadOrders = async () => {
   if (loading.value) return
+  // token 未就绪时跳过：App.vue bootstrap 异步恢复登录态，首页 onShow 可能先于 token 就绪
+  if (!userStore.token) return
   loading.value = true
   try {
     const res = await uniCloud.callFunction({
@@ -382,6 +384,9 @@ const loadOrders = async () => {
     })
     if (res.result.code === 0) {
       orders.value = res.result.list || []
+    } else if (res.result.code === 401) {
+      // 登录态未就绪或失效：静默不提示（由 App.vue bootstrap 管理登录态）
+      console.warn('[home] home-data 401', res.result.message)
     } else {
       uni.showToast({ title: res.result.message || '加载失败', icon: 'none' })
     }
@@ -426,6 +431,18 @@ watch(
       nextTick(() => {
         loadEmptyLottie()
       })
+    }
+  }
+)
+
+// 监听 token 就绪：App.vue bootstrap 异步恢复登录态，
+// 首次 onShow 时 token 可能未就绪导致 loadOrders 跳过；
+// token 就绪后自动触发首次加载，避免首页空白
+watch(
+  () => userStore.token,
+  (newToken) => {
+    if (newToken && orders.value.length === 0 && !loading.value) {
+      loadOrders()
     }
   }
 )
@@ -707,7 +724,7 @@ onUnmounted(() => {
     }
 
     .section-more {
-      font-size: $font-size-xs;
+      font-size: $font-size-sm;
       color: $color-coffee-500;
       @include tap-feedback;
     }

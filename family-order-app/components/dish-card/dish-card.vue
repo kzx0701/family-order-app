@@ -8,7 +8,13 @@
 
     <!-- 中间信息区 -->
     <view class="dish-info">
-      <text class="dish-name">{{ dish.name }}</text>
+      <view class="dish-name-row">
+        <text class="dish-name">{{ dish.name }}</text>
+        <view v-if="dish.type === 'coffee' && dish.temp" class="temp-badge" :class="dish.temp">
+          <text class="temp-badge-icon">{{ dish.temp === 'ice' ? '❄' : '🔥' }}</text>
+          <text class="temp-badge-text">{{ dish.temp === 'ice' ? '冰' : '热' }}</text>
+        </view>
+      </view>
       <text class="dish-desc">{{ dish.description || '暂无描述' }}</text>
       <view v-if="dish.categoryName" class="dish-tag">
         <text class="tag-text">{{ dish.categoryName }}</text>
@@ -107,12 +113,50 @@ const onAddTap = (e) => {
   flex-direction: column;
   gap: 6rpx;
 
+  .dish-name-row {
+    display: flex;
+    align-items: center;
+    gap: 10rpx;
+  }
+
   .dish-name {
+    flex: 1;
+    min-width: 0;
     font-size: $font-size-base;
     font-weight: $font-weight-bold;
     color: var(--theme-text);
     line-height: $line-height-tight;
     @include ellipsis(1);
+  }
+
+  .temp-badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 2rpx;
+    padding: 2rpx 12rpx;
+    border-radius: $radius-full;
+    line-height: 1.6;
+
+    .temp-badge-icon {
+      font-size: 18rpx;
+      line-height: 1;
+    }
+
+    .temp-badge-text {
+      font-size: $font-size-xs;
+      font-weight: $font-weight-medium;
+    }
+
+    &.ice {
+      background-color: #EFF6FF;
+      .temp-badge-icon, .temp-badge-text { color: #2563EB; }
+    }
+
+    &.hot {
+      background-color: #FEF2F2;
+      .temp-badge-icon, .temp-badge-text { color: #DC2626; }
+    }
   }
 
   .dish-desc {

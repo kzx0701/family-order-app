@@ -36,7 +36,7 @@ const _sfc_main = {
     };
     return (_ctx, _cache) => {
       return {
-        a: common_vendor.unref(statusBarHeight) + 70 + "px",
+        a: common_vendor.unref(statusBarHeight) + 76 + "px",
         b: common_vendor.p({
           name: "coffee",
           size: 18,
@@ -47,7 +47,7 @@ const _sfc_main = {
           size: 14,
           color: "#6F4E37"
         }),
-        d: common_vendor.o(($event) => onSelect("orderer"), "c8"),
+        d: common_vendor.o(($event) => onSelect("orderer"), "a1"),
         e: common_vendor.p({
           name: "settings",
           size: 18,
@@ -58,7 +58,7 @@ const _sfc_main = {
           size: 14,
           color: "#15803D"
         }),
-        g: common_vendor.o(($event) => onSelect("admin"), "59")
+        g: common_vendor.o(($event) => onSelect("admin"), "03")
       };
     };
   }

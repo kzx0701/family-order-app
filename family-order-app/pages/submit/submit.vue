@@ -1,7 +1,7 @@
 <template>
   <view class="page-submit page-enter" :class="themeClass">
     <!-- 头部（sticky 固定，滚动时常驻顶部，无需 JS 测量） -->
-    <view class="header" :style="{ paddingTop: statusBarHeight + 20 + 'px' }">
+    <view class="header" :style="{ paddingTop: statusBarHeight + 32 + 'px' }">
       <view class="back-btn" @tap="goBack">
         <Icon name="arrow-left" :size="20" />
       </view>
@@ -169,8 +169,8 @@ const submitting = ref(false)
 const leaving = ref(false) // 提交成功后标记，避免 onShow 空车判断误触发返回
 
 /* === 订阅消息模板 ID（从 utils/wx-config.js 读取，部署时在微信公众平台申请后填入） === */
-const ORDER_NOTIFY_TPL = WX_CONFIG.subscribeTemplates.orderNotify
 const COMPLETE_NOTIFY_TPL = WX_CONFIG.subscribeTemplates.completeNotify
+const PICKUP_NOTIFY_TPL = WX_CONFIG.subscribeTemplates.pickupNotify
 
 /* === 菜品占位 emoji === */
 const dishEmoji = (type) => (type === 'food' ? '🍲' : '☕')
@@ -222,7 +222,7 @@ const computeReservationTimestamp = () => {
 const requestSubscribe = () => {
   return new Promise((resolve) => {
     // 过滤掉未配置的模板 ID（空字符串），避免 wx.requestSubscribeMessage 报错
-    const tmplIds = [ORDER_NOTIFY_TPL, COMPLETE_NOTIFY_TPL].filter((id) => !!id)
+    const tmplIds = [COMPLETE_NOTIFY_TPL, PICKUP_NOTIFY_TPL].filter((id) => !!id)
     if (tmplIds.length === 0) {
       console.warn('[submit] 订阅消息模板 ID 未配置，跳过授权')
       resolve(null)

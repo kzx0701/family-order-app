@@ -34,12 +34,12 @@ const _sfc_main = {
         f: __props.placeholder,
         g: __props.maxlength,
         h: placeholderStyle.value,
-        i: common_vendor.o(onInput, "c6")
+        i: common_vendor.o(onInput, "f0")
       } : {
         j: __props.modelValue,
         k: __props.placeholder,
         l: placeholderStyle.value,
-        m: common_vendor.o(onInput, "ce")
+        m: common_vendor.o(onInput, "1f")
       }, {
         n: __props.error
       }, __props.error ? {

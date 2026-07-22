@@ -1,7 +1,7 @@
 <template>
   <view class="page-order-detail" :class="themeClass">
     <!-- 头部（sticky 固定） -->
-    <view class="header" :style="{ paddingTop: statusBarHeight + 20 + 'px' }">
+    <view class="header" :style="{ paddingTop: statusBarHeight + 32 + 'px' }">
       <view class="back-btn" @tap="goBack">
         <Icon name="arrow-left" :size="20" />
       </view>
@@ -102,7 +102,7 @@
       <view class="bottom-spacer"></view>
     </template>
 
-    <!-- 底部操作栏（管理员：推进状态 / 下单人：催单） -->
+    <!-- 底部操作栏（管理员：推进状态 / 提醒取餐） -->
     <view v-if="!loading && !loadError && bottomButton" class="bottom-bar">
       <view
         class="action-btn"
@@ -114,10 +114,58 @@
       </view>
     </view>
 
-    <!-- 已完成/已取消状态：底部显示状态提示 -->
-    <view v-else-if="!loading && !loadError && (order.status === 'completed' || order.status === 'cancelled')" class="bottom-bar">
+    <!-- 已完成(非管理员)/已取消状态：底部显示状态提示 -->
+    <view v-else-if="!loading && !loadError && (order.status === 'cancelled' || (order.status === 'completed' && !userStore.isAdmin))" class="bottom-bar">
       <view class="status-hint" :class="order.status">
         <text>{{ order.status === 'completed' ? '✓ 订单已完成' : '订单已取消' }}</text>
+      </view>
+    </view>
+
+    <!-- 取餐提醒弹框 -->
+    <view v-if="showPickupModal" class="pickup-modal-mask" @tap="closePickupModal">
+      <view class="pickup-modal" @tap.stop>
+        <text class="pickup-modal-title">提醒取餐</text>
+        <text class="pickup-modal-desc">填写取餐方式与温馨提示，发送给下单人</text>
+
+        <view class="pickup-field">
+          <text class="pickup-label">取餐方式</text>
+          <input
+            class="pickup-input"
+            type="text"
+            :value="pickupMethod"
+            placeholder="如：请到厨房取餐"
+            placeholder-class="pickup-placeholder"
+            maxlength="20"
+            :focus="showPickupModal"
+            @input="onPickupMethodInput"
+          />
+        </view>
+
+        <view class="pickup-field">
+          <text class="pickup-label">温馨提示</text>
+          <input
+            class="pickup-input"
+            type="text"
+            :value="pickupTip"
+            placeholder="如：趁热吃哦~"
+            placeholder-class="pickup-placeholder"
+            maxlength="20"
+            @input="onPickupTipInput"
+          />
+        </view>
+
+        <view class="pickup-actions">
+          <view class="pickup-btn pickup-btn-cancel" @tap="closePickupModal">
+            <text>取消</text>
+          </view>
+          <view
+            class="pickup-btn pickup-btn-confirm"
+            :class="{ disabled: pickupSending }"
+            @tap="onPickupConfirm"
+          >
+            <text>{{ pickupSending ? '发送中...' : '确认发送' }}</text>
+          </view>
+        </view>
       </view>
     </view>
   </view>
@@ -128,7 +176,6 @@ import { ref, computed } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { useSafeArea } from '@/composables/useSafeArea.js'
 import { useUserStore } from '@/store/user.js'
-import { WX_CONFIG } from '@/utils/wx-config.js'
 
 const { statusBarHeight } = useSafeArea()
 const userStore = useUserStore()
@@ -193,30 +240,26 @@ const submitTimeText = computed(() => {
   return formatDateTime(ts)
 })
 
-/* === 底部按钮：管理员显示状态推进，下单人显示催单 === */
+/* === 底部按钮：管理员显示状态推进 / 提醒取餐 === */
 const bottomButton = computed(() => {
   if (actionLoading.value) return null
   const s = order.value.status
-  // 终态无按钮
-  if (s === 'completed' || s === 'cancelled') return null
 
   if (userStore.isAdmin) {
-    // 管理员：推进状态
+    // 管理员：推进状态 + 完成后提醒取餐
     if (s === 'pending') {
       return { text: '开始制作', class: 'btn-prep', type: 'advance', target: 'preparing' }
     }
     if (s === 'preparing') {
       return { text: '标记完成', class: 'btn-done', type: 'advance', target: 'completed' }
     }
-  } else {
-    // 下单人：催单（pending / preparing 都可催）
-    return { text: '催单', class: 'btn-urge', type: 'urge' }
+    if (s === 'completed') {
+      return { text: '提醒取餐', class: 'btn-pickup', type: 'pickup' }
+    }
   }
+  // 下单人：无操作按钮
   return null
 })
-
-/* === 催单订阅消息模板 ID（从 wx-config.js 读取，与云函数配置保持一致） === */
-const URGE_TEMPLATE_ID = WX_CONFIG.subscribeTemplates.urgeNotify
 
 /* === 时间格式化：MM-DD HH:mm === */
 const formatDateTime = (ts) => {
@@ -283,14 +326,14 @@ const retryLoad = () => {
   if (orderId.value) loadOrder(orderId.value)
 }
 
-/* === 底部按钮点击：管理员推进状态 / 下单人催单 === */
+/* === 底部按钮点击：管理员推进状态 / 提醒取餐 === */
 const onBottomAction = async () => {
   const btn = bottomButton.value
   if (!btn || actionLoading.value) return
 
-  // 催单：先请求订阅消息授权（一次性），授权后调云函数
-  if (btn.type === 'urge') {
-    await onUrge()
+  // 提醒取餐：弹出填写框
+  if (btn.type === 'pickup') {
+    openPickupModal()
     return
   }
 
@@ -324,77 +367,68 @@ const onBottomAction = async () => {
   }
 }
 
-/* === 下单人催单 === */
-// 1. 若已配置催单模板 ID，调用 wx.requestSubscribeMessage 请求订阅消息授权
-// 2. 用户同意后调用 orders-crud urge action，云函数触发 sendUrgeNotify
-// 3. 未配置模板 ID 或用户拒绝时，仍可触发催单（管理员收不到订阅消息）
-const onUrge = async () => {
-  if (actionLoading.value) return
-  actionLoading.value = true
-  try {
-    // #ifdef MP-WEIXIN
-    // 未配置催单模板 ID：跳过订阅授权，直接催单
-    if (!URGE_TEMPLATE_ID) {
-      console.warn('[order-detail] 未配置催单模板 ID，跳过订阅消息授权')
-      await callUrgeCloudFunction()
-      return
-    }
+/* === 取餐提醒弹框 === */
+const showPickupModal = ref(false)
+const pickupMethod = ref('')
+const pickupTip = ref('')
+const pickupSending = ref(false)
 
-    // 请求订阅消息授权
-    const subscribeRes = await new Promise((resolve) => {
-      wx.requestSubscribeMessage({
-        tmplIds: [URGE_TEMPLATE_ID],
-        success: resolve,
-        fail: (err) => {
-          console.warn('[order-detail] requestSubscribeMessage fail', err)
-          resolve(null)
-        }
-      })
-    })
-
-    // 用户拒绝或失败：给出提示但不阻塞（仍可触发催单，但管理员收不到订阅消息）
-    if (!subscribeRes || subscribeRes[URGE_TEMPLATE_ID] !== 'accept') {
-      uni.showModal({
-        title: '提示',
-        content: '需要订阅消息授权才能通知管理员，是否继续催单？',
-        confirmText: '继续催单',
-        cancelText: '取消',
-        success: async (r) => {
-          if (r.confirm) {
-            await callUrgeCloudFunction()
-          }
-        }
-      })
-      return
-    }
-    // #endif
-
-    // 已授权或非微信环境，直接调用云函数
-    await callUrgeCloudFunction()
-  } finally {
-    actionLoading.value = false
-  }
+const openPickupModal = () => {
+  pickupMethod.value = ''
+  pickupTip.value = ''
+  showPickupModal.value = true
 }
 
-/* === 调用云函数催单 === */
-const callUrgeCloudFunction = async () => {
+const closePickupModal = () => {
+  if (pickupSending.value) return
+  showPickupModal.value = false
+}
+
+const onPickupMethodInput = (e) => {
+  pickupMethod.value = e.detail.value || ''
+}
+
+const onPickupTipInput = (e) => {
+  pickupTip.value = e.detail.value || ''
+}
+
+/* === 确认发送取餐提醒 === */
+const onPickupConfirm = async () => {
+  if (pickupSending.value) return
+  const method = pickupMethod.value.trim()
+  const tip = pickupTip.value.trim()
+  if (!method) {
+    uni.showToast({ title: '请填写取餐方式', icon: 'none' })
+    return
+  }
+  if (!tip) {
+    uni.showToast({ title: '请填写温馨提示', icon: 'none' })
+    return
+  }
+
+  pickupSending.value = true
   try {
     const res = await uniCloud.callFunction({
       name: 'orders-crud',
       data: {
-        action: 'urge',
+        action: 'pickup',
         _id: orderId.value,
+        pickupMethod: method,
+        pickupTip: tip,
         token: userStore.token
       }
     })
     if (res.result.code !== 0) {
-      uni.showToast({ title: res.result.message || '催单失败', icon: 'none' })
+      uni.showToast({ title: res.result.message || '发送失败', icon: 'none' })
       return
     }
-    uni.showToast({ title: '已通知管理员加急', icon: 'success' })
+    uni.showToast({ title: '已发送取餐提醒', icon: 'success' })
+    showPickupModal.value = false
   } catch (e) {
-    console.error('[order-detail] urge error', e)
-    uni.showToast({ title: '催单失败', icon: 'none' })
+    console.error('[order-detail] pickup error', e)
+    uni.showToast({ title: '发送失败', icon: 'none' })
+  } finally {
+    pickupSending.value = false
   }
 }
 
@@ -720,8 +754,8 @@ onLoad((options) => {
       box-shadow: 0 6rpx 20rpx rgba(22, 163, 74, 0.32);
     }
 
-    /* 催单：咖啡色系渐变，与品牌色呼应 */
-    &.btn-urge {
+    /* 提醒取餐：咖啡色系渐变，与品牌色呼应 */
+    &.btn-pickup {
       background: linear-gradient(135deg, #A8826A, #6F4E37);
       box-shadow: 0 6rpx 20rpx rgba(111, 78, 55, 0.32);
     }
@@ -750,5 +784,113 @@ onLoad((options) => {
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* === 取餐提醒弹框 === */
+.pickup-modal-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background-color: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.pickup-modal {
+  width: 600rpx;
+  background-color: #fff;
+  border-radius: $radius-2xl;
+  padding: 48rpx 40rpx 36rpx;
+  animation: popIn 0.25s $ease-smooth;
+}
+
+@keyframes popIn {
+  from { transform: scale(0.92); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.pickup-modal-title {
+  display: block;
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: $color-text;
+  text-align: center;
+  margin-bottom: 12rpx;
+}
+
+.pickup-modal-desc {
+  display: block;
+  font-size: $font-size-sm;
+  color: $color-text-muted;
+  text-align: center;
+  margin-bottom: 40rpx;
+}
+
+.pickup-field {
+  margin-bottom: 28rpx;
+}
+
+.pickup-label {
+  display: block;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $color-text;
+  margin-bottom: 12rpx;
+}
+
+.pickup-input {
+  width: 100%;
+  height: 80rpx;
+  padding: 0 24rpx;
+  border-radius: $radius-lg;
+  background-color: $color-bg;
+  border: 2rpx solid $color-border;
+  font-size: $font-size-base;
+  color: $color-text;
+  box-sizing: border-box;
+}
+
+.pickup-placeholder {
+  color: $color-text-disabled;
+  font-size: $font-size-base;
+}
+
+.pickup-actions {
+  display: flex;
+  gap: 24rpx;
+  margin-top: 16rpx;
+}
+
+.pickup-btn {
+  flex: 1;
+  height: 80rpx;
+  border-radius: $radius-full;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: $font-size-base;
+  font-weight: $font-weight-medium;
+
+  &.pickup-btn-cancel {
+    background-color: $color-bg;
+    color: $color-text-muted;
+  }
+
+  &.pickup-btn-confirm {
+    background: linear-gradient(135deg, #A8826A, #6F4E37);
+    color: #fff;
+    box-shadow: 0 6rpx 20rpx rgba(111, 78, 55, 0.28);
+
+    &.disabled {
+      opacity: 0.6;
+    }
+  }
 }
 </style>

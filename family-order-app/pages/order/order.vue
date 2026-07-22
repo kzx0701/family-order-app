@@ -1,7 +1,7 @@
 <template>
   <view class="page-order page-enter" :class="themeClass">
     <!-- 页面头部 -->
-    <view class="header" :style="{ paddingTop: statusBarHeight + 20 + 'px' }">
+    <view class="header" :style="{ paddingTop: statusBarHeight + 32 + 'px' }">
       <view class="back-btn" @tap="goHome">
         <Icon name="arrow-left" :size="20" />
       </view>
@@ -71,6 +71,7 @@
                 :key="dish.dishId"
                 :dish="dish"
                 :index="idx"
+                :show-category="cat.id === 'recommend'"
                 @add-to-cart="onAddToCart"
                 @tap="onDishTap"
               />

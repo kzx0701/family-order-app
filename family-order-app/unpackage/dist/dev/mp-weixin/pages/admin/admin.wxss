@@ -347,6 +347,37 @@ to {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+.dish-info .temp-badge.data-v-dbc77958 {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 2rpx;
+  padding: 2rpx 12rpx;
+  border-radius: 9999px;
+  line-height: 1.6;
+}
+.dish-info .temp-badge .temp-badge-icon.data-v-dbc77958 {
+  font-size: 18rpx;
+  line-height: 1;
+}
+.dish-info .temp-badge .temp-badge-text.data-v-dbc77958 {
+  font-size: 10px;
+  font-weight: 500;
+}
+.dish-info .temp-badge.ice.data-v-dbc77958 {
+  background-color: #EFF6FF;
+}
+.dish-info .temp-badge.ice .temp-badge-icon.data-v-dbc77958, .dish-info .temp-badge.ice .temp-badge-text.data-v-dbc77958 {
+  color: #2563EB;
+}
+.dish-info .temp-badge.hot.data-v-dbc77958 {
+  background-color: #FEF2F2;
+}
+.dish-info .temp-badge.hot .temp-badge-icon.data-v-dbc77958, .dish-info .temp-badge.hot .temp-badge-text.data-v-dbc77958 {
+  color: #DC2626;
 }
 .dish-info .dish-desc.data-v-dbc77958 {
   font-size: 12px;
@@ -547,6 +578,18 @@ to {
   background-color: #E8EDE2;
   border-color: #5A7145;
   color: #3A4A2C;
+  font-weight: 600;
+}
+.type-chips .type-chip.ice.active.data-v-dbc77958 {
+  background-color: #EFF6FF;
+  border-color: #3B82F6;
+  color: #1D4ED8;
+  font-weight: 600;
+}
+.type-chips .type-chip.hot.active.data-v-dbc77958 {
+  background-color: #FEF2F2;
+  border-color: #EF4444;
+  color: #B91C1C;
   font-weight: 600;
 }
 .cat-chips.data-v-dbc77958 {

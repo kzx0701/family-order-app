@@ -140,8 +140,46 @@
   gap: 16rpx;
 }
 
+/* === 滑动卡片容器 === */
+.swipe-item.data-v-ef6850c5 {
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+}
+
+/* 右侧滑动操作区 */
+.swipe-actions.data-v-ef6850c5 {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: stretch;
+  z-index: 1;
+}
+.swipe-actions .swipe-btn.data-v-ef6850c5 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 160rpx;
+  font-size: 12px;
+  font-weight: 500;
+  color: #fff;
+}
+.swipe-actions .swipe-btn.data-v-ef6850c5:active {
+  opacity: 0.85;
+}
+.swipe-actions .swipe-cancel.data-v-ef6850c5 {
+  background-color: #9CA3AF;
+}
+.swipe-actions .swipe-delete.data-v-ef6850c5 {
+  background-color: #EF4444;
+}
+
 /* === 订单卡片 === */
 .order-card.data-v-ef6850c5 {
+  position: relative;
+  z-index: 2;
   display: flex;
   align-items: center;
   gap: 20rpx;
@@ -149,14 +187,15 @@
   background-color: #FFFFFF;
   border-radius: 16px;
   box-shadow: 0 1px 2px rgba(44, 27, 20, 0.04), 0 1px 3px rgba(44, 27, 20, 0.06);
-  transition: box-shadow 250ms cubic-bezier(0.4, 0, 0.2, 1), transform 150ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: box-shadow 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  /* 吸附/回弹时的丝滑过渡 */
   /* 状态变化时整体闪光，强化动效反馈 */
   /* 左侧缩略图 */
   /* 中部内容 */
-  /* 右侧：状态徽章 + 操作按钮（垂直居中） */
+  /* 右侧：状态徽章（垂直居中） */
 }
-.order-card.data-v-ef6850c5:active {
-  transform: scale(0.98);
+.order-card.swipe-animating.data-v-ef6850c5 {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .order-card.is-flashing.data-v-ef6850c5 {
   box-shadow: 0 0 0 4rpx rgba(255, 167, 38, 0.22), 0 2px 8px rgba(44, 27, 20, 0.06), 0 4px 16px rgba(44, 27, 20, 0.04);
@@ -219,18 +258,6 @@
   align-items: center;
   gap: 8rpx;
 }
-.order-card .card-body .card-meta .meta-user.data-v-ef6850c5 {
-  font-size: 10px;
-  color: #8B6F47;
-  font-weight: 500;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.order-card .card-body .card-meta .meta-dot.data-v-ef6850c5 {
-  font-size: 10px;
-  color: #A8A29E;
-}
 .order-card .card-body .card-meta .meta-time.data-v-ef6850c5 {
   font-size: 10px;
   color: #A8A29E;
@@ -241,43 +268,6 @@
   flex-direction: column;
   align-items: flex-end;
   justify-content: center;
-  gap: 12rpx;
-}
-.order-card .card-right .meta-actions.data-v-ef6850c5 {
-  display: flex;
-  align-items: center;
-  gap: 12rpx;
-}
-
-/* === 操作按钮 === */
-.action-btn.data-v-ef6850c5 {
-  padding: 10rpx 24rpx;
-  border-radius: 9999px;
-  font-size: 10px;
-  font-weight: 600;
-  line-height: 1.2;
-  transition: transform 150ms cubic-bezier(0.4, 0, 0.2, 1), opacity 150ms cubic-bezier(0.4, 0, 0.2, 1);
-  /* 取消：灰色轻量按钮，不喧宾夺主 */
-  /* 开始制作：暖橙渐变 */
-  /* 完成：绿色渐变 */
-}
-.action-btn.data-v-ef6850c5:active {
-  transform: scale(0.92);
-  opacity: 0.85;
-}
-.action-btn.btn-cancel.data-v-ef6850c5 {
-  background-color: #F5F5F4;
-  color: #78716C;
-}
-.action-btn.btn-prep.data-v-ef6850c5 {
-  background: linear-gradient(135deg, #FFA726, #FB8C00);
-  color: #fff;
-  box-shadow: 0 4rpx 12rpx rgba(251, 140, 0, 0.28);
-}
-.action-btn.btn-done.data-v-ef6850c5 {
-  background: linear-gradient(135deg, #22C55E, #16A34A);
-  color: #fff;
-  box-shadow: 0 4rpx 12rpx rgba(22, 163, 74, 0.28);
 }
 
 /* === 加载更多 / 全部加载完 === */

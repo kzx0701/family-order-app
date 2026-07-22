@@ -1,1 +1,1 @@
-"use strict";const e={__name:"default-avatar",setup:e=>(e,t)=>({})},t=require("../../common/vendor.js")._export_sfc(e,[["__scopeId","data-v-f01d5a23"]]);wx.createComponent(t);
+"use strict";const e=require("../../common/vendor.js"),a={__name:"default-avatar",props:{role:{type:String,default:"admin"}},setup:a=>(t,o)=>e.e({a:"admin"===a.role},(a.role,{}))},t=e._export_sfc(a,[["__scopeId","data-v-7b664a15"]]);wx.createComponent(t);

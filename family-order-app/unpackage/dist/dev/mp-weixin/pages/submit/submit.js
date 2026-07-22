@@ -38,8 +38,8 @@ const _sfc_main = {
     ];
     const submitting = common_vendor.ref(false);
     const leaving = common_vendor.ref(false);
-    const ORDER_NOTIFY_TPL = utils_wxConfig.WX_CONFIG.subscribeTemplates.orderNotify;
     const COMPLETE_NOTIFY_TPL = utils_wxConfig.WX_CONFIG.subscribeTemplates.completeNotify;
+    const PICKUP_NOTIFY_TPL = utils_wxConfig.WX_CONFIG.subscribeTemplates.pickupNotify;
     const dishEmoji = (type) => type === "food" ? "🍲" : "☕";
     function getDefaultTime() {
       const now = /* @__PURE__ */ new Date();
@@ -71,7 +71,7 @@ const _sfc_main = {
     };
     const requestSubscribe = () => {
       return new Promise((resolve) => {
-        const tmplIds = [ORDER_NOTIFY_TPL, COMPLETE_NOTIFY_TPL].filter((id) => !!id);
+        const tmplIds = [COMPLETE_NOTIFY_TPL, PICKUP_NOTIFY_TPL].filter((id) => !!id);
         if (tmplIds.length === 0) {
           common_vendor.index.__f__("warn", "at pages/submit/submit.vue:227", "[submit] 订阅消息模板 ID 未配置，跳过授权");
           resolve(null);
@@ -108,7 +108,7 @@ const _sfc_main = {
       submitting.value = true;
       try {
         await requestSubscribe();
-        const res = await common_vendor._r.callFunction({
+        const res = await common_vendor.wr.callFunction({
           name: "orders-crud",
           data: {
             action: "create",
@@ -169,8 +169,8 @@ const _sfc_main = {
           name: "arrow-left",
           size: 20
         }),
-        b: common_vendor.o(goBack, "61"),
-        c: common_vendor.unref(statusBarHeight) + 20 + "px",
+        b: common_vendor.o(goBack, "2e"),
+        c: common_vendor.unref(statusBarHeight) + 32 + "px",
         d: common_vendor.t(totalCount.value),
         e: common_vendor.t(cartItems.value.length),
         f: common_vendor.f(cartItems.value, (item, idx, i0) => {
@@ -196,9 +196,9 @@ const _sfc_main = {
           size: 16
         }),
         h: reservationType.value === "asap" ? 1 : "",
-        i: common_vendor.o(($event) => setReservation("asap"), "09"),
+        i: common_vendor.o(($event) => setReservation("asap"), "e4"),
         j: reservationType.value === "scheduled" ? 1 : "",
-        k: common_vendor.o(($event) => setReservation("scheduled"), "38"),
+        k: common_vendor.o(($event) => setReservation("scheduled"), "11"),
         l: reservationType.value === "scheduled"
       }, reservationType.value === "scheduled" ? {
         m: common_vendor.f(dateOptions, (opt, k0, i0) => {
@@ -215,14 +215,14 @@ const _sfc_main = {
           size: 16
         }),
         p: scheduledTime.value,
-        q: common_vendor.o(onTimeChange, "46")
+        q: common_vendor.o(onTimeChange, "f9")
       } : {}, {
         r: common_vendor.p({
           name: "note",
           size: 16
         }),
         s: note.value,
-        t: common_vendor.o(($event) => note.value = $event.detail.value, "3a"),
+        t: common_vendor.o(($event) => note.value = $event.detail.value, "83"),
         v: common_vendor.t(note.value.length),
         w: userAvatar.value
       }, userAvatar.value ? {
@@ -233,7 +233,7 @@ const _sfc_main = {
       }, submitting.value ? {} : {}, {
         A: common_vendor.t(submitting.value ? "提交中..." : "提交点单"),
         B: submitting.value ? 1 : "",
-        C: common_vendor.o(onSubmit, "18"),
+        C: common_vendor.o(onSubmit, "44"),
         D: common_vendor.n(themeClass.value)
       });
     };
