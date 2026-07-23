@@ -57,19 +57,15 @@ const _sfc_main = {
       } : {}, {
         k: common_vendor.t(__props.dish.name),
         l: common_vendor.t(__props.dish.description || "暂无描述"),
-        m: __props.dish.categoryName
-      }, __props.dish.categoryName ? {
-        n: common_vendor.t(__props.dish.categoryName)
-      } : {}, {
-        o: common_vendor.p({
+        m: common_vendor.p({
           name: "plus",
           size: 18,
           color: "#fff"
         }),
-        p: common_vendor.o(onAddTap, "7d"),
-        q: common_vendor.n(tempClass.value),
-        r: `${__props.index * 50}ms`,
-        s: common_vendor.o(onCardTap, "28")
+        n: common_vendor.o(onAddTap, "c1"),
+        o: common_vendor.n(tempClass.value),
+        p: `${__props.index * 50}ms`,
+        q: common_vendor.o(onCardTap, "24")
       });
     };
   }

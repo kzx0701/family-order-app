@@ -1,1 +1,1 @@
-<view class="{{['fo-switch', 'data-v-eaba382a', a && 'on', b && 'disabled']}}" bindtap="{{c}}"><view class="thumb data-v-eaba382a"></view></view>
+<view class="{{['fo-switch', 'data-v-7ca5827f', a && 'on', b && 'disabled']}}" bindtap="{{c}}"><view class="thumb data-v-7ca5827f"></view></view>

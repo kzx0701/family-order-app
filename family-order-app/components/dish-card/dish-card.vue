@@ -33,9 +33,6 @@
         <text class="dish-name">{{ dish.name }}</text>
       </view>
       <text class="dish-desc">{{ dish.description || '暂无描述' }}</text>
-      <view v-if="dish.categoryName" class="dish-tag">
-        <text class="tag-text">{{ dish.categoryName }}</text>
-      </view>
     </view>
 
     <!-- 右侧"+"按钮 -->
@@ -291,21 +288,6 @@ const onAddTap = (e) => {
     color: $color-text-muted;
     line-height: $line-height-normal;
     @include ellipsis(1);
-  }
-
-  .dish-tag {
-    align-self: flex-start;
-    margin-top: 4rpx;
-    padding: 2rpx 12rpx;
-    border-radius: $radius-full;
-    background-color: var(--theme-secondary);
-    line-height: 1.6;
-
-    .tag-text {
-      font-size: $font-size-xs;
-      color: var(--theme-secondary-foreground);
-      font-weight: $font-weight-medium;
-    }
   }
 }
 

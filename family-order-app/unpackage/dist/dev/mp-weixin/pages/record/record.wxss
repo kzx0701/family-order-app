@@ -43,6 +43,15 @@
 /* === 状态徽章 === */
 /* === 1px 细边框（小程序适配） === */
 /* === 点击反馈 === */
+/* === 应用外壳页（页面级布局标准之一） === */
+/*
+ * 适用：点单页这类「头部/底部固定 + 中间区域内部滚动」的应用外壳页
+ * 必须 height:100vh（不能 min-height）+ overflow:hidden，
+ * 否则 flex 子项 min-height:auto 会被内容撑高，整个页面变成 body 滚动，
+ * 导致头部/底部随页面滚走、内部 scroll-view 的高度等于内容高度而完全无法滚动
+ * 搭配 page-shell-body 使用
+ */
+/* 外壳页的中间滚动区：flex:1 + min-height:0 允许收缩，内部 scroll-view 才能生效 */
 /* === uniapp 内置变量映射到设计 token === */
 /* 主色调：暖奶油 / 咖啡棕 */
 /* 文字色 */
@@ -147,7 +156,7 @@
   border-radius: 16px;
 }
 
-/* 右侧滑动操作区 */
+/* 右侧滑动操作区：圆角块状按钮 */
 .swipe-actions.data-v-ef6850c5 {
   position: absolute;
   top: 0;
@@ -155,25 +164,30 @@
   bottom: 0;
   display: flex;
   align-items: stretch;
+  gap: 16rpx;
+  padding: 16rpx 16rpx 16rpx 0;
   z-index: 1;
 }
 .swipe-actions .swipe-btn.data-v-ef6850c5 {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 160rpx;
+  width: 144rpx;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
   color: #fff;
+  border-radius: 16px;
+  box-shadow: inset 0 0 0 1rpx rgba(255, 255, 255, 0.12);
 }
 .swipe-actions .swipe-btn.data-v-ef6850c5:active {
-  opacity: 0.85;
+  opacity: 0.92;
+  transform: scale(0.96);
 }
 .swipe-actions .swipe-cancel.data-v-ef6850c5 {
-  background-color: #9CA3AF;
+  background: linear-gradient(135deg, #9CA3AF, #6B7280);
 }
 .swipe-actions .swipe-delete.data-v-ef6850c5 {
-  background-color: #EF4444;
+  background: linear-gradient(135deg, #EF4444, #DC2626);
 }
 
 /* === 订单卡片 === */

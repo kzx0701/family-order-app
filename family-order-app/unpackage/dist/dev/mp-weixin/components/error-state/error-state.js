@@ -51,7 +51,7 @@ const _sfc_main = {
         }),
         g: retrying.value ? 1 : "",
         h: common_vendor.t(__props.retryText),
-        i: common_vendor.o(onRetry, "1d")
+        i: common_vendor.o(onRetry, "d8")
       } : {});
     };
   }

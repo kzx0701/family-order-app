@@ -1,1 +1,1 @@
-"use strict";const e=require("../../common/vendor.js"),t={__name:"default-avatar",props:{role:{type:String,default:"admin"}},setup:t=>(a,o)=>e.e({a:"admin"===t.role},(t.role,{}))},a=e._export_sfc(t,[["__scopeId","data-v-f4697cee"]]);wx.createComponent(a);
+"use strict";const e=require("../../common/vendor.js"),a={__name:"default-avatar",props:{role:{type:String,default:"admin"}},setup:a=>(t,o)=>e.e({a:"admin"===a.role},(a.role,{}))},t=e._export_sfc(a,[["__scopeId","data-v-7b664a15"]]);wx.createComponent(t);

@@ -13,13 +13,15 @@ const _sfc_main = {
   props: {
     visible: { type: Boolean, default: false },
     title: { type: String, default: "" },
-    // 内容区最大高度（如 80vh）
-    maxHeight: { type: String, default: "80vh" }
+    // 整个 sheet 的最大高度（含标题栏与底部操作区，如 76vh）
+    maxHeight: { type: String, default: "76vh" }
   },
   emits: ["close"],
   setup(__props, { emit: __emit }) {
     const props = __props;
     const emit = __emit;
+    const slots = common_vendor.useSlots();
+    const hasFooter = common_vendor.computed(() => !!slots.footer);
     const show = common_vendor.ref(false);
     common_vendor.watch(
       () => props.visible,
@@ -35,7 +37,7 @@ const _sfc_main = {
       { immediate: true }
     );
     const contentStyle = common_vendor.computed(() => ({
-      maxHeight: props.maxHeight
+      maxHeight: `calc(${props.maxHeight} - ${hasFooter.value ? "264rpx" : "140rpx"})`
     }));
     const onClose = () => {
       show.value = false;
@@ -46,17 +48,19 @@ const _sfc_main = {
     return (_ctx, _cache) => {
       return common_vendor.e({
         a: __props.visible
-      }, __props.visible ? {
-        b: common_vendor.o(onClose, "e1"),
+      }, __props.visible ? common_vendor.e({
+        b: common_vendor.o(onClose, "cc"),
         c: common_vendor.t(__props.title),
         d: common_vendor.p({
           name: "close",
           size: 20
         }),
-        e: common_vendor.o(onClose, "27"),
+        e: common_vendor.o(onClose, "77"),
         f: common_vendor.s(contentStyle.value),
-        g: show.value ? 1 : ""
-      } : {});
+        g: hasFooter.value
+      }, hasFooter.value ? {} : {}, {
+        h: show.value ? 1 : ""
+      }) : {});
     };
   }
 };

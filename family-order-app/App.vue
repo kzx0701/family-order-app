@@ -115,8 +115,11 @@ view, text {
 
 /* === 页面入场动效：onShow 时为根容器淡入 === */
 /* 用法：在页面根 view 上加 class="page-enter" */
+/* 注意：fill-mode 必须是 backwards 而非 both —— both 会在动画结束后保留 */
+/* transform: translateY(0)，使根容器成为 fixed 后代的包含块，导致固定 */
+/* 标题栏/底部 tabbar 随页面滚动而失效 */
 .page-enter {
-  animation: pageEnter $dur-base $ease-smooth both;
+  animation: pageEnter $dur-base $ease-smooth backwards;
 }
 
 @keyframes pageEnter {

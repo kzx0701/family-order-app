@@ -29,9 +29,7 @@
             "path": "pages/admin/admin",
             "style": {
                 "navigationStyle": "custom",
-                "navigationBarTitleText": "管理",
-                "enablePullDownRefresh": true,
-                "backgroundTextStyle": "dark"
+                "navigationBarTitleText": "管理"
             }
         },
         {

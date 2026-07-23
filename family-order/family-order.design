@@ -7,7 +7,7 @@
       "version": 1,
       "createdAt": 1753000000000,
       "canvasData": {
-        "x": 1460,
+        "x": 1127,
         "y": 0,
         "group": 0
       },
@@ -116,7 +116,7 @@
       "createdAt": 1753000002000,
       "canvasData": {
         "x": 200,
-        "y": 590,
+        "y": 376,
         "group": 0
       },
       "devMetadata": {
@@ -184,7 +184,7 @@
       "version": 1,
       "createdAt": 1753000003000,
       "canvasData": {
-        "x": 620,
+        "x": 509,
         "y": 0,
         "group": 0
       },
@@ -212,7 +212,7 @@
       "version": 1,
       "createdAt": 1753000004000,
       "canvasData": {
-        "x": 1040,
+        "x": 818,
         "y": 0,
         "group": 0
       },
@@ -257,8 +257,8 @@
       "version": 1,
       "createdAt": 1753000005000,
       "canvasData": {
-        "x": 1460,
-        "y": 590,
+        "x": 1127,
+        "y": 376,
         "group": 0
       },
       "devMetadata": {
@@ -311,7 +311,7 @@
       "createdAt": 1753000010000,
       "canvasData": {
         "x": 0,
-        "y": 1180
+        "y": 752
       },
       "devMetadata": {
         "imageSrc": "assets/hero-banner.jpg"
@@ -324,8 +324,8 @@
       "version": 1,
       "createdAt": 1753000011000,
       "canvasData": {
-        "x": 420,
-        "y": 1180
+        "x": 309,
+        "y": 752
       },
       "devMetadata": {
         "imageSrc": "assets/coffee-products.jpg"
@@ -338,8 +338,8 @@
       "version": 1,
       "createdAt": 1753000012000,
       "canvasData": {
-        "x": 840,
-        "y": 1180
+        "x": 618,
+        "y": 752
       },
       "devMetadata": {
         "imageSrc": "assets/food-products.jpg"
@@ -352,8 +352,8 @@
       "version": 1,
       "createdAt": 1753000013000,
       "canvasData": {
-        "x": 1260,
-        "y": 1180
+        "x": 927,
+        "y": 752
       },
       "devMetadata": {
         "imageSrc": "assets/coffee-detail.jpg"
@@ -366,8 +366,8 @@
       "version": 1,
       "createdAt": 1753000014000,
       "canvasData": {
-        "x": 1680,
-        "y": 1180
+        "x": 1236,
+        "y": 752
       },
       "devMetadata": {
         "imageSrc": "assets/order-success.jpg"
@@ -380,8 +380,8 @@
       "version": 1,
       "createdAt": 1753000015000,
       "canvasData": {
-        "x": 2100,
-        "y": 1180
+        "x": 1545,
+        "y": 752
       },
       "devMetadata": {
         "imageSrc": "assets/food-detail.jpg"

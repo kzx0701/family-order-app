@@ -43,6 +43,15 @@
 /* === 状态徽章 === */
 /* === 1px 细边框（小程序适配） === */
 /* === 点击反馈 === */
+/* === 应用外壳页（页面级布局标准之一） === */
+/*
+ * 适用：点单页这类「头部/底部固定 + 中间区域内部滚动」的应用外壳页
+ * 必须 height:100vh（不能 min-height）+ overflow:hidden，
+ * 否则 flex 子项 min-height:auto 会被内容撑高，整个页面变成 body 滚动，
+ * 导致头部/底部随页面滚走、内部 scroll-view 的高度等于内容高度而完全无法滚动
+ * 搭配 page-shell-body 使用
+ */
+/* 外壳页的中间滚动区：flex:1 + min-height:0 允许收缩，内部 scroll-view 才能生效 */
 /* === uniapp 内置变量映射到设计 token === */
 /* 主色调：暖奶油 / 咖啡棕 */
 /* 文字色 */
@@ -118,4 +127,12 @@
 .fo-content.data-v-23c57873 {
   padding: 8rpx 40rpx 40rpx;
   box-sizing: border-box;
+}
+
+/* 底部固定操作区：不随内容滚动，顶部细分隔线 */
+.fo-footer.data-v-23c57873 {
+  flex-shrink: 0;
+  padding: 20rpx 40rpx 16rpx;
+  border-top: 2rpx solid #F5F5F4;
+  background-color: #FFFFFF;
 }

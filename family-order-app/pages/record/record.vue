@@ -556,7 +556,7 @@ onReachBottom(() => {
   border-radius: $radius-xl;
 }
 
-/* 右侧滑动操作区 */
+/* 右侧滑动操作区：圆角块状按钮 */
 .swipe-actions {
   position: absolute;
   top: 0;
@@ -564,28 +564,33 @@ onReachBottom(() => {
   bottom: 0;
   display: flex;
   align-items: stretch;
+  gap: 16rpx;
+  padding: 16rpx 16rpx 16rpx 0;
   z-index: 1;
 
   .swipe-btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 160rpx;
+    width: 144rpx;
     font-size: $font-size-sm;
-    font-weight: $font-weight-medium;
+    font-weight: $font-weight-semibold;
     color: #fff;
+    border-radius: $radius-xl;
+    box-shadow: inset 0 0 0 1rpx rgba(255, 255, 255, 0.12);
 
     &:active {
-      opacity: 0.85;
+      opacity: 0.92;
+      transform: scale(0.96);
     }
   }
 
   .swipe-cancel {
-    background-color: #9CA3AF;
+    background: linear-gradient(135deg, #9CA3AF, #6B7280);
   }
 
   .swipe-delete {
-    background-color: #EF4444;
+    background: linear-gradient(135deg, #EF4444, #DC2626);
   }
 }
 

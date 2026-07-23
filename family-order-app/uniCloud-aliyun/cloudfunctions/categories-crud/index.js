@@ -166,7 +166,22 @@ async function deleteCategory({ _id } = {}, catCol) {
   if (res.deleted === 0) {
     return { code: 404, message: '分类不存在' }
   }
-  return { code: 0, deleted: res.deleted }
+
+  // 清理引用该分类的菜品：置空 categoryId，避免产生"孤儿菜品"
+  // （分类删除又重建后 _id 会变，菜品挂旧 ID 会在点单页全部"暂无菜品"）
+  let orphaned = 0
+  try {
+    const dishCol = uniCloud.database().collection('dishes')
+    const orphanRes = await dishCol.where({ categoryId: _id }).update({
+      categoryId: '',
+      updateTime: Date.now()
+    })
+    orphaned = orphanRes.updated || 0
+  } catch (e) {
+    console.error('[categories-crud] clear orphan dishes error', e)
+  }
+
+  return { code: 0, deleted: res.deleted, orphaned }
 }
 
 /**

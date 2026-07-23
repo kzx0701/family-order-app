@@ -133,7 +133,7 @@ const _sfc_main = {
       loading.value = true;
       loadError.value = "";
       try {
-        const res = await common_vendor._r.callFunction({
+        const res = await common_vendor.wr.callFunction({
           name: "orders-crud",
           data: { action: "get", _id: id, token: userStore.token }
         });
@@ -162,7 +162,7 @@ const _sfc_main = {
       }
       actionLoading.value = true;
       try {
-        const res = await common_vendor._r.callFunction({
+        const res = await common_vendor.wr.callFunction({
           name: "orders-crud",
           data: {
             action: "updateStatus",
@@ -222,7 +222,7 @@ const _sfc_main = {
       }
       pickupSending.value = true;
       try {
-        const res = await common_vendor._r.callFunction({
+        const res = await common_vendor.wr.callFunction({
           name: "orders-crud",
           data: {
             action: "pickup",
@@ -264,11 +264,11 @@ const _sfc_main = {
           name: "arrow-left",
           size: 20
         }),
-        b: common_vendor.o(goBack, "ad"),
+        b: common_vendor.o(goBack, "38"),
         c: common_vendor.unref(statusBarHeight) + 32 + "px",
         d: loading.value
       }, loading.value ? {} : loadError.value ? {
-        f: common_vendor.o(retryLoad, "62"),
+        f: common_vendor.o(retryLoad, "66"),
         g: common_vendor.p({
           emoji: "😵",
           title: "订单加载失败",
@@ -327,7 +327,7 @@ const _sfc_main = {
       }, actionLoading.value ? {} : {}, {
         C: common_vendor.t(bottomButton.value.text),
         D: common_vendor.n(bottomButton.value.class),
-        E: common_vendor.o(onBottomAction, "6a")
+        E: common_vendor.o(onBottomAction, "fb")
       }) : !loading.value && !loadError.value && (order.value.status === "cancelled" || order.value.status === "completed" && !common_vendor.unref(userStore).isAdmin) ? {
         G: common_vendor.t(order.value.status === "completed" ? "✓ 订单已完成" : "订单已取消"),
         H: common_vendor.n(order.value.status)
@@ -337,16 +337,16 @@ const _sfc_main = {
       }, showPickupModal.value ? {
         J: pickupMethod.value,
         K: showPickupModal.value,
-        L: common_vendor.o(onPickupMethodInput, "70"),
+        L: common_vendor.o(onPickupMethodInput, "c8"),
         M: pickupTip.value,
-        N: common_vendor.o(onPickupTipInput, "cb"),
-        O: common_vendor.o(closePickupModal, "a4"),
+        N: common_vendor.o(onPickupTipInput, "7c"),
+        O: common_vendor.o(closePickupModal, "2c"),
         P: common_vendor.t(pickupSending.value ? "发送中..." : "确认发送"),
         Q: pickupSending.value ? 1 : "",
-        R: common_vendor.o(onPickupConfirm, "e6"),
+        R: common_vendor.o(onPickupConfirm, "26"),
         S: common_vendor.o(() => {
-        }, "b6"),
-        T: common_vendor.o(closePickupModal, "0a")
+        }, "4f"),
+        T: common_vendor.o(closePickupModal, "4c")
       } : {}, {
         U: common_vendor.n(themeClass.value)
       });

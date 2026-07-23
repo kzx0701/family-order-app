@@ -9,6 +9,7 @@
  *   - update     编辑菜品（仅 admin）
  *   - delete     删除菜品（仅 admin）
  *   - toggleSale 切换上下架（仅 admin）
+ *   - sort       批量更新排序（仅 admin，长按拖拽排序后调用）
  *
  * 鉴权方式：
  *   前端传入 token（user-login 返回的 openid），云函数查询 users 集合确认 role == 'admin'。
@@ -46,6 +47,8 @@ exports.main = async (event, context) => {
       return await deleteDish(payload, dishCol)
     case 'toggleSale':
       return await toggleSale(payload, dishCol)
+    case 'sort':
+      return await sortDishes(payload, dishCol)
     default:
       return { code: 400, message: '未知 action：' + action }
   }
@@ -243,4 +246,21 @@ async function toggleSale({ _id, isOnSale } = {}, dishCol) {
     return { code: 404, message: '菜品不存在' }
   }
   return { code: 0, updated: res.updated }
+}
+
+/**
+ * 批量更新排序
+ * 接收 items: [{ _id, sortOrder }, ...]（拖拽排序后前端一次性提交整个菜单类型的连续序号）
+ */
+async function sortDishes({ items } = {}, dishCol) {
+  if (!Array.isArray(items) || items.length === 0) {
+    return { code: 400, message: '缺少排序数据' }
+  }
+
+  const tasks = items.map((it) =>
+    dishCol.doc(it._id).update({ sortOrder: Number(it.sortOrder) || 0 })
+  )
+  await Promise.all(tasks)
+
+  return { code: 0, updated: tasks.length }
 }

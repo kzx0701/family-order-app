@@ -46,7 +46,15 @@
     </view>
 
     <!-- 菜单管理 -->
-    <view v-if="activeTab === 'menu'" class="menu-pane" @tap="closeDishSwipe">
+    <!-- 面板滚动区：下拉刷新只作用于当前面板，页面本身锁定不滚动 -->
+    <scroll-view
+      class="pane-scroll"
+      :scroll-y="!dragState.active"
+      :refresher-enabled="true"
+      :refresher-triggered="refreshing"
+      @refresherrefresh="onPaneRefresh"
+    >
+      <view v-if="activeTab === 'menu'" class="menu-pane" @tap="closeDishSwipe">
       <!-- 菜单类型切换 -->
       <view class="menu-switch-row">
         <view class="menu-switch">
@@ -90,22 +98,35 @@
         <skeleton type="dish" :count="4" />
       </view>
 
-      <!-- 菜品列表（带过渡动效，左滑删除） -->
-      <view class="dish-list" v-else-if="filteredDishes.length">
+      <template v-else>
+        <!-- 菜品列表（带过渡动效，左滑删除，长按拖拽排序） -->
+        <view class="dish-list" v-if="filteredDishes.length">
         <transition-group name="dish">
-          <view class="dish-swipe-item" v-for="dish in filteredDishes" :key="dish._id">
-            <!-- 滑动露出的删除按钮 -->
-            <view class="dish-swipe-actions" @tap.stop>
+          <view
+            class="dish-swipe-item"
+            v-for="(dish, index) in filteredDishes"
+            :key="dish._id"
+            :class="{
+              'is-dragging': dragState.active && dragState.index === index,
+              'is-shifting': dragState.active && dragState.index !== index
+            }"
+            :style="getDragItemStyle(index)"
+          >
+            <!-- 滑动露出的删除按钮（排序模式下隐藏） -->
+            <view v-if="!sortMode" class="dish-swipe-actions" @tap.stop>
               <view class="dish-swipe-btn delete" @tap.stop="onDishSwipeDelete(dish)">删除</view>
             </view>
-            <!-- 菜品卡片主体：可滑动 -->
+
+            <!-- 普通态卡片：左滑删除 / 点击编辑 / 长按进入排序模式 -->
             <view
+              v-if="!sortMode"
               class="dish-card"
               :class="[dish.type, { 'swipe-animating': dishSwipeAnimating[dish._id] }]"
               :style="{ transform: `translateX(${dishSwipeOffset[dish._id] || 0}px)` }"
               @touchstart="onDishTouchStart($event, dish._id)"
               @touchmove="onDishTouchMove($event, dish._id)"
               @touchend="onDishTouchEnd($event, dish._id)"
+              @longpress="enterSortMode"
               @tap="onDishCardTap(dish)"
             >
               <view class="dish-image">
@@ -132,15 +153,58 @@
                 <fo-switch :modelValue="dish.isOnSale" @change="onToggleSale(dish, $event)" />
               </view>
             </view>
+
+            <!-- 排序态卡片：catch 触摸事件（页面不会随手势滚动），按下即拖 -->
+            <view
+              v-else
+              class="dish-card sorting"
+              :class="[dish.type, { 'is-held': dragState.active && dragState.index === index }]"
+              @touchstart.stop="onSortTouchStart($event, dish, index)"
+              @touchmove.stop="onSortTouchMove"
+              @touchend.stop="onSortTouchEnd"
+              @tap.stop="noop"
+            >
+              <view class="dish-image">
+                <image v-if="dish.image" :src="dish.image" mode="aspectFill" class="dish-img" />
+                <view v-else class="dish-img-placeholder">{{ dish.type === 'coffee' ? '☕' : '🍲' }}</view>
+                <view class="dish-off-badge" v-if="!dish.isOnSale">已下架</view>
+                <view class="dish-recommend-badge" v-if="dish.isRecommended">推荐</view>
+              </view>
+              <view class="dish-info">
+                <view class="dish-name-row">
+                  <text class="dish-name">{{ dish.name }}</text>
+                  <view v-if="dish.type === 'coffee' && dish.temp" class="temp-badge" :class="dish.temp">
+                    <text class="temp-badge-icon">{{ dish.temp === 'ice' ? '❄' : '🔥' }}</text>
+                    <text class="temp-badge-text">{{ dish.temp === 'ice' ? '冰' : '热' }}</text>
+                  </view>
+                </view>
+                <view class="dish-desc" v-if="dish.description">{{ dish.description }}</view>
+                <view class="dish-cat" v-if="dish.categoryName">
+                  <text class="dish-cat-dot">●</text>
+                  <text>{{ dish.categoryName }}</text>
+                </view>
+              </view>
+              <!-- 排序抓手 -->
+              <view class="drag-grip">
+                <text class="drag-grip-icon">⠿</text>
+              </view>
+            </view>
           </view>
         </transition-group>
       </view>
 
-      <!-- 空状态 -->
-      <fo-empty v-else :text="menuType === 'coffee' ? '还没有咖啡菜品，点击右下角添加吧' : '还没有美食菜品，点击右下角添加吧'" :icon="menuType === 'coffee' ? '☕' : '🍲'" />
+        <!-- 空状态 -->
+        <fo-empty v-else :text="menuType === 'coffee' ? '还没有咖啡菜品，点击右下角添加吧' : '还没有美食菜品，点击右下角添加吧'" :icon="menuType === 'coffee' ? '☕' : '🍲'" />
+      </template>
 
-      <!-- 新增菜品 FAB -->
-      <view class="fab" @tap="onAddDish">
+      <!-- 排序模式操作栏：固定在底部 tabbar 上方 -->
+      <view v-if="sortMode" class="sort-mode-bar">
+        <text class="sort-mode-tip">拖动菜品调整顺序</text>
+        <view class="sort-mode-done" @tap="exitSortMode">完成</view>
+      </view>
+
+      <!-- 新增菜品 FAB（排序模式下隐藏） -->
+      <view v-if="!sortMode" class="fab" @tap="onAddDish">
         <Icon name="plus" :size="28" color="#fff" />
       </view>
     </view>
@@ -215,12 +279,16 @@
 
       <!-- 空状态（按筛选显示不同文案） -->
       <fo-empty v-else :text="orderEmptyText" icon="📋" />
-    </view>
+      </view>
+
+      <!-- 面板底部留白：避免列表被底部 tabbar 遮挡 -->
+      <view class="pane-bottom-spacer" />
+    </scroll-view>
 
     <custom-tabbar />
 
-    <!-- 菜品表单 sheet -->
-    <fo-sheet :visible="dishFormVisible" :title="editingDishId ? '编辑菜品' : '新增菜品'" max-height="88vh" @close="closeDishForm">
+    <!-- 菜品表单 sheet（内容滚动，取消/保存按钮固定底部） -->
+    <fo-sheet :visible="dishFormVisible" :title="editingDishId ? '编辑菜品' : '新增菜品'" max-height="76vh" @close="closeDishForm">
       <view class="dish-form">
         <!-- 名称 -->
         <fo-input
@@ -336,15 +404,17 @@
           </view>
           <fo-switch v-model="dishForm.isRecommended" />
         </view>
+      </view>
 
-        <!-- 操作按钮 -->
+      <!-- 操作按钮：固定在 sheet 底部，不随表单内容滚动 -->
+      <template #footer>
         <view class="form-actions">
           <view class="form-btn cancel" @tap="closeDishForm">取消</view>
           <view class="form-btn save" :class="{ loading: saving }" @tap="onSaveDish">
             {{ saving ? '保存中...' : '保存' }}
           </view>
         </view>
-      </view>
+      </template>
     </fo-sheet>
 
     <!-- 分类管理 sheet（只显示当前菜单类型的分类） -->
@@ -404,8 +474,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, reactive } from 'vue'
-import { onPullDownRefresh } from '@dcloudio/uni-app'
+import { ref, computed, onMounted, reactive, getCurrentInstance } from 'vue'
 import { useUserStore } from '@/store/user.js'
 import { useSafeArea } from '@/composables/useSafeArea.js'
 import { useHeaderFixed } from '@/composables/useHeaderFixed.js'
@@ -413,6 +482,9 @@ import { WX_CONFIG } from '@/utils/wx-config.js'
 
 const { statusBarHeight } = useSafeArea()
 const { headerHeight } = useHeaderFixed('.header')
+
+// 组件实例（拖拽排序测量列表项位置用，必须 setup 顶层调用）
+const instance = getCurrentInstance()
 
 const userStore = useUserStore()
 
@@ -504,6 +576,11 @@ const onDishTouchStart = (e, id) => {
 
 const onDishTouchMove = (e, id) => {
   const touch = e.touches[0]
+  // 拖拽排序中：被拖拽卡片走纵向跟手逻辑，其余卡片手势忽略
+  if (dragState.active) {
+    if (dragState.id === id) onDragMove(touch.clientY)
+    return
+  }
   const dx = touch.clientX - dishTouchStartX[id]
   if (Math.abs(dx) > 5) dishTouchMoved[id] = true
   let next = dishTouchStartOffset[id] + dx
@@ -514,6 +591,11 @@ const onDishTouchMove = (e, id) => {
 }
 
 const onDishTouchEnd = (e, id) => {
+  // 拖拽排序中：松手吸附归位并提交排序
+  if (dragState.active) {
+    if (dragState.id === id) finalizeDrag()
+    return
+  }
   const offset = dishSwipeOffset[id] || 0
   dishSwipeAnimating[id] = true
   if (offset < -DISH_SWIPE_WIDTH / 2) {
@@ -531,6 +613,8 @@ const onDishTouchEnd = (e, id) => {
 
 // 点击菜品卡片：进入编辑，但滑动后点击先收起不跳转
 const onDishCardTap = (dish) => {
+  // 长按进入排序模式后松手会伴随一次 tap，吞掉避免误进入编辑
+  if (suppressNextTap) return
   // 若发生过滑动，不触发点击
   if (dishTouchMoved[dish._id]) return
   // 若当前卡片展开，先收起不跳转
@@ -542,6 +626,200 @@ const onDishCardTap = (dish) => {
     return
   }
   onEditDish(dish)
+}
+
+/* ============================================================
+ * 拖拽排序（iOS 提醒事项式「排序模式」）
+ *
+ * 为什么不采用"长按即拖"：iOS 手势的滚动行为在 touchstart 时即确定，
+ * 长按后再激活拖拽无法阻止手势驱动页面滚动（整个页面跟手移动）。
+ * 小程序的 catchtouchmove 无法按状态动态切换，因此拆成两种卡片：
+ *   普通态：bind 触摸（页面可滚动），长按进入排序模式
+ *   排序态：catch 触摸（手势不再触发页面滚动），按下即拖
+ * 模式切换发生在两次手势之间，规避了 catch 无法动态切换的限制。
+ * ============================================================ */
+const sortMode = ref(false)
+// 长按进入排序模式后，松手伴随的 tap 抑制标记
+let suppressNextTap = false
+
+/**
+ * 长按：进入排序模式（仅「全部」视图；收起左滑删除 + 触感反馈 + 提示）
+ */
+const enterSortMode = () => {
+  if (sortMode.value) return
+  if (filterCategoryId.value) {
+    uni.showToast({ title: '切换到「全部」再排序', icon: 'none' })
+    return
+  }
+  closeDishSwipe()
+  sortMode.value = true
+  suppressNextTap = true
+  setTimeout(() => { suppressNextTap = false }, 400)
+  uni.vibrateShort({ type: 'medium', fail: () => {} })
+  uni.showToast({ title: '排序模式：直接拖动菜品', icon: 'none' })
+}
+
+/**
+ * 退出排序模式（点「完成」）：清理拖拽残留状态
+ */
+const exitSortMode = () => {
+  sortMode.value = false
+  dragState.active = false
+  dragState.id = ''
+  dragState.index = -1
+  dragState.overIndex = -1
+  dragState.deltaY = 0
+  dragState.releasing = false
+}
+
+// 排序态卡片占位 tap（catchtap 拦截，防止冒泡触发其他点击）
+const noop = () => {}
+
+/**
+ * 排序态按下：立即开始拖拽（测量步进 + 冻结页面滚动位置）
+ */
+const onSortTouchStart = (e, dish, index) => {
+  if (dragState.active) return
+  const touch = e.touches[0]
+  const startY = touch.clientY
+  const query = uni.createSelectorQuery().in(instance.proxy)
+  query.selectAll('.dish-swipe-item').boundingClientRect()
+  query.exec((res) => {
+    const rects = res[0] || []
+    if (!rects[index] || rects.length < 2) return
+    // 步进 = 相邻两项 top 差值（天然包含卡片间距）
+    const stride = rects[1].top - rects[0].top
+    if (stride <= 0) return
+    dragState.stride = stride
+    dragState.active = true
+    dragState.id = dish._id
+    dragState.index = index
+    dragState.overIndex = index
+    dragState.startY = startY
+    dragState.deltaY = 0
+    dragState.releasing = false
+    uni.vibrateShort({ type: 'light', fail: () => {} })
+  })
+}
+
+/**
+ * 排序态移动：被拖卡片跟手 + 其他卡片过渡让位
+ */
+const onSortTouchMove = (e) => {
+  if (!dragState.active) return
+  onDragMove(e.touches[0].clientY)
+}
+
+/**
+ * 排序态松手：吸附归位并提交排序
+ */
+const onSortTouchEnd = () => {
+  if (dragState.active) finalizeDrag()
+}
+
+/* === 拖拽状态（FLIP 思路，全程 transform，丝滑不掉帧） === */
+const dragState = reactive({
+  active: false,      // 是否处于拖拽中（此时面板 scroll-view 的 scroll-y 被锁定）
+  id: '',             // 被拖拽菜品 _id
+  index: -1,          // 起始下标（当前 filteredDishes 中）
+  overIndex: -1,      // 目标下标（手指当前对应槽位）
+  startY: 0,          // 触摸起点 clientY
+  deltaY: 0,          // 当前纵向位移
+  stride: 0,          // 单项步进高度（卡片高 + 卡片间距）
+  releasing: false    // 松手吸附阶段（被拖卡片启用过渡）
+})
+
+/**
+ * 拖拽移动：被拖卡片跟手，计算目标槽位（其他卡片凭此过渡让位）
+ */
+const onDragMove = (clientY) => {
+  dragState.deltaY = clientY - dragState.startY
+  const len = filteredDishes.value.length
+  const next = Math.min(
+    Math.max(dragState.index + Math.round(dragState.deltaY / dragState.stride), 0),
+    len - 1
+  )
+  if (next !== dragState.overIndex) {
+    dragState.overIndex = next
+    // 每跨过一个槽位给一次轻触感
+    uni.vibrateShort({ type: 'light', fail: () => {} })
+  }
+}
+
+/**
+ * 各项拖拽样式：
+ * - 被拖项：translateY 跟手 + 轻微放大浮起（吸附阶段开过渡）
+ * - 其他项：处于 [起始, 目标] 区间的项向反方向平移一个步进让位（带过渡）
+ */
+const getDragItemStyle = (index) => {
+  if (!dragState.active) return {}
+  const { index: from, overIndex: to, stride } = dragState
+  if (index === from) {
+    return {
+      transform: `translateY(${dragState.deltaY}px) scale(1.03)`,
+      zIndex: 60,
+      transition: dragState.releasing ? 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)' : 'none'
+    }
+  }
+  let shift = 0
+  if (from < to && index > from && index <= to) shift = -stride
+  else if (from > to && index >= to && index < from) shift = stride
+  return {
+    transform: `translateY(${shift}px)`,
+    transition: 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)'
+  }
+}
+
+/**
+ * 松手：被拖卡片吸附到目标槽位（0.2s 过渡），到位后提交重排
+ */
+const finalizeDrag = () => {
+  dragState.releasing = true
+  dragState.deltaY = (dragState.overIndex - dragState.index) * dragState.stride
+  const { index, overIndex } = dragState
+  setTimeout(() => {
+    if (overIndex !== index) applyReorder(index, overIndex)
+    dragState.active = false
+    dragState.id = ''
+    dragState.index = -1
+    dragState.overIndex = -1
+    dragState.deltaY = 0
+    dragState.releasing = false
+  }, 200)
+}
+
+/**
+ * 本地重排当前菜单类型的菜品，并持久化到云端
+ * sortOrder 重写为连续序号（1..n），与 listDishes 的 asc 排序对齐
+ */
+const applyReorder = (from, to) => {
+  const typeList = dishList.value.filter((d) => d.type === menuType.value)
+  const [moved] = typeList.splice(from, 1)
+  typeList.splice(to, 0, moved)
+  const items = typeList.map((d, i) => ({ _id: d._id, sortOrder: i + 1 }))
+  const sortMap = {}
+  items.forEach((it) => { sortMap[it._id] = it.sortOrder })
+  // 乐观更新：当前类型用新顺序，其他类型保持原样
+  const others = dishList.value.filter((d) => d.type !== menuType.value)
+  dishList.value = [
+    ...typeList.map((d) => ({ ...d, sortOrder: sortMap[d._id] })),
+    ...others
+  ]
+
+  // 云端持久化（失败则重新拉取回滚）
+  uniCloud.callFunction({
+    name: 'dishes-crud',
+    data: { action: 'sort', token: userStore.token, items }
+  }).then((res) => {
+    if (res.result.code !== 0) {
+      uni.showToast({ title: res.result.message || '排序保存失败', icon: 'none' })
+      loadDishes()
+    }
+  }).catch((e) => {
+    console.error('[admin] persist reorder error', e)
+    uni.showToast({ title: '排序保存失败，已恢复', icon: 'none' })
+    loadDishes()
+  })
 }
 
 // 点击空白区域：收起当前展开的菜品卡片
@@ -782,15 +1060,20 @@ onMounted(() => {
   loadOrders()
 })
 
-// 下拉刷新：按当前 tab 刷新对应数据
-onPullDownRefresh(async () => {
-  if (activeTab.value === 'menu') {
-    await Promise.all([loadDishes(), loadCategories()])
-  } else {
-    await loadOrders()
+// 面板下拉刷新（scroll-view refresher）：按当前 tab 刷新对应数据
+const refreshing = ref(false)
+const onPaneRefresh = async () => {
+  refreshing.value = true
+  try {
+    if (activeTab.value === 'menu') {
+      await Promise.all([loadDishes(), loadCategories()])
+    } else {
+      await loadOrders()
+    }
+  } finally {
+    refreshing.value = false
   }
-  uni.stopPullDownRefresh()
-})
+}
 
 // === 数据加载 ===
 const loadDishes = async () => {
@@ -1297,9 +1580,18 @@ const moveCategory = async (list, idx, direction) => {
 
 <style lang="scss" scoped>
 .page-admin {
-  min-height: 100vh;
-  padding-bottom: calc(80rpx + env(safe-area-inset-bottom));
+  // 应用外壳页标准：视口锁定，页面本身不滚动（下拉刷新由面板 scroll-view 承担）
+  @include page-shell;
   background-color: $color-bg;
+}
+
+/* 面板滚动区：菜单/订单面板在此滚动，下拉刷新只作用于它 */
+.pane-scroll {
+  @include page-shell-body;
+}
+
+.pane-bottom-spacer {
+  height: calc(140rpx + env(safe-area-inset-bottom));
 }
 
 .header {
@@ -1488,13 +1780,18 @@ const moveCategory = async (list, idx, direction) => {
     flex-shrink: 0;
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 6rpx;
-    padding: 16rpx 24rpx;
+    // 与 cat-filter-pill 统一尺寸：同高、同圆角、同字号
+    height: 60rpx;
+    padding: 0 24rpx;
+    box-sizing: border-box;
     border-radius: $radius-full;
     background-color: $color-coffee-100;
     color: $color-coffee-700;
     font-size: $font-size-sm;
     font-weight: $font-weight-medium;
+    line-height: 1;
     @include tap-feedback;
   }
 
@@ -1514,12 +1811,19 @@ const moveCategory = async (list, idx, direction) => {
 
   .cat-filter-pill {
     flex-shrink: 0;
-    padding: 12rpx 24rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    // 与 cat-entry 统一尺寸：同高、同圆角、同字号
+    height: 60rpx;
+    padding: 0 24rpx;
+    box-sizing: border-box;
     border-radius: $radius-full;
     background-color: $color-card;
     color: $color-text-muted;
     font-size: $font-size-sm;
     font-weight: $font-weight-medium;
+    line-height: 1;
     @include tap-feedback;
     transition: all $dur-base $ease-smooth;
     box-shadow: $shadow-sm;
@@ -1552,9 +1856,81 @@ const moveCategory = async (list, idx, direction) => {
   overflow: hidden;
   border-radius: $radius-2xl;
   margin-bottom: 20rpx;
+
+  /* 拖拽中的卡片：浮起 + 加深阴影 + 微提亮，明确"被拿起"的层级感 */
+  &.is-dragging {
+    overflow: visible;
+    box-shadow: 0 16rpx 40rpx rgba(44, 27, 20, 0.22);
+    opacity: 0.98;
+  }
 }
 
-/* 右侧滑动操作区 */
+/* === 排序模式 === */
+/* 排序态卡片：轻微抖动提示"可拖动"（被拖起的那张停止抖动） */
+.dish-card.sorting {
+  animation: sortWiggle 0.32s ease-in-out infinite alternate;
+
+  &.is-held {
+    animation: none;
+  }
+}
+
+@keyframes sortWiggle {
+  from {
+    transform: rotate(-0.5deg);
+  }
+  to {
+    transform: rotate(0.5deg);
+  }
+}
+
+/* 排序抓手 */
+.drag-grip {
+  flex-shrink: 0;
+  width: 48rpx;
+  height: 64rpx;
+  border-radius: $radius-md;
+  background-color: $color-neutral-100;
+  @include flex-center;
+
+  .drag-grip-icon {
+    font-size: 28rpx;
+    color: $color-neutral-400;
+    line-height: 1;
+  }
+}
+
+/* 排序模式操作栏：固定在底部 tabbar 上方 */
+.sort-mode-bar {
+  position: fixed;
+  left: 32rpx;
+  right: 32rpx;
+  bottom: calc(140rpx + env(safe-area-inset-bottom));
+  z-index: 200;
+  @include flex-between;
+  padding: 20rpx 28rpx;
+  border-radius: $radius-full;
+  background-color: rgba(44, 27, 20, 0.88);
+  box-shadow: $shadow-lg;
+  animation: slideUp $dur-base $ease-smooth both;
+
+  .sort-mode-tip {
+    font-size: $font-size-sm;
+    color: rgba(255, 255, 255, 0.85);
+  }
+
+  .sort-mode-done {
+    padding: 10rpx 36rpx;
+    border-radius: $radius-full;
+    background: linear-gradient(135deg, $color-coffee-400, $color-coffee-600);
+    color: #fff;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-semibold;
+    @include tap-feedback(0.94);
+  }
+}
+
+/* 右侧滑动操作区：圆角块状按钮 */
 .dish-swipe-actions {
   position: absolute;
   top: 0;
@@ -1562,24 +1938,29 @@ const moveCategory = async (list, idx, direction) => {
   bottom: 0;
   display: flex;
   align-items: stretch;
+  gap: 16rpx;
+  padding: 16rpx 16rpx 16rpx 0;
   z-index: 1;
 
   .dish-swipe-btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 160rpx;
+    width: 144rpx;
     font-size: $font-size-sm;
-    font-weight: $font-weight-medium;
+    font-weight: $font-weight-semibold;
     color: #fff;
+    border-radius: $radius-xl;
+    box-shadow: inset 0 0 0 1rpx rgba(255, 255, 255, 0.12);
 
     &:active {
-      opacity: 0.85;
+      opacity: 0.92;
+      transform: scale(0.96);
     }
   }
 
   .delete {
-    background-color: #EF4444;
+    background: linear-gradient(135deg, #EF4444, #DC2626);
   }
 }
 
@@ -2179,7 +2560,7 @@ const moveCategory = async (list, idx, direction) => {
   border-radius: $radius-xl;
 }
 
-/* 右侧滑动操作区 */
+/* 右侧滑动操作区：圆角块状按钮 */
 .order-swipe-actions {
   position: absolute;
   top: 0;
@@ -2187,28 +2568,33 @@ const moveCategory = async (list, idx, direction) => {
   bottom: 0;
   display: flex;
   align-items: stretch;
+  gap: 16rpx;
+  padding: 16rpx 16rpx 16rpx 0;
   z-index: 1;
 
   .order-swipe-btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 160rpx;
+    width: 144rpx;
     font-size: $font-size-sm;
-    font-weight: $font-weight-medium;
+    font-weight: $font-weight-semibold;
     color: #fff;
+    border-radius: $radius-xl;
+    box-shadow: inset 0 0 0 1rpx rgba(255, 255, 255, 0.12);
 
     &:active {
-      opacity: 0.85;
+      opacity: 0.92;
+      transform: scale(0.96);
     }
   }
 
   .cancel {
-    background-color: #9CA3AF;
+    background: linear-gradient(135deg, #9CA3AF, #6B7280);
   }
 
   .delete {
-    background-color: #EF4444;
+    background: linear-gradient(135deg, #EF4444, #DC2626);
   }
 }
 

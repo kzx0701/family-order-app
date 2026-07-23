@@ -15,10 +15,16 @@
     <!-- 主体：左侧分类 + 右侧菜品 -->
     <view class="content">
       <!-- 左侧分类导航 -->
-      <scroll-view class="sidebar" scroll-y :scroll-with-animation="true">
+      <scroll-view
+        class="sidebar"
+        scroll-y
+        :scroll-with-animation="true"
+        :scroll-top="sidebarScrollTop"
+      >
         <view
           v-for="cat in categories"
           :key="cat.id"
+          :id="`cat-${cat.id}`"
           class="cat-item"
           :class="{ active: activeCategory === cat.id }"
           @tap="onCategoryTap(cat.id)"
@@ -32,7 +38,7 @@
       <scroll-view
         class="dish-list"
         scroll-y
-        :scroll-into-view="dishScrollInto"
+        :scroll-top="dishScrollTop"
         :scroll-with-animation="true"
         :refresher-enabled="true"
         :refresher-triggered="refreshing"
@@ -71,7 +77,6 @@
                 :key="dish.dishId"
                 :dish="dish"
                 :index="idx"
-                :show-category="cat.id === 'recommend'"
                 @add-to-cart="onAddToCart"
                 @tap="onDishTap"
               />
@@ -129,7 +134,7 @@
 </template>
 
 <script setup>
-import { ref, computed, getCurrentInstance } from 'vue'
+import { ref, computed, getCurrentInstance, nextTick } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import { useCartStore } from '@/store/cart.js'
 import { useUserStore } from '@/store/user.js'
@@ -154,10 +159,21 @@ const loading = ref(false)
 const refreshing = ref(false)
 const loaded = ref(false)
 
-/* === 滚动联动 === */
-const dishScrollInto = ref('')
-const isClickScrolling = ref(false)
+/* === 滚动联动（测量偏移 + scroll-top 方案） === */
+// 右侧列表滚动位置（px），绑定 scroll-view 的 scroll-top
+const dishScrollTop = ref(0)
+// 左侧分类栏滚动位置（px），激活项自动跟随到可视区
+const sidebarScrollTop = ref(0)
+// 各区段相对滚动内容顶部的偏移量（px），数据渲染后测量一次
+const sectionTops = ref([])
+// 滚动动画期间屏蔽 scroll 事件回写高亮，避免与点击目标打架
+let suppressScrollSync = false
+let suppressTimer = null
 let scrollThrottleTimer = null
+// 记录最近一次手动滚动位置与最新 scrollTop（供节流计算使用）
+let lastDishScrollTop = -1
+let lastSidebarScrollTop = -1
+let latestScrollTop = 0
 
 /* === 飞入动效 === */
 const flyingItems = ref([])
@@ -208,6 +224,20 @@ const loadMenu = async () => {
       if (categories.value.length > 0) {
         activeCategory.value = categories.value[0].id
       }
+      // 内容整体替换：右侧列表先回顶（微扰法确保 scroll-view 响应），
+      // 回顶动画结束后再测量各区段偏移量，保证位置基准准确
+      suppressScrollSync = true
+      clearTimeout(suppressTimer)
+      dishScrollTop.value = lastDishScrollTop === 0 ? 0.1 : 0
+      lastDishScrollTop = dishScrollTop.value
+      nextTick(() => {
+        setTimeout(() => {
+          measureSections()
+          suppressTimer = setTimeout(() => {
+            suppressScrollSync = false
+          }, 200)
+        }, 350)
+      })
     } else {
       uni.showToast({ title: res.result.message || '加载失败', icon: 'none' })
     }
@@ -228,57 +258,114 @@ const onRefresh = async () => {
 }
 
 /**
- * 点击分类：滚动右侧列表到对应区段
+ * 测量各区段相对滚动内容顶部的偏移量
+ * 公式：区段 viewport top - 滚动容器 viewport top + 当前 scrollTop
+ * 数据加载/刷新后调用一次即可（卡片高度固定，布局稳定）
+ * @param {Function} [onDone] - 测量完成回调（用于点击时偏移未就绪的延迟滚动）
+ */
+const measureSections = (onDone) => {
+  const query = uni.createSelectorQuery().in(instance.proxy)
+  query.selectAll('.dish-section').boundingClientRect()
+  query.select('.dish-list').boundingClientRect()
+  query.select('.dish-list').scrollOffset()
+  query.exec((res) => {
+    const sections = res[0] || []
+    const scrollView = res[1]
+    const scrollOffset = res[2]
+    if (!scrollView || sections.length === 0) return
+    const currentTop = scrollOffset ? scrollOffset.scrollTop : 0
+    sectionTops.value = sections.map((r) => r.top - scrollView.top + currentTop)
+    if (typeof onDone === 'function') onDone()
+  })
+}
+
+/**
+ * 点击分类：立即高亮 + 右侧滚动到对应区段 + 左侧激活项跟随到可视区
  */
 const onCategoryTap = (catId) => {
   if (activeCategory.value === catId) return
   activeCategory.value = catId
-  dishScrollInto.value = `section-${catId}`
-  // 清空 scrollIntoView 以便再次点击同一分类可触发
-  setTimeout(() => {
-    dishScrollInto.value = ''
-  }, 300)
-  // 标记点击滚动中，阻止 scroll 事件覆盖高亮
-  isClickScrolling.value = true
-  setTimeout(() => {
-    isClickScrolling.value = false
-  }, 500)
+  scrollDishToCategory(catId)
+  scrollSidebarToActive()
+  // 滚动动画期间（约 500ms）屏蔽 scroll 事件回写高亮
+  suppressScrollSync = true
+  clearTimeout(suppressTimer)
+  suppressTimer = setTimeout(() => {
+    suppressScrollSync = false
+  }, 600)
 }
 
 /**
- * 滚动监听：节流更新左侧高亮分类
+ * 右侧列表滚动到指定分类区段
  */
-const onScroll = () => {
-  if (isClickScrolling.value) return
+const scrollDishToCategory = (catId) => {
+  const idx = categories.value.findIndex((c) => c.id === catId)
+  if (idx < 0) return
+  // 偏移量未就绪（如加载后立刻点击）：先测量，完成后延迟执行滚动
+  if (sectionTops.value.length === 0) {
+    measureSections(() => scrollDishToCategory(catId))
+    return
+  }
+  const top = sectionTops.value[idx]
+  if (top == null) return
+  // 顶部留 8px 呼吸位，避免区段标题紧贴滚动容器边缘
+  const target = Math.max(top - 8, 0)
+  // scroll-top 值不变时 scroll-view 不响应，微扰强制触发
+  dishScrollTop.value = target === lastDishScrollTop ? target + 0.1 : target
+  lastDishScrollTop = dishScrollTop.value
+}
+
+/**
+ * 左侧分类栏：让激活项滚动到侧栏纵向约 1/3 处（成熟电商联动交互）
+ */
+const scrollSidebarToActive = () => {
+  const query = uni.createSelectorQuery().in(instance.proxy)
+  query.select(`#cat-${activeCategory.value}`).boundingClientRect()
+  query.select('.sidebar').boundingClientRect()
+  query.select('.sidebar').scrollOffset()
+  query.exec((res) => {
+    const item = res[0]
+    const sidebar = res[1]
+    const scrollOffset = res[2]
+    if (!item || !sidebar) return
+    const currentTop = scrollOffset ? scrollOffset.scrollTop : 0
+    const itemTop = item.top - sidebar.top + currentTop
+    const target = Math.max(itemTop - sidebar.height / 3, 0)
+    sidebarScrollTop.value = target === lastSidebarScrollTop ? target + 0.1 : target
+    lastSidebarScrollTop = sidebarScrollTop.value
+  })
+}
+
+/**
+ * 滚动监听：记录最新 scrollTop，节流更新左侧高亮分类
+ */
+const onScroll = (e) => {
+  latestScrollTop = (e.detail && e.detail.scrollTop) || 0
+  if (suppressScrollSync) return
   if (scrollThrottleTimer) return
   scrollThrottleTimer = setTimeout(() => {
     scrollThrottleTimer = null
-    updateActiveFromScroll()
+    updateActiveFromScroll(latestScrollTop)
   }, 100)
 }
 
 /**
- * 查询各区段位置，更新当前高亮分类
+ * 根据 scrollTop 与预测量的区段偏移，计算当前高亮分类
  */
-const updateActiveFromScroll = () => {
-  const query = uni.createSelectorQuery().in(instance.proxy)
-  query.selectAll('.dish-section').boundingClientRect()
-  query.select('.dish-list').boundingClientRect()
-  query.exec((res) => {
-    const sections = res[0] || []
-    const scrollView = res[1]
-    if (!scrollView || sections.length === 0) return
-    // 阈值：滚动区顶部 + 20px（略过 section-header 高度）
-    const threshold = scrollView.top + 20
-    let activeIdx = 0
-    sections.forEach((sec, idx) => {
-      if (sec.top <= threshold) activeIdx = idx
-    })
-    const newActive = categories.value[activeIdx]?.id
-    if (newActive && newActive !== activeCategory.value) {
-      activeCategory.value = newActive
-    }
-  })
+const updateActiveFromScroll = (scrollTop) => {
+  const tops = sectionTops.value
+  if (tops.length === 0) return
+  // 阈值：略过区段 header 高度，滚动经过区段顶部即切换
+  const threshold = scrollTop + 24
+  let activeIdx = 0
+  for (let i = 0; i < tops.length; i++) {
+    if (tops[i] <= threshold) activeIdx = i
+  }
+  const newActive = categories.value[activeIdx]?.id
+  if (newActive && newActive !== activeCategory.value) {
+    activeCategory.value = newActive
+    scrollSidebarToActive()
+  }
 }
 
 /**
@@ -449,9 +536,8 @@ onShow(() => {
 
 <style lang="scss" scoped>
 .page-order {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
+  // 应用外壳页标准：视口锁定，页面本身不滚动（详见 mixins page-shell 注释）
+  @include page-shell;
   background-color: $color-bg;
   transition: background-color $dur-base $ease-smooth;
 }
@@ -521,9 +607,9 @@ onShow(() => {
 
 /* === 主体内容 === */
 .content {
-  flex: 1;
+  // 外壳页滚动区：min-height:0 允许收缩，内部 scroll-view 才有界可滚
+  @include page-shell-body;
   display: flex;
-  overflow: hidden;
 }
 
 /* === 左侧分类导航 === */

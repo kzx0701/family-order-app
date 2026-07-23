@@ -43,6 +43,15 @@
 /* === 状态徽章 === */
 /* === 1px 细边框（小程序适配） === */
 /* === 点击反馈 === */
+/* === 应用外壳页（页面级布局标准之一） === */
+/*
+ * 适用：点单页这类「头部/底部固定 + 中间区域内部滚动」的应用外壳页
+ * 必须 height:100vh（不能 min-height）+ overflow:hidden，
+ * 否则 flex 子项 min-height:auto 会被内容撑高，整个页面变成 body 滚动，
+ * 导致头部/底部随页面滚走、内部 scroll-view 的高度等于内容高度而完全无法滚动
+ * 搭配 page-shell-body 使用
+ */
+/* 外壳页的中间滚动区：flex:1 + min-height:0 允许收缩，内部 scroll-view 才能生效 */
 /* === uniapp 内置变量映射到设计 token === */
 /* 主色调：暖奶油 / 咖啡棕 */
 /* 文字色 */
@@ -307,8 +316,11 @@ view, text {
 }
 /* === 页面入场动效：onShow 时为根容器淡入 === */
 /* 用法：在页面根 view 上加 class="page-enter" */
+/* 注意：fill-mode 必须是 backwards 而非 both —— both 会在动画结束后保留 */
+/* transform: translateY(0)，使根容器成为 fixed 后代的包含块，导致固定 */
+/* 标题栏/底部 tabbar 随页面滚动而失效 */
 .page-enter {
-  animation: pageEnter 250ms cubic-bezier(0.4, 0, 0.2, 1) both;
+  animation: pageEnter 250ms cubic-bezier(0.4, 0, 0.2, 1) backwards;
 }
 @keyframes pageEnter {
 from {

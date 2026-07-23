@@ -47,7 +47,7 @@ const _sfc_main = {
           color: "#6F4E37"
         }),
         d: selectingRole.value === "orderer" ? 1 : "",
-        e: common_vendor.o(($event) => onSelect("orderer"), "47"),
+        e: common_vendor.o(($event) => onSelect("orderer"), "a4"),
         f: selectingRole.value === "admin" ? 1 : "",
         g: common_vendor.p({
           name: "chevron-right",
@@ -55,7 +55,7 @@ const _sfc_main = {
           color: "#15803D"
         }),
         h: selectingRole.value === "admin" ? 1 : "",
-        i: common_vendor.o(($event) => onSelect("admin"), "14")
+        i: common_vendor.o(($event) => onSelect("admin"), "fa")
       };
     };
   }

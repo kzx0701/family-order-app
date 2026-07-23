@@ -1,1 +1,1 @@
-"use strict";const t=require("../../common/vendor.js"),e={__name:"fo-empty",props:{text:{type:String,default:"暂无数据"},icon:{type:String,default:"🍳"}},setup:e=>(o,n)=>({a:t.t(e.icon),b:t.t(e.text)})},o=t._export_sfc(e,[["__scopeId","data-v-c92ea88f"]]);wx.createComponent(o);
+"use strict";const t=require("../../common/vendor.js"),e={__name:"fo-empty",props:{text:{type:String,default:"暂无数据"},icon:{type:String,default:"🍳"}},setup:e=>(o,n)=>({a:t.t(e.icon),b:t.t(e.text)})},o=t._export_sfc(e,[["__scopeId","data-v-2493b780"]]);wx.createComponent(o);
