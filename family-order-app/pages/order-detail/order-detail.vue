@@ -306,8 +306,8 @@ const loadOrder = async (id) => {
   loadError.value = ''
   try {
     const res = await uniCloud.callFunction({
-      name: 'orders-crud',
-      data: { action: 'get', _id: id, token: userStore.token }
+      name: 'app-service',
+      data: { module: 'orders-crud', action: 'get', _id: id, token: userStore.token }
     })
     if (res.result.code !== 0) {
       throw new Error(res.result.message || '订单加载失败')
@@ -341,8 +341,9 @@ const onBottomAction = async () => {
   actionLoading.value = true
   try {
     const res = await uniCloud.callFunction({
-      name: 'orders-crud',
+      name: 'app-service',
       data: {
+        module: 'orders-crud',
         action: 'updateStatus',
         _id: orderId.value,
         status: btn.target,
@@ -409,8 +410,9 @@ const onPickupConfirm = async () => {
   pickupSending.value = true
   try {
     const res = await uniCloud.callFunction({
-      name: 'orders-crud',
+      name: 'app-service',
       data: {
+        module: 'orders-crud',
         action: 'pickup',
         _id: orderId.value,
         pickupMethod: method,

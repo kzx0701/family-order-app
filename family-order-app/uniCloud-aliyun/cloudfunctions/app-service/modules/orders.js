@@ -162,21 +162,19 @@ async function createOrder({ items, reservationType, reservationTime, note } = {
   const order = { _id: addRes.id, ...doc }
 
   // 触发订阅消息推送给管理员（subscribe-message 云函数）
-  // fire-and-forget：不 await，避免 orders-crud 实例空等微信 HTTPS 往返（1-3 秒）造成 GBs 放大
-  uniCloud.callFunction({
-    name: 'subscribe-message',
-    data: {
+  // 同进程调用订阅模块，await 确保推送完成（低流量家庭应用可接受 1~3s 等待）
+  try {
+    await require('./subscribe-message.js').main({
       action: 'sendOrderNotify',
       orderId: addRes.id,
       userId: caller._id,
       userName: doc.userName,
       items: doc.items,
       note: doc.note
-    }
-  }).catch((e) => {
-    console.error('[orders-crud] subscribe-message (sendOrderNotify) error', e)
-  })
-
+    })
+  } catch (e) {
+    console.error('[orders-crud] sendOrderNotify error', e)
+  }
   return { code: 0, orderId: addRes.id, order }
 }
 
@@ -302,21 +300,19 @@ async function updateOrderStatus({ _id, status } = {}, caller, orderCol) {
   }
 
   // 状态变为 completed 时触发订阅消息推送给下单人（subscribe-message 云函数）
-  // fire-and-forget：不 await，避免实例空等微信 HTTPS 往返造成 GBs 放大
+  // 同进程调用订阅模块，await 确保推送完成（低流量家庭应用可接受 1~3s 等待）
   if (status === 'completed') {
-    uniCloud.callFunction({
-      name: 'subscribe-message',
-      data: {
+    try {
+      await require('./subscribe-message.js').main({
         action: 'sendCompleteNotify',
         orderId: _id,
         userId: order.userId,
         items: order.items
-      }
-    }).catch((e) => {
-      console.error('[orders-crud] subscribe-message (sendCompleteNotify) error', e)
-    })
+      })
+    } catch (e) {
+      console.error('[orders-crud] sendCompleteNotify error', e)
+    }
   }
-
   return { code: 0, order: { ...order, status, updateTime: now } }
 }
 
@@ -385,21 +381,19 @@ async function pickupOrder({ _id, pickupMethod, pickupTip } = {}, caller, orderC
   }
 
   // 触发取餐提醒订阅消息推送给下单人
-  // fire-and-forget：不 await，避免实例空等微信 HTTPS 往返造成 GBs 放大
-  uniCloud.callFunction({
-    name: 'subscribe-message',
-    data: {
+  // 同进程调用订阅模块，await 确保推送完成（低流量家庭应用可接受 1~3s 等待）
+  try {
+    await require('./subscribe-message.js').main({
       action: 'sendPickupNotify',
       orderId: _id,
       userId: order.userId,
       items: order.items,
       pickupMethod: pickupMethod || '',
       pickupTip: pickupTip || ''
-    }
-  }).catch((e) => {
-    console.error('[orders-crud] subscribe-message (sendPickupNotify) error', e)
-  })
-
+    })
+  } catch (e) {
+    console.error('[orders-crud] sendPickupNotify error', e)
+  }
   return { code: 0 }
 }
 

@@ -301,16 +301,16 @@ const _sfc_main = {
         ...typeList.map((d) => ({ ...d, sortOrder: sortMap[d._id] })),
         ...others
       ];
-      common_vendor.wr.callFunction({
-        name: "dishes-crud",
-        data: { action: "sort", token: userStore.token, items }
+      common_vendor._r.callFunction({
+        name: "app-service",
+        data: { module: "dishes-crud", action: "sort", token: userStore.token, items }
       }).then((res) => {
         if (res.result.code !== 0) {
           common_vendor.index.showToast({ title: res.result.message || "排序保存失败", icon: "none" });
           loadDishes();
         }
       }).catch((e) => {
-        common_vendor.index.__f__("error", "at pages/admin/admin.vue:819", "[admin] persist reorder error", e);
+        common_vendor.index.__f__("error", "at pages/admin/admin.vue:821", "[admin] persist reorder error", e);
         common_vendor.index.showToast({ title: "排序保存失败，已恢复", icon: "none" });
         loadDishes();
       });
@@ -534,9 +534,9 @@ const _sfc_main = {
     const loadDishes = async () => {
       loadingDishes.value = true;
       try {
-        const res = await common_vendor.wr.callFunction({
-          name: "dishes-crud",
-          data: { action: "list", token: userStore.token }
+        const res = await common_vendor._r.callFunction({
+          name: "app-service",
+          data: { module: "dishes-crud", action: "list", token: userStore.token }
         });
         if (res.result.code === 0) {
           dishList.value = res.result.list;
@@ -544,7 +544,7 @@ const _sfc_main = {
           common_vendor.index.showToast({ title: res.result.message || "加载失败", icon: "none" });
         }
       } catch (e) {
-        common_vendor.index.__f__("error", "at pages/admin/admin.vue:1092", "[admin] loadDishes error", e);
+        common_vendor.index.__f__("error", "at pages/admin/admin.vue:1094", "[admin] loadDishes error", e);
         common_vendor.index.showToast({ title: "加载菜品失败", icon: "none" });
       } finally {
         loadingDishes.value = false;
@@ -552,15 +552,15 @@ const _sfc_main = {
     };
     const loadCategories = async () => {
       try {
-        const res = await common_vendor.wr.callFunction({
-          name: "categories-crud",
-          data: { action: "list", token: userStore.token }
+        const res = await common_vendor._r.callFunction({
+          name: "app-service",
+          data: { module: "categories-crud", action: "list", token: userStore.token }
         });
         if (res.result.code === 0) {
           categoryList.value = res.result.list;
         }
       } catch (e) {
-        common_vendor.index.__f__("error", "at pages/admin/admin.vue:1109", "[admin] loadCategories error", e);
+        common_vendor.index.__f__("error", "at pages/admin/admin.vue:1111", "[admin] loadCategories error", e);
       }
     };
     const buildOrderSummary = (items) => {
@@ -589,9 +589,9 @@ const _sfc_main = {
     const loadOrders = async () => {
       loadingOrders.value = true;
       try {
-        const res = await common_vendor.wr.callFunction({
-          name: "orders-crud",
-          data: { action: "list", token: userStore.token, pageSize: 100 }
+        const res = await common_vendor._r.callFunction({
+          name: "app-service",
+          data: { module: "orders-crud", action: "list", token: userStore.token, pageSize: 100 }
         });
         if (res.result.code === 0) {
           orderList.value = (res.result.list || []).map((o) => ({
@@ -604,7 +604,7 @@ const _sfc_main = {
           common_vendor.index.showToast({ title: res.result.message || "加载订单失败", icon: "none" });
         }
       } catch (e) {
-        common_vendor.index.__f__("error", "at pages/admin/admin.vue:1152", "[admin] loadOrders error", e);
+        common_vendor.index.__f__("error", "at pages/admin/admin.vue:1154", "[admin] loadOrders error", e);
         common_vendor.index.showToast({ title: "加载订单失败", icon: "none" });
       } finally {
         loadingOrders.value = false;
@@ -615,9 +615,10 @@ const _sfc_main = {
       order.status = "cancelled";
       triggerOrderFlash(order._id);
       try {
-        const res = await common_vendor.wr.callFunction({
-          name: "orders-crud",
+        const res = await common_vendor._r.callFunction({
+          name: "app-service",
           data: {
+            module: "orders-crud",
             action: "cancel",
             _id: order._id,
             token: userStore.token
@@ -630,7 +631,7 @@ const _sfc_main = {
         }
         common_vendor.index.showToast({ title: "已取消", icon: "success" });
       } catch (e) {
-        common_vendor.index.__f__("error", "at pages/admin/admin.vue:1183", "[admin] onOrderCancel error", e);
+        common_vendor.index.__f__("error", "at pages/admin/admin.vue:1186", "[admin] onOrderCancel error", e);
         order.status = oldStatus;
         common_vendor.index.showToast({ title: "取消失败", icon: "none" });
       }
@@ -645,9 +646,10 @@ const _sfc_main = {
           if (!r.confirm)
             return;
           try {
-            const res = await common_vendor.wr.callFunction({
-              name: "orders-crud",
+            const res = await common_vendor._r.callFunction({
+              name: "app-service",
               data: {
+                module: "orders-crud",
                 action: "delete",
                 _id: order._id,
                 token: userStore.token
@@ -660,7 +662,7 @@ const _sfc_main = {
             orderList.value = orderList.value.filter((o) => o._id !== order._id);
             common_vendor.index.showToast({ title: "已删除", icon: "success" });
           } catch (e) {
-            common_vendor.index.__f__("error", "at pages/admin/admin.vue:1215", "[admin] onOrderDelete error", e);
+            common_vendor.index.__f__("error", "at pages/admin/admin.vue:1219", "[admin] onOrderDelete error", e);
             common_vendor.index.showToast({ title: "删除失败", icon: "none" });
           }
         }
@@ -711,6 +713,7 @@ const _sfc_main = {
         dishForm.temp = "hot";
       }
     };
+    const DISH_CROP = { width: 800, height: 800, quality: 85 };
     const onChooseImage = () => {
       if (uploading.value)
         return;
@@ -719,7 +722,8 @@ const _sfc_main = {
           count: 1,
           mediaType: ["image"],
           sourceType: ["album", "camera"],
-          sizeType: ["compressed"],
+          // 原生裁剪：选图后弹出微信裁剪界面，用户可在 1:1 框内拖动/缩放图片
+          crop: DISH_CROP,
           success: (res) => {
             if (res.tempFiles && res.tempFiles[0]) {
               uploadDishImage(res.tempFiles[0].tempFilePath);
@@ -727,7 +731,7 @@ const _sfc_main = {
           },
           fail: (err) => {
             if (String(err.errMsg || "").indexOf("cancel") === -1) {
-              common_vendor.index.__f__("error", "at pages/admin/admin.vue:1293", "[admin] chooseMedia fail", err);
+              common_vendor.index.__f__("error", "at pages/admin/admin.vue:1302", "[admin] chooseMedia fail", err);
             }
           }
         });
@@ -742,7 +746,7 @@ const _sfc_main = {
           },
           fail: (err) => {
             if (String(err.errMsg || "").indexOf("cancel") === -1) {
-              common_vendor.index.__f__("error", "at pages/admin/admin.vue:1308", "[admin] chooseImage fail", err);
+              common_vendor.index.__f__("error", "at pages/admin/admin.vue:1317", "[admin] chooseImage fail", err);
             }
           }
         });
@@ -755,7 +759,7 @@ const _sfc_main = {
       uploading.value = true;
       uploadProgress.value = 0;
       try {
-        const res = await common_vendor.wr.uploadFile({
+        const res = await common_vendor._r.uploadFile({
           filePath,
           cloudPath,
           onProgressCall: (p) => {
@@ -765,7 +769,7 @@ const _sfc_main = {
         dishForm.image = res.fileID;
         common_vendor.index.showToast({ title: "上传成功", icon: "success" });
       } catch (e) {
-        common_vendor.index.__f__("error", "at pages/admin/admin.vue:1332", "[admin] uploadDishImage error", e);
+        common_vendor.index.__f__("error", "at pages/admin/admin.vue:1341", "[admin] uploadDishImage error", e);
         common_vendor.index.showToast({ title: "上传失败，请重试", icon: "none" });
       } finally {
         uploading.value = false;
@@ -794,9 +798,9 @@ const _sfc_main = {
         if (editingDishId.value) {
           payload._id = editingDishId.value;
         }
-        const res = await common_vendor.wr.callFunction({
-          name: "dishes-crud",
-          data: payload
+        const res = await common_vendor._r.callFunction({
+          name: "app-service",
+          data: { module: "dishes-crud", ...payload }
         });
         if (res.result.code !== 0) {
           common_vendor.index.showToast({ title: res.result.message || "保存失败", icon: "none" });
@@ -809,7 +813,7 @@ const _sfc_main = {
         closeDishForm();
         await loadDishes();
       } catch (e) {
-        common_vendor.index.__f__("error", "at pages/admin/admin.vue:1379", "[admin] onSaveDish error", e);
+        common_vendor.index.__f__("error", "at pages/admin/admin.vue:1388", "[admin] onSaveDish error", e);
         common_vendor.index.showToast({ title: "保存异常", icon: "none" });
       } finally {
         saving.value = false;
@@ -824,9 +828,9 @@ const _sfc_main = {
           if (!res.confirm)
             return;
           try {
-            const r = await common_vendor.wr.callFunction({
-              name: "dishes-crud",
-              data: { action: "delete", token: userStore.token, _id: dish._id }
+            const r = await common_vendor._r.callFunction({
+              name: "app-service",
+              data: { module: "dishes-crud", action: "delete", token: userStore.token, _id: dish._id }
             });
             if (r.result.code !== 0) {
               common_vendor.index.showToast({ title: r.result.message || "删除失败", icon: "none" });
@@ -835,7 +839,7 @@ const _sfc_main = {
             common_vendor.index.showToast({ title: "已删除", icon: "success" });
             dishList.value = dishList.value.filter((d) => d._id !== dish._id);
           } catch (e) {
-            common_vendor.index.__f__("error", "at pages/admin/admin.vue:1407", "[admin] onDeleteDish error", e);
+            common_vendor.index.__f__("error", "at pages/admin/admin.vue:1416", "[admin] onDeleteDish error", e);
             common_vendor.index.showToast({ title: "删除异常", icon: "none" });
           }
         }
@@ -845,9 +849,9 @@ const _sfc_main = {
       const oldVal = dish.isOnSale;
       dish.isOnSale = value;
       try {
-        const res = await common_vendor.wr.callFunction({
-          name: "dishes-crud",
-          data: { action: "toggleSale", token: userStore.token, _id: dish._id, isOnSale: value }
+        const res = await common_vendor._r.callFunction({
+          name: "app-service",
+          data: { module: "dishes-crud", action: "toggleSale", token: userStore.token, _id: dish._id, isOnSale: value }
         });
         if (res.result.code !== 0) {
           dish.isOnSale = oldVal;
@@ -855,7 +859,7 @@ const _sfc_main = {
         }
       } catch (e) {
         dish.isOnSale = oldVal;
-        common_vendor.index.__f__("error", "at pages/admin/admin.vue:1430", "[admin] onToggleSale error", e);
+        common_vendor.index.__f__("error", "at pages/admin/admin.vue:1439", "[admin] onToggleSale error", e);
         common_vendor.index.showToast({ title: "切换失败", icon: "none" });
       }
     };
@@ -907,9 +911,9 @@ const _sfc_main = {
         if (editingCatId.value) {
           payload._id = editingCatId.value;
         }
-        const res = await common_vendor.wr.callFunction({
-          name: "categories-crud",
-          data: payload
+        const res = await common_vendor._r.callFunction({
+          name: "app-service",
+          data: { module: "categories-crud", ...payload }
         });
         if (res.result.code !== 0) {
           common_vendor.index.showToast({ title: res.result.message || "保存失败", icon: "none" });
@@ -922,7 +926,7 @@ const _sfc_main = {
         cancelCatForm();
         await loadCategories();
       } catch (e) {
-        common_vendor.index.__f__("error", "at pages/admin/admin.vue:1506", "[admin] onSaveCategory error", e);
+        common_vendor.index.__f__("error", "at pages/admin/admin.vue:1515", "[admin] onSaveCategory error", e);
         common_vendor.index.showToast({ title: "保存异常", icon: "none" });
       }
     };
@@ -935,9 +939,9 @@ const _sfc_main = {
           if (!res.confirm)
             return;
           try {
-            const r = await common_vendor.wr.callFunction({
-              name: "categories-crud",
-              data: { action: "delete", token: userStore.token, _id: cat._id }
+            const r = await common_vendor._r.callFunction({
+              name: "app-service",
+              data: { module: "categories-crud", action: "delete", token: userStore.token, _id: cat._id }
             });
             if (r.result.code !== 0) {
               common_vendor.index.showToast({ title: r.result.message || "删除失败", icon: "none" });
@@ -946,7 +950,7 @@ const _sfc_main = {
             common_vendor.index.showToast({ title: "已删除", icon: "success" });
             await loadCategories();
           } catch (e) {
-            common_vendor.index.__f__("error", "at pages/admin/admin.vue:1531", "[admin] onDeleteCategory error", e);
+            common_vendor.index.__f__("error", "at pages/admin/admin.vue:1540", "[admin] onDeleteCategory error", e);
             common_vendor.index.showToast({ title: "删除异常", icon: "none" });
           }
         }
@@ -970,9 +974,10 @@ const _sfc_main = {
         return c;
       });
       try {
-        await common_vendor.wr.callFunction({
-          name: "categories-crud",
+        await common_vendor._r.callFunction({
+          name: "app-service",
           data: {
+            module: "categories-crud",
             action: "sort",
             token: userStore.token,
             items: [
@@ -983,7 +988,7 @@ const _sfc_main = {
         });
         await loadCategories();
       } catch (e) {
-        common_vendor.index.__f__("error", "at pages/admin/admin.vue:1574", "[admin] moveCategory error", e);
+        common_vendor.index.__f__("error", "at pages/admin/admin.vue:1584", "[admin] moveCategory error", e);
         common_vendor.index.showToast({ title: "排序失败", icon: "none" });
         await loadCategories();
       }
@@ -998,22 +1003,22 @@ const _sfc_main = {
         e: common_vendor.unref(statusBarHeight) + 28 + "px",
         f: common_vendor.unref(headerHeight) + "px",
         g: activeTab.value === "menu" ? 1 : "",
-        h: common_vendor.o(($event) => activeTab.value = "menu", "4f"),
+        h: common_vendor.o(($event) => activeTab.value = "menu", "2d"),
         i: activeTab.value === "orders" ? 1 : "",
-        j: common_vendor.o(onOrdersTabTap, "6f"),
+        j: common_vendor.o(onOrdersTabTap, "81"),
         k: activeTab.value === "menu"
       }, activeTab.value === "menu" ? common_vendor.e({
         l: menuType.value === "coffee" ? 1 : "",
-        m: common_vendor.o(($event) => onMenuTypeChange("coffee"), "57"),
+        m: common_vendor.o(($event) => onMenuTypeChange("coffee"), "f2"),
         n: menuType.value === "food" ? 1 : "",
-        o: common_vendor.o(($event) => onMenuTypeChange("food"), "40"),
+        o: common_vendor.o(($event) => onMenuTypeChange("food"), "fc"),
         p: common_vendor.p({
           name: "settings",
           size: 16
         }),
-        q: common_vendor.o(openCategoryManager, "34"),
+        q: common_vendor.o(openCategoryManager, "19"),
         r: filterCategoryId.value === "" ? 1 : "",
-        s: common_vendor.o(($event) => filterCategoryId.value = "", "04"),
+        s: common_vendor.o(($event) => filterCategoryId.value = "", "54"),
         t: common_vendor.f(currentCategories.value, (cat, k0, i0) => {
           return {
             a: common_vendor.t(cat.name),
@@ -1131,22 +1136,9 @@ const _sfc_main = {
           icon: menuType.value === "coffee" ? "☕" : "🍲"
         })
       }), {
-        D: sortMode.value
-      }, sortMode.value ? {
-        E: common_vendor.o(exitSortMode, "5d")
-      } : {}, {
-        F: !sortMode.value
-      }, !sortMode.value ? {
-        G: common_vendor.p({
-          name: "plus",
-          size: 28,
-          color: "#fff"
-        }),
-        H: common_vendor.o(onAddDish, "ff")
-      } : {}, {
-        I: common_vendor.o(closeDishSwipe, "72")
+        D: common_vendor.o(closeDishSwipe, "c4")
       }) : common_vendor.e({
-        J: common_vendor.f(orderFilters, (f, k0, i0) => {
+        E: common_vendor.f(orderFilters, (f, k0, i0) => {
           return {
             a: common_vendor.t(f.label),
             b: f.value,
@@ -1154,14 +1146,14 @@ const _sfc_main = {
             d: common_vendor.o(($event) => orderFilter.value = f.value, f.value)
           };
         }),
-        K: loadingOrders.value && orderList.value.length === 0
+        F: loadingOrders.value && orderList.value.length === 0
       }, loadingOrders.value && orderList.value.length === 0 ? {
-        L: common_vendor.p({
+        G: common_vendor.p({
           type: "card",
           count: 3
         })
       } : filteredOrders.value.length ? {
-        N: common_vendor.f(filteredOrders.value, (order, idx, i0) => {
+        I: common_vendor.f(filteredOrders.value, (order, idx, i0) => {
           return common_vendor.e({
             a: order.status === "pending"
           }, order.status === "pending" ? {
@@ -1177,7 +1169,7 @@ const _sfc_main = {
           }, order.userName ? {
             i: common_vendor.t(order.userName)
           } : {}, {
-            j: "dbc77958-7-" + i0,
+            j: "dbc77958-6-" + i0,
             k: common_vendor.p({
               status: order.status
             }),
@@ -1193,18 +1185,31 @@ const _sfc_main = {
           });
         })
       } : {
-        O: common_vendor.p({
+        J: common_vendor.p({
           text: orderEmptyText.value,
           icon: "📋"
         })
       }, {
-        M: filteredOrders.value.length,
-        P: common_vendor.o(closeOrderSwipe, "88")
+        H: filteredOrders.value.length,
+        K: common_vendor.o(closeOrderSwipe, "74")
       }), {
-        Q: !dragState.active,
-        R: refreshing.value,
-        S: common_vendor.o(onPaneRefresh, "8c"),
-        T: common_vendor.o(($event) => dishForm.name = $event, "74"),
+        L: !dragState.active,
+        M: refreshing.value,
+        N: common_vendor.o(onPaneRefresh, "5a"),
+        O: sortMode.value && activeTab.value === "menu"
+      }, sortMode.value && activeTab.value === "menu" ? {
+        P: common_vendor.o(exitSortMode, "90")
+      } : {}, {
+        Q: !sortMode.value && activeTab.value === "menu"
+      }, !sortMode.value && activeTab.value === "menu" ? {
+        R: common_vendor.p({
+          name: "plus",
+          size: 28,
+          color: "#fff"
+        }),
+        S: common_vendor.o(onAddDish, "48")
+      } : {}, {
+        T: common_vendor.o(($event) => dishForm.name = $event, "11"),
         U: common_vendor.p({
           label: "菜品名称",
           placeholder: "如：拿铁咖啡",
@@ -1225,8 +1230,8 @@ const _sfc_main = {
         Z: dishForm.image
       }, {
         X: uploading.value,
-        aa: common_vendor.o(onChooseImage, "2f"),
-        ab: common_vendor.o(($event) => dishForm.description = $event, "4a"),
+        aa: common_vendor.o(onChooseImage, "db"),
+        ab: common_vendor.o(($event) => dishForm.description = $event, "ea"),
         ac: common_vendor.p({
           label: "描述",
           type: "textarea",
@@ -1235,20 +1240,20 @@ const _sfc_main = {
           modelValue: dishForm.description
         }),
         ad: dishForm.type === "coffee" ? 1 : "",
-        ae: common_vendor.o(($event) => onTypeChange("coffee"), "63"),
+        ae: common_vendor.o(($event) => onTypeChange("coffee"), "c5"),
         af: dishForm.type === "food" ? 1 : "",
-        ag: common_vendor.o(($event) => onTypeChange("food"), "d9"),
+        ag: common_vendor.o(($event) => onTypeChange("food"), "ec"),
         ah: dishForm.type === "coffee"
       }, dishForm.type === "coffee" ? {
         ai: dishForm.temp === "ice" ? 1 : "",
-        aj: common_vendor.o(($event) => dishForm.temp = "ice", "ea"),
+        aj: common_vendor.o(($event) => dishForm.temp = "ice", "d6"),
         ak: dishForm.temp === "hot" ? 1 : "",
-        al: common_vendor.o(($event) => dishForm.temp = "hot", "9f")
+        al: common_vendor.o(($event) => dishForm.temp = "hot", "fc")
       } : {}, {
         am: availableCategories.value.length
       }, availableCategories.value.length ? {
         an: !dishForm.categoryId ? 1 : "",
-        ao: common_vendor.o(($event) => dishForm.categoryId = "", "63"),
+        ao: common_vendor.o(($event) => dishForm.categoryId = "", "cc"),
         ap: common_vendor.f(availableCategories.value, (cat, k0, i0) => {
           return {
             a: common_vendor.t(cat.name),
@@ -1258,21 +1263,21 @@ const _sfc_main = {
           };
         })
       } : {
-        aq: common_vendor.o(openCategoryManager, "18")
+        aq: common_vendor.o(openCategoryManager, "65")
       }, {
-        ar: common_vendor.o(($event) => dishForm.isOnSale = $event, "6c"),
+        ar: common_vendor.o(($event) => dishForm.isOnSale = $event, "a7"),
         as: common_vendor.p({
           modelValue: dishForm.isOnSale
         }),
-        at: common_vendor.o(($event) => dishForm.isRecommended = $event, "99"),
+        at: common_vendor.o(($event) => dishForm.isRecommended = $event, "95"),
         av: common_vendor.p({
           modelValue: dishForm.isRecommended
         }),
-        aw: common_vendor.o(closeDishForm, "a4"),
+        aw: common_vendor.o(closeDishForm, "05"),
         ax: common_vendor.t(saving.value ? "保存中..." : "保存"),
         ay: saving.value ? 1 : "",
-        az: common_vendor.o(onSaveDish, "f7"),
-        aA: common_vendor.o(closeDishForm, "d4"),
+        az: common_vendor.o(onSaveDish, "4f"),
+        aA: common_vendor.o(closeDishForm, "45"),
         aB: common_vendor.p({
           visible: dishFormVisible.value,
           title: editingDishId.value ? "编辑菜品" : "新增菜品",
@@ -1280,7 +1285,7 @@ const _sfc_main = {
         }),
         aC: catFormVisible.value
       }, catFormVisible.value ? {
-        aD: common_vendor.o(($event) => catForm.name = $event, "6e"),
+        aD: common_vendor.o(($event) => catForm.name = $event, "44"),
         aE: common_vendor.p({
           label: "分类名称",
           placeholder: "如：拿铁系列、甜品",
@@ -1289,9 +1294,9 @@ const _sfc_main = {
           maxlength: 20,
           modelValue: catForm.name
         }),
-        aF: common_vendor.o(cancelCatForm, "ca"),
+        aF: common_vendor.o(cancelCatForm, "bc"),
         aG: common_vendor.t(editingCatId.value ? "保存" : "添加"),
-        aH: common_vendor.o(onSaveCategory, "23")
+        aH: common_vendor.o(onSaveCategory, "ab")
       } : {}, {
         aI: currentCategories.value.length
       }, currentCategories.value.length ? {
@@ -1347,9 +1352,9 @@ const _sfc_main = {
           size: 18,
           color: "#6F4E37"
         }),
-        aR: common_vendor.o(onAddCategory, "05")
+        aR: common_vendor.o(onAddCategory, "20")
       } : {}, {
-        aS: common_vendor.o(closeCategoryManager, "ea"),
+        aS: common_vendor.o(closeCategoryManager, "fa"),
         aT: common_vendor.p({
           visible: catManagerVisible.value,
           title: catManagerTitle.value,

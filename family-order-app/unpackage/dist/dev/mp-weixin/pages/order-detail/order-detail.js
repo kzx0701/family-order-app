@@ -133,9 +133,9 @@ const _sfc_main = {
       loading.value = true;
       loadError.value = "";
       try {
-        const res = await common_vendor.wr.callFunction({
-          name: "orders-crud",
-          data: { action: "get", _id: id, token: userStore.token }
+        const res = await common_vendor._r.callFunction({
+          name: "app-service",
+          data: { module: "orders-crud", action: "get", _id: id, token: userStore.token }
         });
         if (res.result.code !== 0) {
           throw new Error(res.result.message || "订单加载失败");
@@ -162,9 +162,10 @@ const _sfc_main = {
       }
       actionLoading.value = true;
       try {
-        const res = await common_vendor.wr.callFunction({
-          name: "orders-crud",
+        const res = await common_vendor._r.callFunction({
+          name: "app-service",
           data: {
+            module: "orders-crud",
             action: "updateStatus",
             _id: orderId.value,
             status: btn.target,
@@ -181,7 +182,7 @@ const _sfc_main = {
           icon: "success"
         });
       } catch (e) {
-        common_vendor.index.__f__("error", "at pages/order-detail/order-detail.vue:363", "[order-detail] onAction error", e);
+        common_vendor.index.__f__("error", "at pages/order-detail/order-detail.vue:364", "[order-detail] onAction error", e);
         common_vendor.index.showToast({ title: "操作失败", icon: "none" });
       } finally {
         actionLoading.value = false;
@@ -222,9 +223,10 @@ const _sfc_main = {
       }
       pickupSending.value = true;
       try {
-        const res = await common_vendor.wr.callFunction({
-          name: "orders-crud",
+        const res = await common_vendor._r.callFunction({
+          name: "app-service",
           data: {
+            module: "orders-crud",
             action: "pickup",
             _id: orderId.value,
             pickupMethod: method,
@@ -239,7 +241,7 @@ const _sfc_main = {
         common_vendor.index.showToast({ title: "已发送取餐提醒", icon: "success" });
         showPickupModal.value = false;
       } catch (e) {
-        common_vendor.index.__f__("error", "at pages/order-detail/order-detail.vue:428", "[order-detail] pickup error", e);
+        common_vendor.index.__f__("error", "at pages/order-detail/order-detail.vue:430", "[order-detail] pickup error", e);
         common_vendor.index.showToast({ title: "发送失败", icon: "none" });
       } finally {
         pickupSending.value = false;
@@ -264,11 +266,11 @@ const _sfc_main = {
           name: "arrow-left",
           size: 20
         }),
-        b: common_vendor.o(goBack, "38"),
+        b: common_vendor.o(goBack, "ad"),
         c: common_vendor.unref(statusBarHeight) + 32 + "px",
         d: loading.value
       }, loading.value ? {} : loadError.value ? {
-        f: common_vendor.o(retryLoad, "66"),
+        f: common_vendor.o(retryLoad, "62"),
         g: common_vendor.p({
           emoji: "😵",
           title: "订单加载失败",
@@ -327,7 +329,7 @@ const _sfc_main = {
       }, actionLoading.value ? {} : {}, {
         C: common_vendor.t(bottomButton.value.text),
         D: common_vendor.n(bottomButton.value.class),
-        E: common_vendor.o(onBottomAction, "fb")
+        E: common_vendor.o(onBottomAction, "6a")
       }) : !loading.value && !loadError.value && (order.value.status === "cancelled" || order.value.status === "completed" && !common_vendor.unref(userStore).isAdmin) ? {
         G: common_vendor.t(order.value.status === "completed" ? "✓ 订单已完成" : "订单已取消"),
         H: common_vendor.n(order.value.status)
@@ -337,16 +339,16 @@ const _sfc_main = {
       }, showPickupModal.value ? {
         J: pickupMethod.value,
         K: showPickupModal.value,
-        L: common_vendor.o(onPickupMethodInput, "c8"),
+        L: common_vendor.o(onPickupMethodInput, "70"),
         M: pickupTip.value,
-        N: common_vendor.o(onPickupTipInput, "7c"),
-        O: common_vendor.o(closePickupModal, "2c"),
+        N: common_vendor.o(onPickupTipInput, "cb"),
+        O: common_vendor.o(closePickupModal, "a4"),
         P: common_vendor.t(pickupSending.value ? "发送中..." : "确认发送"),
         Q: pickupSending.value ? 1 : "",
-        R: common_vendor.o(onPickupConfirm, "26"),
+        R: common_vendor.o(onPickupConfirm, "e6"),
         S: common_vendor.o(() => {
-        }, "4f"),
-        T: common_vendor.o(closePickupModal, "4c")
+        }, "b6"),
+        T: common_vendor.o(closePickupModal, "0a")
       } : {}, {
         U: common_vendor.n(themeClass.value)
       });

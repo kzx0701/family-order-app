@@ -1,7 +1,0 @@
-{
-    "name": "categories-crud",
-    "version": "1.0.0",
-    "description": "分类 CRUD：list 查询 / create 新增 / update 编辑 / delete 删除（推荐分类受保护）/ sort 批量排序，写操作仅 admin",
-    "main": "index.js",
-    "dependencies": {}
-}

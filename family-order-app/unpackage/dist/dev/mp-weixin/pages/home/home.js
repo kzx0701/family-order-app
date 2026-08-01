@@ -1480,9 +1480,10 @@ const _sfc_main = {
         return;
       loading.value = true;
       try {
-        const res = await common_vendor.wr.callFunction({
-          name: "home-data",
+        const res = await common_vendor._r.callFunction({
+          name: "app-service",
           data: {
+            module: "home-data",
             token: userStore.token,
             role: userStore.role
           }
@@ -1490,12 +1491,12 @@ const _sfc_main = {
         if (res.result.code === 0) {
           orders.value = res.result.list || [];
         } else if (res.result.code === 401) {
-          common_vendor.index.__f__("warn", "at pages/home/home.vue:389", "[home] home-data 401", res.result.message);
+          common_vendor.index.__f__("warn", "at pages/home/home.vue:390", "[home] home-data 401", res.result.message);
         } else {
           common_vendor.index.showToast({ title: res.result.message || "加载失败", icon: "none" });
         }
       } catch (e) {
-        common_vendor.index.__f__("error", "at pages/home/home.vue:394", "[home] loadOrders error", e);
+        common_vendor.index.__f__("error", "at pages/home/home.vue:395", "[home] loadOrders error", e);
         common_vendor.index.showToast({ title: "加载失败", icon: "none" });
       } finally {
         loading.value = false;
@@ -1559,14 +1560,14 @@ const _sfc_main = {
           role: common_vendor.unref(userStore).role || "admin"
         })
       }, {
-        h: common_vendor.o(onAvatarTap, "e1"),
+        h: common_vendor.o(onAvatarTap, "a8"),
         i: common_vendor.unref(statusBarHeight) + 40 + "px",
         j: common_vendor.unref(headerHeight) + "px",
-        k: common_vendor.o(($event) => goOrder("coffee"), "60"),
-        l: common_vendor.o(($event) => goOrder("food"), "e5"),
+        k: common_vendor.o(($event) => goOrder("coffee"), "c4"),
+        l: common_vendor.o(($event) => goOrder("food"), "8d"),
         m: common_vendor.t(todaySectionTitle.value),
         n: common_vendor.t(displayOrders.value.length),
-        o: common_vendor.o(goRecord, "13"),
+        o: common_vendor.o(goRecord, "3c"),
         p: loading.value && orders.value.length === 0
       }, loading.value && orders.value.length === 0 ? {
         q: common_vendor.p({
@@ -1603,19 +1604,19 @@ const _sfc_main = {
           role: common_vendor.unref(userStore).role || "admin"
         })
       }, {
-        C: common_vendor.o(onChooseAvatar, "c9"),
+        C: common_vendor.o(onChooseAvatar, "da"),
         D: editNickname.value,
         E: showProfileModal.value,
-        F: common_vendor.o(onNicknameInput, "cf"),
-        G: common_vendor.o(saveProfile, "5d"),
+        F: common_vendor.o(onNicknameInput, "c7"),
+        G: common_vendor.o(saveProfile, "8f"),
         H: common_vendor.t(editNickname.value.length),
-        I: common_vendor.o(closeProfileModal, "72"),
+        I: common_vendor.o(closeProfileModal, "40"),
         J: common_vendor.t(saving.value ? "保存中..." : "保存"),
         K: saving.value || !editNickname.value.trim() ? 1 : "",
-        L: common_vendor.o(saveProfile, "c2"),
+        L: common_vendor.o(saveProfile, "c3"),
         M: common_vendor.o(() => {
-        }, "97"),
-        N: common_vendor.o(closeProfileModal, "0f")
+        }, "a4"),
+        N: common_vendor.o(closeProfileModal, "f9")
       }) : {});
     };
   }

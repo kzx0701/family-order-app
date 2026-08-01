@@ -166,7 +166,6 @@
 /* === 内容区 === */
 .cart-content.data-v-f070f07b {
   flex: 1;
-  padding: 8rpx 32rpx;
   min-height: 240rpx;
   max-height: 56vh;
 }
@@ -174,6 +173,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* 内层容器：横向留白放这里，避免 scroll-view 横向溢出（微信端已知问题） */
+.cart-content-inner.data-v-f070f07b {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0 32rpx;
 }
 
 /* === 空状态 === */
@@ -222,6 +228,7 @@
   display: flex;
   align-items: center;
   gap: 16rpx;
+  width: 100%;
   padding: 16rpx;
   background-color: #FFFBF5;
   border-radius: 12px;
@@ -258,6 +265,7 @@
 .cart-item .item-info.data-v-f070f07b {
   flex: 1;
   min-width: 0;
+  max-width: 100%;
   display: flex;
   flex-direction: column;
   gap: 4rpx;
@@ -344,7 +352,6 @@
   text-align: center;
   transition: transform 150ms cubic-bezier(0.34, 1.56, 0.64, 1), background-color 250ms cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.12);
-  /* 件数徽章：跟随主题色，白字圆角 */
 }
 .cart-footer .cart-submit-btn.data-v-f070f07b:active {
   transform: scale(0.97);
@@ -353,25 +360,6 @@
   color: #fff;
   font-size: 16px;
   font-weight: 600;
-}
-.cart-footer .cart-submit-btn .cart-submit-badge.data-v-f070f07b {
-  position: absolute;
-  top: 50%;
-  right: 32rpx;
-  transform: translateY(-50%);
-  min-width: 36rpx;
-  height: 36rpx;
-  padding: 0 10rpx;
-  border-radius: 9999px;
-  background-color: rgba(255, 255, 255, 0.25);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.cart-footer .cart-submit-btn .cart-submit-badge .cart-submit-badge-text.data-v-f070f07b {
-  color: #fff;
-  font-size: 10px;
-  font-weight: 700;
 }
 
 /* === 列表项入场动画 === */

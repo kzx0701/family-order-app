@@ -2,10 +2,10 @@
     "bsonType": "object",
     "required": ["name", "type"],
     "permission": {
-        "read": true,
-        "create": "auth.uid != null && db.collection('users').doc(auth.uid).data.role == 'admin'",
-        "update": "auth.uid != null && db.collection('users').doc(auth.uid).data.role == 'admin'",
-        "delete": "auth.uid != null && db.collection('users').doc(auth.uid).data.role == 'admin'"
+        "read": false,
+        "create": false,
+        "update": false,
+        "delete": false
     },
     "properties": {
         "_id": {

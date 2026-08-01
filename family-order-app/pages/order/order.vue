@@ -6,10 +6,6 @@
         <Icon name="arrow-left" :size="20" />
       </view>
       <text class="title">{{ pageTitle }}</text>
-      <view class="cart-btn" :class="{ shake: cartShaking }" @tap="onCartClick">
-        <Icon name="shopping-cart" :size="20" />
-        <view v-if="cartTotal > 0" class="cart-badge">{{ cartTotal }}</view>
-      </view>
     </view>
 
     <!-- 主体：左侧分类 + 右侧菜品 -->
@@ -91,11 +87,19 @@
       </scroll-view>
     </view>
 
-    <!-- 底部购物车条 -->
+    <!-- 底部购物车条：悬浮圆角卡片，购物车汇总 + 去下单 -->
     <view class="cart-bar">
-      <view class="cart-icon-wrap" @tap="onCartClick">
-        <view class="cart-icon-circle" :class="{ active: cartTotal > 0 }">
+      <view class="cart-summary" @tap="onCartClick">
+        <view
+          class="cart-icon-circle"
+          :class="{ active: cartTotal > 0, 'animate-bounce': cartBarBounce }"
+        >
           <Icon name="shopping-bag" :size="22" />
+          <view v-if="cartTotal > 0" class="cart-count-badge">{{ cartTotal }}</view>
+        </view>
+        <view class="cart-summary-text">
+          <text class="cart-summary-main">{{ cartTotal > 0 ? `已选 ${cartTotal} 件` : '购物车是空的' }}</text>
+          <text class="cart-summary-sub">{{ cartTotal > 0 ? '点击查看已选菜品' : '快去挑选喜欢的菜品吧' }}</text>
         </view>
       </view>
       <view
@@ -103,7 +107,7 @@
         :class="{ disabled: cartTotal === 0 }"
         @tap="goSubmit"
       >
-        <text class="submit-text">{{ cartTotal === 0 ? '购物车是空的' : '去下单' }}</text>
+        <text class="submit-text">去下单</text>
       </view>
     </view>
 
@@ -177,8 +181,6 @@ let latestScrollTop = 0
 
 /* === 飞入动效 === */
 const flyingItems = ref([])
-const cartShaking = ref(false)
-let shakeTimer = null
 
 /* === 购物车 === */
 const cartTotal = computed(() => cartStore.totalCount)
@@ -214,8 +216,8 @@ const loadMenu = async () => {
   loading.value = true
   try {
     const res = await uniCloud.callFunction({
-      name: 'menu-list',
-      data: { type: orderType.value }
+      name: 'app-service',
+      data: { module: 'menu-list', type: orderType.value }
     })
     if (res.result.code === 0) {
       categories.value = res.result.categories || []
@@ -389,10 +391,11 @@ const flySize = 40
  */
 const playFlyAnimation = (originX, originY, dish) => {
   const query = uni.createSelectorQuery().in(instance.proxy)
-  query.select('.cart-btn').boundingClientRect((rect) => {
+  // 飞入目标：底部购物车图标（右上角购物车按钮已移除）
+  query.select('.cart-icon-circle').boundingClientRect((rect) => {
     if (!rect) {
-      // 降级：仅触发购物车抖动
-      triggerCartShake()
+      // 降级：仅触发底部购物车弹跳
+      triggerCartFeedback()
       return
     }
     const endX = rect.left + rect.width / 2
@@ -438,22 +441,24 @@ const onFlyEnd = (id) => {
   if (idx > -1) {
     flyingItems.value.splice(idx, 1)
   }
-  triggerCartShake()
+  triggerCartFeedback()
 }
 
+/* === 底部购物车图标弹跳（加购反馈） === */
+const cartBarBounce = ref(false)
+let barBounceTimer = null
+
 /**
- * 触发购物车图标抖动（重启 animation 的通用方案）
+ * 加购反馈：底部购物车图标弹跳（重启 animation 的通用方案）
  */
-const triggerCartShake = () => {
-  if (cartShaking.value) {
-    cartShaking.value = false
-  }
-  clearTimeout(shakeTimer)
+const triggerCartFeedback = () => {
+  cartBarBounce.value = false
+  clearTimeout(barBounceTimer)
   setTimeout(() => {
-    cartShaking.value = true
-    shakeTimer = setTimeout(() => {
-      cartShaking.value = false
-    }, 500)
+    cartBarBounce.value = true
+    barBounceTimer = setTimeout(() => {
+      cartBarBounce.value = false
+    }, 450)
   }, 20)
 }
 
@@ -549,59 +554,21 @@ onShow(() => {
   position: relative;
   z-index: 10;
 
-  .back-btn,
-  .cart-btn {
+  .back-btn {
     @include btn-icon;
     transition: transform $dur-fast $ease-bounce,
       background-color $dur-base $ease-smooth;
   }
 
+  // 标题绝对居中：右侧购物车按钮已移除，避免 flex-between 把标题挤向右侧
   .title {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
     font-size: $font-size-xl;
     font-weight: $font-weight-bold;
     color: var(--theme-primary);
     transition: color $dur-base $ease-smooth;
-  }
-
-  .cart-btn {
-    position: relative;
-
-    .cart-badge {
-      position: absolute;
-      top: -8rpx;
-      right: -8rpx;
-      min-width: 32rpx;
-      height: 32rpx;
-      padding: 0 8rpx;
-      border-radius: $radius-full;
-      background-color: var(--theme-primary);
-      color: #fff;
-      font-size: $font-size-xs;
-      font-weight: $font-weight-bold;
-      @include flex-center;
-      transition: background-color $dur-base $ease-smooth;
-      animation: popIn 0.3s $ease-bounce;
-    }
-
-    &.shake {
-      animation: cartShake 0.5s $ease-bounce;
-    }
-  }
-}
-
-@keyframes cartShake {
-  0%,
-  100% {
-    transform: scale(1) rotate(0deg);
-  }
-  20% {
-    transform: scale(1.25) rotate(-12deg);
-  }
-  50% {
-    transform: scale(0.9) rotate(8deg);
-  }
-  80% {
-    transform: scale(1.08) rotate(-3deg);
   }
 }
 
@@ -782,40 +749,86 @@ onShow(() => {
   }
 }
 
-/* === 底部购物车条 === */
+/* === 底部购物车条：悬浮圆角卡片 === */
 .cart-bar {
-  @include flex-between;
-  padding: 20rpx 32rpx;
-  background-color: $color-card;
-  @include hairline-bottom;
-  padding-bottom: calc(20rpx + env(safe-area-inset-bottom) + 80rpx);
+  display: flex;
+  align-items: center;
   gap: 24rpx;
+  margin: 16rpx 32rpx 0;
+  // 底部预留固定 tabbar（80rpx + 安全区）的层叠空间
+  margin-bottom: calc(16rpx + env(safe-area-inset-bottom) + 80rpx);
+  padding: 16rpx 20rpx;
+  border-radius: $radius-2xl;
+  background-color: $color-card;
+  box-shadow: $shadow-lg;
 
-  .cart-icon-wrap {
-    position: relative;
-    @include flex-center;
+  // 左侧：购物车图标 + 汇总文案（点击展开浮层）
+  .cart-summary {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 20rpx;
+    @include tap-feedback(0.97);
 
     .cart-icon-circle {
-      width: 72rpx;
-      height: 72rpx;
+      position: relative;
+      flex-shrink: 0;
+      width: 76rpx;
+      height: 76rpx;
       border-radius: 50%;
       background-color: $color-neutral-200;
       color: $color-neutral-400;
       @include flex-center;
       transition: background-color $dur-base $ease-smooth,
-        color $dur-base $ease-smooth, transform $dur-base $ease-bounce;
+        color $dur-base $ease-smooth;
 
       &.active {
         background-color: var(--theme-primary);
         color: #fff;
-        transform: scale(1.05);
+      }
+
+      .cart-count-badge {
+        position: absolute;
+        top: -6rpx;
+        right: -6rpx;
+        min-width: 32rpx;
+        height: 32rpx;
+        padding: 0 8rpx;
+        border-radius: $radius-full;
+        background-color: $color-state-error;
+        color: #fff;
+        font-size: $font-size-xs;
+        font-weight: $font-weight-bold;
+        @include flex-center;
+      }
+    }
+
+    .cart-summary-text {
+      @include flex-column;
+      gap: 2rpx;
+      min-width: 0;
+
+      .cart-summary-main {
+        font-size: $font-size-base;
+        font-weight: $font-weight-semibold;
+        color: $color-text;
+      }
+
+      .cart-summary-sub {
+        font-size: $font-size-xs;
+        color: $color-text-muted;
       }
     }
   }
 
+  // 右侧：去下单按钮
   .submit-btn {
     @include btn-primary;
-    padding: 20rpx 56rpx;
+    flex-shrink: 0;
+    height: 88rpx;
+    padding: 0 44rpx;
+    border-radius: $radius-full;
     transition: background-color $dur-base $ease-smooth,
       transform $dur-fast $ease-bounce;
 
@@ -828,7 +841,6 @@ onShow(() => {
     &.disabled {
       @include btn-disabled;
 
-      /* 置灰时移除点击反馈，视觉上明确不可点击 */
       &:active {
         transform: none;
         opacity: 1;

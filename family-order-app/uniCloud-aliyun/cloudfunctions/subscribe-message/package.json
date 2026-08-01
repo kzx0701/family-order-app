@@ -1,7 +1,0 @@
-{
-    "name": "subscribe-message",
-    "version": "1.0.0",
-    "description": "微信订阅消息推送：sendOrderNotify 下单通知管理员 / sendCompleteNotify 完成通知下单人，access_token 云数据库缓存",
-    "main": "index.js",
-    "dependencies": {}
-}

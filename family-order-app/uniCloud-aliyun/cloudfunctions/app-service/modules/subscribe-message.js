@@ -30,7 +30,7 @@ const https = require('https')
 // 尝试加载同目录 config.json（云函数部署时填入真实值）
 let fileConfig = {}
 try {
-  fileConfig = require('./config.json')
+  fileConfig = require('../config.json')
 } catch (e) {
   console.warn('[subscribe-message] config.json 不存在或解析失败，将仅使用环境变量')
 }

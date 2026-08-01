@@ -28,6 +28,12 @@ const https = require('https')
  * 导致配置读取失败、登录报"服务端未配置微信小程序凭证"。
  */
 function getWxConfig() {
+  // 优先使用云函数环境变量（推荐生产使用，避免 secret 写入源码 / git）
+  const envAppid = process.env.WX_APPID
+  const envSecret = process.env.WX_SECRET
+  if (envAppid && envSecret) {
+    return { appid: envAppid, appsecret: envSecret }
+  }
   try {
     const createConfig = require('uni-config-center')
     const uniIdConfig = createConfig({ pluginId: 'uni-id' })

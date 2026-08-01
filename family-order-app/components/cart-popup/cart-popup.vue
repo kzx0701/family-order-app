@@ -34,7 +34,7 @@
       <!-- 内容区：空状态 或 菜品列表 -->
       <scroll-view scroll-y class="cart-content" :class="{ 'is-empty': items.length === 0 }">
         <!-- 空状态 -->
-        <view v-if="items.length === 0" class="cart-empty">
+        <view v-if="items.length === 0" class="cart-content-inner cart-empty">
           <text class="cart-empty-emoji">🛒</text>
           <text class="cart-empty-text">还没点东西哦~</text>
           <view class="cart-empty-hint" @tap="onClose">
@@ -43,7 +43,7 @@
         </view>
 
         <!-- 菜品列表 -->
-        <view v-else class="cart-list">
+        <view v-else class="cart-content-inner cart-list">
           <view
             v-for="(item, idx) in items"
             :key="item.dishId"
@@ -86,9 +86,6 @@
       <view v-if="items.length > 0" class="cart-footer">
         <view class="cart-submit-btn" @tap="onSubmit">
           <text class="cart-submit-text">去下单</text>
-          <view class="cart-submit-badge">
-            <text class="cart-submit-badge-text">{{ totalCount }}</text>
-          </view>
         </view>
       </view>
     </view>
@@ -337,7 +334,6 @@ const onSubmit = () => {
 /* === 内容区 === */
 .cart-content {
   flex: 1;
-  padding: 8rpx 32rpx;
   min-height: 240rpx;
   max-height: 56vh;
 
@@ -346,6 +342,13 @@ const onSubmit = () => {
     align-items: center;
     justify-content: center;
   }
+}
+
+/* 内层容器：横向留白放这里，避免 scroll-view 横向溢出（微信端已知问题） */
+.cart-content-inner {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0 32rpx;
 }
 
 /* === 空状态 === */
@@ -400,6 +403,7 @@ const onSubmit = () => {
   display: flex;
   align-items: center;
   gap: 16rpx;
+  width: 100%;
   padding: 16rpx;
   background-color: $color-bg;
   border-radius: $radius-lg;
@@ -436,6 +440,7 @@ const onSubmit = () => {
   .item-info {
     flex: 1;
     min-width: 0;
+    max-width: 100%;
     @include flex-column;
     gap: 4rpx;
 
@@ -540,25 +545,7 @@ const onSubmit = () => {
       font-weight: $font-weight-semibold;
     }
 
-    /* 件数徽章：跟随主题色，白字圆角 */
-    .cart-submit-badge {
-      position: absolute;
-      top: 50%;
-      right: 32rpx;
-      transform: translateY(-50%);
-      min-width: 36rpx;
-      height: 36rpx;
-      padding: 0 10rpx;
-      border-radius: $radius-full;
-      background-color: rgba(255, 255, 255, 0.25);
-      @include flex-center;
 
-      .cart-submit-badge-text {
-        color: #fff;
-        font-size: $font-size-xs;
-        font-weight: $font-weight-bold;
-      }
-    }
   }
 }
 

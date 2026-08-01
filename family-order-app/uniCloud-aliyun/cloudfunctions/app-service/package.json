@@ -1,0 +1,9 @@
+{
+    "name": "app-service",
+    "version": "1.0.0",
+    "description": "统一业务云函数：按 module 路由 user-login / user-update-profile / user-update-role / categories-crud / dishes-crud / menu-list / home-data / orders-crud / subscribe-message",
+    "main": "index.js",
+    "dependencies": {
+        "uni-config-center": "file:../common/uni-config-center"
+    }
+}

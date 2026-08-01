@@ -340,8 +340,9 @@ const loadOrders = async (reset = true) => {
   }
   try {
     const res = await uniCloud.callFunction({
-      name: 'orders-crud',
+      name: 'app-service',
       data: {
+        module: 'orders-crud',
         action: 'list',
         page: page.value,
         pageSize,
@@ -386,8 +387,9 @@ const onCancel = (order) => {
       triggerFlash(order._id)
       try {
         const res = await uniCloud.callFunction({
-          name: 'orders-crud',
+          name: 'app-service',
           data: {
+            module: 'orders-crud',
             action: 'cancel',
             _id: order._id,
             token: userStore.token
@@ -419,8 +421,9 @@ const onDelete = (order) => {
       if (!r.confirm) return
       try {
         const res = await uniCloud.callFunction({
-          name: 'orders-crud',
+          name: 'app-service',
           data: {
+            module: 'orders-crud',
             action: 'delete',
             _id: order._id,
             token: userStore.token

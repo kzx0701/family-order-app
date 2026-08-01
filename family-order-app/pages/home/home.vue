@@ -376,8 +376,9 @@ const loadOrders = async () => {
   loading.value = true
   try {
     const res = await uniCloud.callFunction({
-      name: 'home-data',
+      name: 'app-service',
       data: {
+        module: 'home-data',
         token: userStore.token,
         role: userStore.role
       }

@@ -395,7 +395,8 @@ const _sfc_main = {
       description: "",
       type: "coffee",
       categoryId: "",
-      temp: ""
+      temp: "",
+      isRecommended: false
     });
     const categoryName = common_vendor.ref("");
     const quantity = common_vendor.ref(1);
@@ -441,9 +442,9 @@ const _sfc_main = {
       loading.value = true;
       loadError.value = "";
       try {
-        const res = await common_vendor.wr.callFunction({
-          name: "dishes-crud",
-          data: { action: "detail", _id: dishId }
+        const res = await common_vendor._r.callFunction({
+          name: "app-service",
+          data: { module: "dishes-crud", action: "detail", _id: dishId }
         });
         if (res.result.code !== 0) {
           loadError.value = res.result.message || "菜品不存在或已下架";
@@ -457,11 +458,12 @@ const _sfc_main = {
           description: d.description || "",
           type: d.type || "coffee",
           categoryId: d.categoryId || "",
-          temp: d.temp || ""
+          temp: d.temp || "",
+          isRecommended: !!d.isRecommended
         };
         categoryName.value = d.categoryName || "";
       } catch (e) {
-        common_vendor.index.__f__("error", "at pages/dish-detail/dish-detail.vue:235", "[dish-detail] loadDish error", e);
+        common_vendor.index.__f__("error", "at pages/dish-detail/dish-detail.vue:253", "[dish-detail] loadDish error", e);
         loadError.value = "加载失败，请稍后重试";
       } finally {
         loading.value = false;
@@ -486,10 +488,10 @@ const _sfc_main = {
       return common_vendor.e({
         a: common_vendor.p({
           name: "arrow-left",
-          size: 20
+          size: 22
         }),
-        b: common_vendor.unref(statusBarHeight) + 16 + "px",
-        c: common_vendor.o(goBack, "2d"),
+        b: common_vendor.unref(statusBarHeight) + 14 + "px",
+        c: common_vendor.o(goBack, "1d"),
         d: loading.value
       }, loading.value ? {
         e: common_vendor.p({
@@ -498,7 +500,7 @@ const _sfc_main = {
           height: "160rpx"
         })
       } : loadError.value ? {
-        g: common_vendor.o(retryLoad, "78"),
+        g: common_vendor.o(retryLoad, "91"),
         h: common_vendor.p({
           emoji: "😵",
           title: "加载失败",
@@ -525,32 +527,46 @@ const _sfc_main = {
         r: common_vendor.t(dish.value.temp === "ice" ? "冰饮" : "热饮"),
         s: common_vendor.n(dish.value.temp)
       } : {}, {
-        t: categoryName.value
+        t: categoryName.value || dish.value.isRecommended
+      }, categoryName.value || dish.value.isRecommended ? common_vendor.e({
+        v: categoryName.value
       }, categoryName.value ? {
-        v: common_vendor.t(categoryName.value)
+        w: common_vendor.t(categoryName.value)
       } : {}, {
-        w: common_vendor.t(dish.value.name || "菜品名称"),
-        x: common_vendor.t(dish.value.description || "暂无描述"),
+        x: dish.value.isRecommended
+      }, dish.value.isRecommended ? {
         y: common_vendor.p({
-          name: "minus",
-          size: 16
-        }),
-        z: quantity.value <= 1 ? 1 : "",
-        A: common_vendor.o(onMinus, "a8"),
-        B: common_vendor.t(quantity.value),
+          name: "star",
+          size: 13
+        })
+      } : {}) : {}, {
+        z: common_vendor.t(dish.value.name || "菜品名称"),
+        A: dish.value.description
+      }, dish.value.description ? {
+        B: common_vendor.t(dish.value.description)
+      } : {}, {
         C: common_vendor.p({
-          name: "plus",
-          size: 16
+          name: "minus",
+          size: 14
         }),
-        D: common_vendor.o(onPlus, "f3"),
-        E: common_vendor.n(tempClass.value)
+        D: quantity.value <= 1 ? 1 : "",
+        E: common_vendor.o(onMinus, "02"),
+        F: common_vendor.t(quantity.value),
+        G: quantity.value,
+        H: common_vendor.p({
+          name: "plus",
+          size: 14,
+          color: "#fff"
+        }),
+        I: common_vendor.o(onPlus, "c8"),
+        J: common_vendor.n(tempClass.value)
       }), {
         f: loadError.value,
-        F: !loading.value && !loadError.value
+        K: !loading.value && !loadError.value
       }, !loading.value && !loadError.value ? {
-        G: common_vendor.o(onAddToCart, "89")
+        L: common_vendor.o(onAddToCart, "cf")
       } : {}, {
-        H: common_vendor.n(themeClass.value)
+        M: common_vendor.n(themeClass.value)
       });
     };
   }

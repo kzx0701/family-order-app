@@ -60,8 +60,8 @@ export const useUserStore = defineStore('user', {
 
         // 2. 调用云函数登录
         const res = await uniCloud.callFunction({
-          name: 'user-login',
-          data: { code }
+          name: 'app-service',
+          data: { module: 'user-login', code }
         })
 
         if (res.result.code !== 0) {
@@ -131,8 +131,9 @@ export const useUserStore = defineStore('user', {
       }
 
       let res = await uniCloud.callFunction({
-        name: 'user-update-role',
+        name: 'app-service',
         data: {
+          module: 'user-update-role',
           role,
           token: this.token
         }
@@ -143,8 +144,9 @@ export const useUserStore = defineStore('user', {
         console.warn('[user] setRole 缺少登录凭证，尝试重新登录')
         await this.login()
         res = await uniCloud.callFunction({
-          name: 'user-update-role',
+          name: 'app-service',
           data: {
+            module: 'user-update-role',
             role,
             token: this.token
           }
@@ -156,8 +158,9 @@ export const useUserStore = defineStore('user', {
       if (res.result.code === 404) {
         await this.login()
         res = await uniCloud.callFunction({
-          name: 'user-update-role',
+          name: 'app-service',
           data: {
+            module: 'user-update-role',
             role,
             token: this.token
           }
@@ -196,8 +199,9 @@ export const useUserStore = defineStore('user', {
       }
 
       const res = await uniCloud.callFunction({
-        name: 'user-update-profile',
+        name: 'app-service',
         data: {
+          module: 'user-update-profile',
           nickname: name,
           token: this.token
         }
@@ -237,8 +241,9 @@ export const useUserStore = defineStore('user', {
 
       // 2. 调云函数保存 URL 到 users 集合
       const res = await uniCloud.callFunction({
-        name: 'user-update-profile',
+        name: 'app-service',
         data: {
+          module: 'user-update-profile',
           avatar: uploadRes.fileID,
           token: this.token
         }

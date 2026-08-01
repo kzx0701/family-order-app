@@ -1,7 +1,0 @@
-{
-    "name": "user-update-role",
-    "version": "1.0.0",
-    "description": "更新当前用户角色（orderer / admin）",
-    "main": "index.js",
-    "dependencies": {}
-}

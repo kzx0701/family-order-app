@@ -278,8 +278,9 @@ const onSubmit = async () => {
 
     // 2. 调用云函数创建订单（必须传 token，否则 orders-crud 鉴权失败返回 401）
     const res = await uniCloud.callFunction({
-      name: 'orders-crud',
+      name: 'app-service',
       data: {
+        module: 'orders-crud',
         action: 'create',
         token: userStore.token,
         items: cartStore.activeItems.map((i) => ({

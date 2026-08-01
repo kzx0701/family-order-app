@@ -230,9 +230,10 @@ const _sfc_main = {
         page.value += 1;
       }
       try {
-        const res = await common_vendor.wr.callFunction({
-          name: "orders-crud",
+        const res = await common_vendor._r.callFunction({
+          name: "app-service",
           data: {
+            module: "orders-crud",
             action: "list",
             page: page.value,
             pageSize,
@@ -249,12 +250,12 @@ const _sfc_main = {
             orders.value = orders.value.concat(list);
           }
         } else if (res.result.code === 401) {
-          common_vendor.index.__f__("warn", "at pages/record/record.vue:362", "[record] orders-crud 401", res.result.message);
+          common_vendor.index.__f__("warn", "at pages/record/record.vue:363", "[record] orders-crud 401", res.result.message);
         } else {
           common_vendor.index.showToast({ title: res.result.message || "加载失败", icon: "none" });
         }
       } catch (e) {
-        common_vendor.index.__f__("error", "at pages/record/record.vue:367", "[record] loadOrders error", e);
+        common_vendor.index.__f__("error", "at pages/record/record.vue:368", "[record] loadOrders error", e);
         common_vendor.index.showToast({ title: "加载失败", icon: "none" });
       } finally {
         loading.value = false;
@@ -273,9 +274,10 @@ const _sfc_main = {
           order.status = "cancelled";
           triggerFlash(order._id);
           try {
-            const res = await common_vendor.wr.callFunction({
-              name: "orders-crud",
+            const res = await common_vendor._r.callFunction({
+              name: "app-service",
               data: {
+                module: "orders-crud",
                 action: "cancel",
                 _id: order._id,
                 token: userStore.token
@@ -288,7 +290,7 @@ const _sfc_main = {
             }
             common_vendor.index.showToast({ title: "已取消", icon: "success" });
           } catch (e) {
-            common_vendor.index.__f__("error", "at pages/record/record.vue:403", "[record] onCancel error", e);
+            common_vendor.index.__f__("error", "at pages/record/record.vue:405", "[record] onCancel error", e);
             order.status = oldStatus;
             common_vendor.index.showToast({ title: "取消失败", icon: "none" });
           }
@@ -305,9 +307,10 @@ const _sfc_main = {
           if (!r.confirm)
             return;
           try {
-            const res = await common_vendor.wr.callFunction({
-              name: "orders-crud",
+            const res = await common_vendor._r.callFunction({
+              name: "app-service",
               data: {
+                module: "orders-crud",
                 action: "delete",
                 _id: order._id,
                 token: userStore.token
@@ -321,7 +324,7 @@ const _sfc_main = {
             total.value = Math.max(0, total.value - 1);
             common_vendor.index.showToast({ title: "已删除", icon: "success" });
           } catch (e) {
-            common_vendor.index.__f__("error", "at pages/record/record.vue:438", "[record] onDelete error", e);
+            common_vendor.index.__f__("error", "at pages/record/record.vue:441", "[record] onDelete error", e);
             common_vendor.index.showToast({ title: "删除失败", icon: "none" });
           }
         }
@@ -402,7 +405,7 @@ const _sfc_main = {
         i: !hasMore.value && orders.value.length > 0
       }), {
         e: orders.value.length === 0,
-        j: common_vendor.o(onPageTap, "93")
+        j: common_vendor.o(onPageTap, "25")
       });
     };
   }

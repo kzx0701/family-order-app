@@ -46,8 +46,6 @@ const _sfc_main = {
     let lastSidebarScrollTop = -1;
     let latestScrollTop = 0;
     const flyingItems = common_vendor.ref([]);
-    const cartShaking = common_vendor.ref(false);
-    let shakeTimer = null;
     const cartTotal = common_vendor.computed(() => cartStore.totalCount);
     const cartVisible = common_vendor.ref(false);
     const dishesByCategory = common_vendor.computed(() => {
@@ -70,9 +68,9 @@ const _sfc_main = {
         return;
       loading.value = true;
       try {
-        const res = await common_vendor.wr.callFunction({
-          name: "menu-list",
-          data: { type: orderType.value }
+        const res = await common_vendor._r.callFunction({
+          name: "app-service",
+          data: { module: "menu-list", type: orderType.value }
         });
         if (res.result.code === 0) {
           categories.value = res.result.categories || [];
@@ -96,7 +94,7 @@ const _sfc_main = {
           common_vendor.index.showToast({ title: res.result.message || "加载失败", icon: "none" });
         }
       } catch (e) {
-        common_vendor.index.__f__("error", "at pages/order/order.vue:245", "[order] loadMenu error", e);
+        common_vendor.index.__f__("error", "at pages/order/order.vue:247", "[order] loadMenu error", e);
         common_vendor.index.showToast({ title: "加载失败，下拉刷新重试", icon: "none" });
       } finally {
         loading.value = false;
@@ -204,9 +202,9 @@ const _sfc_main = {
     };
     const playFlyAnimation = (originX, originY, dish) => {
       const query = common_vendor.index.createSelectorQuery().in(instance.proxy);
-      query.select(".cart-btn").boundingClientRect((rect) => {
+      query.select(".cart-icon-circle").boundingClientRect((rect) => {
         if (!rect) {
-          triggerCartShake();
+          triggerCartFeedback();
           return;
         }
         const endX = rect.left + rect.width / 2;
@@ -243,18 +241,18 @@ const _sfc_main = {
       if (idx > -1) {
         flyingItems.value.splice(idx, 1);
       }
-      triggerCartShake();
+      triggerCartFeedback();
     };
-    const triggerCartShake = () => {
-      if (cartShaking.value) {
-        cartShaking.value = false;
-      }
-      clearTimeout(shakeTimer);
+    const cartBarBounce = common_vendor.ref(false);
+    let barBounceTimer = null;
+    const triggerCartFeedback = () => {
+      cartBarBounce.value = false;
+      clearTimeout(barBounceTimer);
       setTimeout(() => {
-        cartShaking.value = true;
-        shakeTimer = setTimeout(() => {
-          cartShaking.value = false;
-        }, 500);
+        cartBarBounce.value = true;
+        barBounceTimer = setTimeout(() => {
+          cartBarBounce.value = false;
+        }, 450);
       }, 20);
     };
     const onDishTap = (dish) => {
@@ -312,20 +310,10 @@ const _sfc_main = {
           name: "arrow-left",
           size: 20
         }),
-        b: common_vendor.o(goHome, "8d"),
+        b: common_vendor.o(goHome, "0b"),
         c: common_vendor.t(pageTitle.value),
-        d: common_vendor.p({
-          name: "shopping-cart",
-          size: 20
-        }),
-        e: cartTotal.value > 0
-      }, cartTotal.value > 0 ? {
-        f: common_vendor.t(cartTotal.value)
-      } : {}, {
-        g: cartShaking.value ? 1 : "",
-        h: common_vendor.o(onCartClick, "a2"),
-        i: common_vendor.unref(statusBarHeight) + 32 + "px",
-        j: common_vendor.f(categories.value, (cat, k0, i0) => {
+        d: common_vendor.unref(statusBarHeight) + 32 + "px",
+        e: common_vendor.f(categories.value, (cat, k0, i0) => {
           return {
             a: common_vendor.t(cat.name),
             b: cat.id,
@@ -334,19 +322,19 @@ const _sfc_main = {
             e: common_vendor.o(($event) => onCategoryTap(cat.id), cat.id)
           };
         }),
-        k: sidebarScrollTop.value,
-        l: loading.value && dishes.value.length === 0
+        f: sidebarScrollTop.value,
+        g: loading.value && dishes.value.length === 0
       }, loading.value && dishes.value.length === 0 ? {
-        m: common_vendor.p({
+        h: common_vendor.p({
           type: "dish",
           count: 4
         })
       } : dishes.value.length === 0 ? {
-        o: common_vendor.t(emptyEmoji.value),
-        p: common_vendor.t(emptyText.value),
-        q: common_vendor.o(loadMenu, "55")
+        j: common_vendor.t(emptyEmoji.value),
+        k: common_vendor.t(emptyText.value),
+        l: common_vendor.o(loadMenu, "2b")
       } : {
-        r: common_vendor.f(categories.value, (cat, k0, i0) => {
+        m: common_vendor.f(categories.value, (cat, k0, i0) => {
           return common_vendor.e({
             a: common_vendor.t(cat.name),
             b: cat.id === "recommend"
@@ -358,7 +346,7 @@ const _sfc_main = {
                 a: dish.dishId,
                 b: common_vendor.o(onAddToCart, dish.dishId),
                 c: common_vendor.o(onDishTap, dish.dishId),
-                d: "93207a4f-3-" + i0 + "-" + i1,
+                d: "93207a4f-2-" + i0 + "-" + i1,
                 e: common_vendor.p({
                   dish,
                   index: idx
@@ -371,21 +359,27 @@ const _sfc_main = {
           });
         })
       }, {
-        n: dishes.value.length === 0,
-        s: dishScrollTop.value,
-        t: refreshing.value,
-        v: common_vendor.o(onRefresh, "17"),
-        w: common_vendor.o(onScroll, "5b"),
-        x: common_vendor.p({
+        i: dishes.value.length === 0,
+        n: dishScrollTop.value,
+        o: refreshing.value,
+        p: common_vendor.o(onRefresh, "e6"),
+        q: common_vendor.o(onScroll, "bf"),
+        r: common_vendor.p({
           name: "shopping-bag",
           size: 22
         }),
-        y: cartTotal.value > 0 ? 1 : "",
-        z: common_vendor.o(onCartClick, "25"),
-        A: common_vendor.t(cartTotal.value === 0 ? "购物车是空的" : "去下单"),
-        B: cartTotal.value === 0 ? 1 : "",
-        C: common_vendor.o(goSubmit, "af"),
-        D: common_vendor.f(flyingItems.value, (fly, k0, i0) => {
+        s: cartTotal.value > 0
+      }, cartTotal.value > 0 ? {
+        t: common_vendor.t(cartTotal.value)
+      } : {}, {
+        v: cartTotal.value > 0 ? 1 : "",
+        w: cartBarBounce.value ? 1 : "",
+        x: common_vendor.t(cartTotal.value > 0 ? `已选 ${cartTotal.value} 件` : "购物车是空的"),
+        y: common_vendor.t(cartTotal.value > 0 ? "点击查看已选菜品" : "快去挑选喜欢的菜品吧"),
+        z: common_vendor.o(onCartClick, "32"),
+        A: cartTotal.value === 0 ? 1 : "",
+        B: common_vendor.o(goSubmit, "82"),
+        C: common_vendor.f(flyingItems.value, (fly, k0, i0) => {
           return common_vendor.e({
             a: fly.image
           }, fly.image ? {
@@ -398,13 +392,13 @@ const _sfc_main = {
             f: common_vendor.o(($event) => onFlyEnd(fly.id), fly.id)
           });
         }),
-        E: common_vendor.o(onPopupClose, "05"),
-        F: common_vendor.o(onPopupSubmit, "f2"),
-        G: common_vendor.p({
+        D: common_vendor.o(onPopupClose, "59"),
+        E: common_vendor.o(onPopupSubmit, "b0"),
+        F: common_vendor.p({
           visible: cartVisible.value,
           theme: orderType.value
         }),
-        H: common_vendor.n(themeClass.value)
+        G: common_vendor.n(themeClass.value)
       });
     };
   }

@@ -197,17 +197,8 @@
         <fo-empty v-else :text="menuType === 'coffee' ? '还没有咖啡菜品，点击右下角添加吧' : '还没有美食菜品，点击右下角添加吧'" :icon="menuType === 'coffee' ? '☕' : '🍲'" />
       </template>
 
-      <!-- 排序模式操作栏：固定在底部 tabbar 上方 -->
-      <view v-if="sortMode" class="sort-mode-bar">
-        <text class="sort-mode-tip">拖动菜品调整顺序</text>
-        <view class="sort-mode-done" @tap="exitSortMode">完成</view>
-      </view>
-
-      <!-- 新增菜品 FAB（排序模式下隐藏） -->
-      <view v-if="!sortMode" class="fab" @tap="onAddDish">
-        <Icon name="plus" :size="28" color="#fff" />
-      </view>
     </view>
+
 
     <!-- 订单管理 -->
     <view v-else class="orders-pane" @tap="closeOrderSwipe">
@@ -284,6 +275,17 @@
       <!-- 面板底部留白：避免列表被底部 tabbar 遮挡 -->
       <view class="pane-bottom-spacer" />
     </scroll-view>
+
+    <!-- 排序模式操作栏：fixed 元素必须放在 scroll-view 外，否则会随列表滚动 -->
+    <view v-if="sortMode && activeTab === 'menu'" class="sort-mode-bar">
+      <text class="sort-mode-tip">拖动菜品调整顺序</text>
+      <view class="sort-mode-done" @tap="exitSortMode">完成</view>
+    </view>
+
+    <!-- 新增菜品 FAB：fixed 元素必须放在 scroll-view 外，否则会随列表滚动 -->
+    <view v-if="!sortMode && activeTab === 'menu'" class="fab" @tap="onAddDish">
+      <Icon name="plus" :size="28" color="#fff" />
+    </view>
 
     <custom-tabbar />
 
@@ -808,8 +810,8 @@ const applyReorder = (from, to) => {
 
   // 云端持久化（失败则重新拉取回滚）
   uniCloud.callFunction({
-    name: 'dishes-crud',
-    data: { action: 'sort', token: userStore.token, items }
+    name: 'app-service',
+    data: { module: 'dishes-crud', action: 'sort', token: userStore.token, items }
   }).then((res) => {
     if (res.result.code !== 0) {
       uni.showToast({ title: res.result.message || '排序保存失败', icon: 'none' })
@@ -1080,8 +1082,8 @@ const loadDishes = async () => {
   loadingDishes.value = true
   try {
     const res = await uniCloud.callFunction({
-      name: 'dishes-crud',
-      data: { action: 'list', token: userStore.token }
+      name: 'app-service',
+      data: { module: 'dishes-crud', action: 'list', token: userStore.token }
     })
     if (res.result.code === 0) {
       dishList.value = res.result.list
@@ -1099,8 +1101,8 @@ const loadDishes = async () => {
 const loadCategories = async () => {
   try {
     const res = await uniCloud.callFunction({
-      name: 'categories-crud',
-      data: { action: 'list', token: userStore.token }
+      name: 'app-service',
+      data: { module: 'categories-crud', action: 'list', token: userStore.token }
     })
     if (res.result.code === 0) {
       categoryList.value = res.result.list
@@ -1134,8 +1136,8 @@ const loadOrders = async () => {
   loadingOrders.value = true
   try {
     const res = await uniCloud.callFunction({
-      name: 'orders-crud',
-      data: { action: 'list', token: userStore.token, pageSize: 100 }
+      name: 'app-service',
+      data: { module: 'orders-crud', action: 'list', token: userStore.token, pageSize: 100 }
     })
     if (res.result.code === 0) {
       // orders-crud 不返回 summary/summaryEmoji 字段，客户端补充构建
@@ -1166,8 +1168,9 @@ const onOrderCancel = async (order) => {
   triggerOrderFlash(order._id)
   try {
     const res = await uniCloud.callFunction({
-      name: 'orders-crud',
+      name: 'app-service',
       data: {
+        module: 'orders-crud',
         action: 'cancel',
         _id: order._id,
         token: userStore.token
@@ -1197,8 +1200,9 @@ const onOrderDelete = (order) => {
       if (!r.confirm) return
       try {
         const res = await uniCloud.callFunction({
-          name: 'orders-crud',
+          name: 'app-service',
           data: {
+            module: 'orders-crud',
             action: 'delete',
             _id: order._id,
             token: userStore.token
@@ -1274,7 +1278,11 @@ const onTypeChange = (type) => {
 }
 
 // 图片选择 + 上传
-// 优先使用 chooseMedia（微信新版API），降级到 chooseImage（旧版兼容）
+// 方案A：微信原生裁剪（固定比例）。裁剪比例由 width/height 决定，默认 1:1 方形，
+// 如需 4:3 改为 { width: 800, height: 600 }；crop 仅小程序端生效，其他端自动忽略。
+const DISH_CROP = { width: 800, height: 800, quality: 85 }
+
+// 优先使用 chooseMedia（微信新版API，支持 crop 原生裁剪），降级到 chooseImage（旧版兼容，无裁剪）
 const onChooseImage = () => {
   if (uploading.value) return
   if (uni.chooseMedia) {
@@ -1282,7 +1290,8 @@ const onChooseImage = () => {
       count: 1,
       mediaType: ['image'],
       sourceType: ['album', 'camera'],
-      sizeType: ['compressed'],
+      // 原生裁剪：选图后弹出微信裁剪界面，用户可在 1:1 框内拖动/缩放图片
+      crop: DISH_CROP,
       success: (res) => {
         if (res.tempFiles && res.tempFiles[0]) {
           uploadDishImage(res.tempFiles[0].tempFilePath)
@@ -1362,8 +1371,8 @@ const onSaveDish = async () => {
       payload._id = editingDishId.value
     }
     const res = await uniCloud.callFunction({
-      name: 'dishes-crud',
-      data: payload
+      name: 'app-service',
+      data: { module: 'dishes-crud', ...payload }
     })
     if (res.result.code !== 0) {
       uni.showToast({ title: res.result.message || '保存失败', icon: 'none' })
@@ -1393,8 +1402,8 @@ const onDeleteDish = (dish) => {
       if (!res.confirm) return
       try {
         const r = await uniCloud.callFunction({
-          name: 'dishes-crud',
-          data: { action: 'delete', token: userStore.token, _id: dish._id }
+          name: 'app-service',
+          data: { module: 'dishes-crud', action: 'delete', token: userStore.token, _id: dish._id }
         })
         if (r.result.code !== 0) {
           uni.showToast({ title: r.result.message || '删除失败', icon: 'none' })
@@ -1418,8 +1427,8 @@ const onToggleSale = async (dish, value) => {
   dish.isOnSale = value
   try {
     const res = await uniCloud.callFunction({
-      name: 'dishes-crud',
-      data: { action: 'toggleSale', token: userStore.token, _id: dish._id, isOnSale: value }
+      name: 'app-service',
+      data: { module: 'dishes-crud', action: 'toggleSale', token: userStore.token, _id: dish._id, isOnSale: value }
     })
     if (res.result.code !== 0) {
       dish.isOnSale = oldVal
@@ -1489,8 +1498,8 @@ const onSaveCategory = async () => {
       payload._id = editingCatId.value
     }
     const res = await uniCloud.callFunction({
-      name: 'categories-crud',
-      data: payload
+      name: 'app-service',
+      data: { module: 'categories-crud', ...payload }
     })
     if (res.result.code !== 0) {
       uni.showToast({ title: res.result.message || '保存失败', icon: 'none' })
@@ -1518,8 +1527,8 @@ const onDeleteCategory = (cat) => {
       if (!res.confirm) return
       try {
         const r = await uniCloud.callFunction({
-          name: 'categories-crud',
-          data: { action: 'delete', token: userStore.token, _id: cat._id }
+          name: 'app-service',
+          data: { module: 'categories-crud', action: 'delete', token: userStore.token, _id: cat._id }
         })
         if (r.result.code !== 0) {
           uni.showToast({ title: r.result.message || '删除失败', icon: 'none' })
@@ -1558,8 +1567,9 @@ const moveCategory = async (list, idx, direction) => {
   // 同步到云端（发送交换后的新值）
   try {
     await uniCloud.callFunction({
-      name: 'categories-crud',
+      name: 'app-service',
       data: {
+        module: 'categories-crud',
         action: 'sort',
         token: userStore.token,
         items: [

@@ -1,7 +1,0 @@
-{
-    "name": "dishes-crud",
-    "version": "1.0.0",
-    "description": "菜品 CRUD：list 查询（含分类名 join）/ create 新增 / update 编辑 / delete 删除 / toggleSale 上下架切换，写操作仅 admin",
-    "main": "index.js",
-    "dependencies": {}
-}

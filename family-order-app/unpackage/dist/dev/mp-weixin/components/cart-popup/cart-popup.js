@@ -23,7 +23,7 @@ const _sfc_main = {
     const emit = __emit;
     const cartStore = store_cart.useCartStore();
     const items = common_vendor.computed(() => cartStore.activeItems);
-    const totalCount = common_vendor.computed(() => cartStore.totalCount);
+    common_vendor.computed(() => cartStore.totalCount);
     const totalKinds = common_vendor.computed(() => cartStore.totalKinds);
     const themeClass = common_vendor.computed(() => `theme-${props.theme}`);
     const show = common_vendor.ref(false);
@@ -98,8 +98,8 @@ const _sfc_main = {
         a: __props.visible
       }, __props.visible ? common_vendor.e({
         b: show.value ? 1 : "",
-        c: common_vendor.o(onClose, "44"),
-        d: common_vendor.o(noop, "b3"),
+        c: common_vendor.o(onClose, "e5"),
+        d: common_vendor.o(noop, "36"),
         e: items.value.length > 0
       }, items.value.length > 0 ? {
         f: common_vendor.t(totalKinds.value)
@@ -110,11 +110,11 @@ const _sfc_main = {
           name: "trash",
           size: 14
         }),
-        i: common_vendor.o(onClear, "9b")
+        i: common_vendor.o(onClear, "ed")
       } : {}, {
         j: items.value.length === 0
       }, items.value.length === 0 ? {
-        k: common_vendor.o(onClose, "fe")
+        k: common_vendor.o(onClose, "cb")
       } : {
         l: common_vendor.f(items.value, (item, idx, i0) => {
           return common_vendor.e({
@@ -158,11 +158,10 @@ const _sfc_main = {
         p: items.value.length === 0 ? 1 : "",
         q: items.value.length > 0
       }, items.value.length > 0 ? {
-        r: common_vendor.t(totalCount.value),
-        s: common_vendor.o(onSubmit, "92")
+        r: common_vendor.o(onSubmit, "61")
       } : {}, {
-        t: show.value ? 1 : "",
-        v: common_vendor.n(themeClass.value)
+        s: show.value ? 1 : "",
+        t: common_vendor.n(themeClass.value)
       }) : {});
     };
   }

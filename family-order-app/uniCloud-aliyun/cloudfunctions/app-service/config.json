@@ -2,7 +2,6 @@
     "memorySize": 256,
     "timeout": 60,
     "appid": "wxbce36fe0e2e44d62",
-    "secret": "7b8dce66595c2385228aa2f69a5815e1",
     "templates": {
         "orderNotify": "pTwXlfi9AsqclwXuBl8KDzVViSAb0s5sRTRz_eWC9IA",
         "completeNotify": "Db7Tf9a6ghVEFtgPKsEvh_Dio95Dqjqo1YlI35DxnkQ",
