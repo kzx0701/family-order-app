@@ -48,6 +48,8 @@ const _sfc_main = {
       food: '<path d="M3 2v7c0 1.1.9 2 2 2h4c1.1 0 2-.9 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/>',
       // 关闭
       close: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+      // 裁剪
+      crop: '<path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/>',
       // 右箭头
       "chevron-right": '<path d="m9 18 6-6-6-6"/>',
       // 上箭头（分类上移）

@@ -14,7 +14,8 @@ if (!Array) {
   const _easycom_custom_tabbar2 = common_vendor.resolveComponent("custom-tabbar");
   const _easycom_fo_input2 = common_vendor.resolveComponent("fo-input");
   const _easycom_fo_sheet2 = common_vendor.resolveComponent("fo-sheet");
-  (_easycom_Icon2 + _easycom_skeleton2 + _easycom_fo_switch2 + _component_transition_group + _easycom_fo_empty2 + _easycom_status_badge2 + _easycom_custom_tabbar2 + _easycom_fo_input2 + _easycom_fo_sheet2)();
+  const _easycom_image_cropper2 = common_vendor.resolveComponent("image-cropper");
+  (_easycom_Icon2 + _easycom_skeleton2 + _easycom_fo_switch2 + _component_transition_group + _easycom_fo_empty2 + _easycom_status_badge2 + _easycom_custom_tabbar2 + _easycom_fo_input2 + _easycom_fo_sheet2 + _easycom_image_cropper2)();
 }
 const _easycom_Icon = () => "../../components/icons/Icon.js";
 const _easycom_skeleton = () => "../../components/skeleton/skeleton.js";
@@ -24,8 +25,9 @@ const _easycom_status_badge = () => "../../components/status-badge/status-badge.
 const _easycom_custom_tabbar = () => "../../components/custom-tabbar/custom-tabbar.js";
 const _easycom_fo_input = () => "../../components/fo-input/fo-input.js";
 const _easycom_fo_sheet = () => "../../components/fo-sheet/fo-sheet.js";
+const _easycom_image_cropper = () => "../../components/image-cropper/image-cropper.js";
 if (!Math) {
-  (_easycom_Icon + _easycom_skeleton + _easycom_fo_switch + _easycom_fo_empty + _easycom_status_badge + _easycom_custom_tabbar + _easycom_fo_input + _easycom_fo_sheet)();
+  (_easycom_Icon + _easycom_skeleton + _easycom_fo_switch + _easycom_fo_empty + _easycom_status_badge + _easycom_custom_tabbar + _easycom_fo_input + _easycom_fo_sheet + _easycom_image_cropper)();
 }
 const _sfc_main = {
   __name: "admin",
@@ -310,7 +312,7 @@ const _sfc_main = {
           loadDishes();
         }
       }).catch((e) => {
-        common_vendor.index.__f__("error", "at pages/admin/admin.vue:821", "[admin] persist reorder error", e);
+        common_vendor.index.__f__("error", "at pages/admin/admin.vue:838", "[admin] persist reorder error", e);
         common_vendor.index.showToast({ title: "排序保存失败，已恢复", icon: "none" });
         loadDishes();
       });
@@ -544,7 +546,7 @@ const _sfc_main = {
           common_vendor.index.showToast({ title: res.result.message || "加载失败", icon: "none" });
         }
       } catch (e) {
-        common_vendor.index.__f__("error", "at pages/admin/admin.vue:1094", "[admin] loadDishes error", e);
+        common_vendor.index.__f__("error", "at pages/admin/admin.vue:1111", "[admin] loadDishes error", e);
         common_vendor.index.showToast({ title: "加载菜品失败", icon: "none" });
       } finally {
         loadingDishes.value = false;
@@ -560,7 +562,7 @@ const _sfc_main = {
           categoryList.value = res.result.list;
         }
       } catch (e) {
-        common_vendor.index.__f__("error", "at pages/admin/admin.vue:1111", "[admin] loadCategories error", e);
+        common_vendor.index.__f__("error", "at pages/admin/admin.vue:1128", "[admin] loadCategories error", e);
       }
     };
     const buildOrderSummary = (items) => {
@@ -604,7 +606,7 @@ const _sfc_main = {
           common_vendor.index.showToast({ title: res.result.message || "加载订单失败", icon: "none" });
         }
       } catch (e) {
-        common_vendor.index.__f__("error", "at pages/admin/admin.vue:1154", "[admin] loadOrders error", e);
+        common_vendor.index.__f__("error", "at pages/admin/admin.vue:1171", "[admin] loadOrders error", e);
         common_vendor.index.showToast({ title: "加载订单失败", icon: "none" });
       } finally {
         loadingOrders.value = false;
@@ -631,7 +633,7 @@ const _sfc_main = {
         }
         common_vendor.index.showToast({ title: "已取消", icon: "success" });
       } catch (e) {
-        common_vendor.index.__f__("error", "at pages/admin/admin.vue:1186", "[admin] onOrderCancel error", e);
+        common_vendor.index.__f__("error", "at pages/admin/admin.vue:1203", "[admin] onOrderCancel error", e);
         order.status = oldStatus;
         common_vendor.index.showToast({ title: "取消失败", icon: "none" });
       }
@@ -662,7 +664,7 @@ const _sfc_main = {
             orderList.value = orderList.value.filter((o) => o._id !== order._id);
             common_vendor.index.showToast({ title: "已删除", icon: "success" });
           } catch (e) {
-            common_vendor.index.__f__("error", "at pages/admin/admin.vue:1219", "[admin] onOrderDelete error", e);
+            common_vendor.index.__f__("error", "at pages/admin/admin.vue:1236", "[admin] onOrderDelete error", e);
             common_vendor.index.showToast({ title: "删除失败", icon: "none" });
           }
         }
@@ -713,7 +715,6 @@ const _sfc_main = {
         dishForm.temp = "hot";
       }
     };
-    const DISH_CROP = { width: 800, height: 800, quality: 85 };
     const onChooseImage = () => {
       if (uploading.value)
         return;
@@ -722,16 +723,15 @@ const _sfc_main = {
           count: 1,
           mediaType: ["image"],
           sourceType: ["album", "camera"],
-          // 原生裁剪：选图后弹出微信裁剪界面，用户可在 1:1 框内拖动/缩放图片
-          crop: DISH_CROP,
+          sizeType: ["compressed"],
           success: (res) => {
             if (res.tempFiles && res.tempFiles[0]) {
-              uploadDishImage(res.tempFiles[0].tempFilePath);
+              openCropper(res.tempFiles[0].tempFilePath);
             }
           },
           fail: (err) => {
             if (String(err.errMsg || "").indexOf("cancel") === -1) {
-              common_vendor.index.__f__("error", "at pages/admin/admin.vue:1302", "[admin] chooseMedia fail", err);
+              common_vendor.index.__f__("error", "at pages/admin/admin.vue:1314", "[admin] chooseMedia fail", err);
             }
           }
         });
@@ -742,15 +742,55 @@ const _sfc_main = {
           sourceType: ["album", "camera"],
           success: (res) => {
             const tempPath = res.tempFilePaths[0];
-            uploadDishImage(tempPath);
+            openCropper(tempPath);
           },
           fail: (err) => {
             if (String(err.errMsg || "").indexOf("cancel") === -1) {
-              common_vendor.index.__f__("error", "at pages/admin/admin.vue:1317", "[admin] chooseImage fail", err);
+              common_vendor.index.__f__("error", "at pages/admin/admin.vue:1329", "[admin] chooseImage fail", err);
             }
           }
         });
       }
+    };
+    const cropperVisible = common_vendor.ref(false);
+    const cropperSrc = common_vendor.ref("");
+    const openCropper = (src) => {
+      cropperSrc.value = src;
+      cropperVisible.value = true;
+    };
+    const onCropperConfirm = (tempPath) => {
+      cropperVisible.value = false;
+      uploadDishImage(tempPath);
+    };
+    const onCropperCancel = () => {
+      cropperVisible.value = false;
+    };
+    const onAdjustImage = () => {
+      if (uploading.value || !dishForm.image)
+        return;
+      getLocalImagePath(dishForm.image).then((localPath) => openCropper(localPath)).catch((e) => {
+        common_vendor.index.__f__("error", "at pages/admin/admin.vue:1363", "[admin] 图片下载失败", e);
+        common_vendor.index.showToast({ title: "图片下载失败，请检查网络", icon: "none" });
+      });
+    };
+    const getLocalImagePath = (src) => {
+      return new Promise((resolve, reject) => {
+        if (!src)
+          return reject(new Error("图片为空"));
+        if (!/^https?:\/\//.test(src))
+          return resolve(src);
+        common_vendor.index.downloadFile({
+          url: src,
+          success: (res) => {
+            if (res.statusCode === 200) {
+              resolve(res.tempFilePath);
+            } else {
+              reject(new Error("下载失败：" + res.statusCode));
+            }
+          },
+          fail: reject
+        });
+      });
     };
     const uploadDishImage = async (filePath) => {
       const timestamp = Date.now();
@@ -769,7 +809,7 @@ const _sfc_main = {
         dishForm.image = res.fileID;
         common_vendor.index.showToast({ title: "上传成功", icon: "success" });
       } catch (e) {
-        common_vendor.index.__f__("error", "at pages/admin/admin.vue:1341", "[admin] uploadDishImage error", e);
+        common_vendor.index.__f__("error", "at pages/admin/admin.vue:1404", "[admin] uploadDishImage error", e);
         common_vendor.index.showToast({ title: "上传失败，请重试", icon: "none" });
       } finally {
         uploading.value = false;
@@ -813,7 +853,7 @@ const _sfc_main = {
         closeDishForm();
         await loadDishes();
       } catch (e) {
-        common_vendor.index.__f__("error", "at pages/admin/admin.vue:1388", "[admin] onSaveDish error", e);
+        common_vendor.index.__f__("error", "at pages/admin/admin.vue:1451", "[admin] onSaveDish error", e);
         common_vendor.index.showToast({ title: "保存异常", icon: "none" });
       } finally {
         saving.value = false;
@@ -839,7 +879,7 @@ const _sfc_main = {
             common_vendor.index.showToast({ title: "已删除", icon: "success" });
             dishList.value = dishList.value.filter((d) => d._id !== dish._id);
           } catch (e) {
-            common_vendor.index.__f__("error", "at pages/admin/admin.vue:1416", "[admin] onDeleteDish error", e);
+            common_vendor.index.__f__("error", "at pages/admin/admin.vue:1479", "[admin] onDeleteDish error", e);
             common_vendor.index.showToast({ title: "删除异常", icon: "none" });
           }
         }
@@ -859,7 +899,7 @@ const _sfc_main = {
         }
       } catch (e) {
         dish.isOnSale = oldVal;
-        common_vendor.index.__f__("error", "at pages/admin/admin.vue:1439", "[admin] onToggleSale error", e);
+        common_vendor.index.__f__("error", "at pages/admin/admin.vue:1502", "[admin] onToggleSale error", e);
         common_vendor.index.showToast({ title: "切换失败", icon: "none" });
       }
     };
@@ -926,7 +966,7 @@ const _sfc_main = {
         cancelCatForm();
         await loadCategories();
       } catch (e) {
-        common_vendor.index.__f__("error", "at pages/admin/admin.vue:1515", "[admin] onSaveCategory error", e);
+        common_vendor.index.__f__("error", "at pages/admin/admin.vue:1578", "[admin] onSaveCategory error", e);
         common_vendor.index.showToast({ title: "保存异常", icon: "none" });
       }
     };
@@ -950,7 +990,7 @@ const _sfc_main = {
             common_vendor.index.showToast({ title: "已删除", icon: "success" });
             await loadCategories();
           } catch (e) {
-            common_vendor.index.__f__("error", "at pages/admin/admin.vue:1540", "[admin] onDeleteCategory error", e);
+            common_vendor.index.__f__("error", "at pages/admin/admin.vue:1603", "[admin] onDeleteCategory error", e);
             common_vendor.index.showToast({ title: "删除异常", icon: "none" });
           }
         }
@@ -988,7 +1028,7 @@ const _sfc_main = {
         });
         await loadCategories();
       } catch (e) {
-        common_vendor.index.__f__("error", "at pages/admin/admin.vue:1584", "[admin] moveCategory error", e);
+        common_vendor.index.__f__("error", "at pages/admin/admin.vue:1647", "[admin] moveCategory error", e);
         common_vendor.index.showToast({ title: "排序失败", icon: "none" });
         await loadCategories();
       }
@@ -1223,38 +1263,51 @@ const _sfc_main = {
           name: "upload",
           size: 32,
           color: "#A8A29E"
-        })
+        }),
+        X: common_vendor.o(onChooseImage, "de")
       } : uploading.value ? {
-        Y: common_vendor.t(uploadProgress.value)
+        Z: common_vendor.t(uploadProgress.value)
       } : {
-        Z: dishForm.image
+        aa: dishForm.image,
+        ab: common_vendor.p({
+          name: "crop",
+          size: 24,
+          color: "#fff"
+        }),
+        ac: common_vendor.o(onAdjustImage, "81"),
+        ad: common_vendor.p({
+          name: "refresh-cw",
+          size: 24,
+          color: "#fff"
+        }),
+        ae: common_vendor.o(onChooseImage, "fb"),
+        af: common_vendor.o(onAdjustImage, "52")
       }, {
-        X: uploading.value,
-        aa: common_vendor.o(onChooseImage, "db"),
-        ab: common_vendor.o(($event) => dishForm.description = $event, "ea"),
-        ac: common_vendor.p({
+        Y: uploading.value,
+        ag: common_vendor.o(($event) => dishForm.description = $event, "4b"),
+        ah: common_vendor.p({
           label: "描述",
           type: "textarea",
           placeholder: "简单描述一下这道菜品...",
           maxlength: 100,
           modelValue: dishForm.description
         }),
-        ad: dishForm.type === "coffee" ? 1 : "",
-        ae: common_vendor.o(($event) => onTypeChange("coffee"), "c5"),
-        af: dishForm.type === "food" ? 1 : "",
-        ag: common_vendor.o(($event) => onTypeChange("food"), "ec"),
-        ah: dishForm.type === "coffee"
+        ai: dishForm.type === "coffee" ? 1 : "",
+        aj: common_vendor.o(($event) => onTypeChange("coffee"), "e2"),
+        ak: dishForm.type === "food" ? 1 : "",
+        al: common_vendor.o(($event) => onTypeChange("food"), "7b"),
+        am: dishForm.type === "coffee"
       }, dishForm.type === "coffee" ? {
-        ai: dishForm.temp === "ice" ? 1 : "",
-        aj: common_vendor.o(($event) => dishForm.temp = "ice", "d6"),
-        ak: dishForm.temp === "hot" ? 1 : "",
-        al: common_vendor.o(($event) => dishForm.temp = "hot", "fc")
+        an: dishForm.temp === "ice" ? 1 : "",
+        ao: common_vendor.o(($event) => dishForm.temp = "ice", "bb"),
+        ap: dishForm.temp === "hot" ? 1 : "",
+        aq: common_vendor.o(($event) => dishForm.temp = "hot", "e0")
       } : {}, {
-        am: availableCategories.value.length
+        ar: availableCategories.value.length
       }, availableCategories.value.length ? {
-        an: !dishForm.categoryId ? 1 : "",
-        ao: common_vendor.o(($event) => dishForm.categoryId = "", "cc"),
-        ap: common_vendor.f(availableCategories.value, (cat, k0, i0) => {
+        as: !dishForm.categoryId ? 1 : "",
+        at: common_vendor.o(($event) => dishForm.categoryId = "", "8a"),
+        av: common_vendor.f(availableCategories.value, (cat, k0, i0) => {
           return {
             a: common_vendor.t(cat.name),
             b: cat._id,
@@ -1263,30 +1316,30 @@ const _sfc_main = {
           };
         })
       } : {
-        aq: common_vendor.o(openCategoryManager, "65")
+        aw: common_vendor.o(openCategoryManager, "ec")
       }, {
-        ar: common_vendor.o(($event) => dishForm.isOnSale = $event, "a7"),
-        as: common_vendor.p({
+        ax: common_vendor.o(($event) => dishForm.isOnSale = $event, "48"),
+        ay: common_vendor.p({
           modelValue: dishForm.isOnSale
         }),
-        at: common_vendor.o(($event) => dishForm.isRecommended = $event, "95"),
-        av: common_vendor.p({
+        az: common_vendor.o(($event) => dishForm.isRecommended = $event, "96"),
+        aA: common_vendor.p({
           modelValue: dishForm.isRecommended
         }),
-        aw: common_vendor.o(closeDishForm, "05"),
-        ax: common_vendor.t(saving.value ? "保存中..." : "保存"),
-        ay: saving.value ? 1 : "",
-        az: common_vendor.o(onSaveDish, "4f"),
-        aA: common_vendor.o(closeDishForm, "45"),
-        aB: common_vendor.p({
+        aB: common_vendor.o(closeDishForm, "e1"),
+        aC: common_vendor.t(saving.value ? "保存中..." : "保存"),
+        aD: saving.value ? 1 : "",
+        aE: common_vendor.o(onSaveDish, "30"),
+        aF: common_vendor.o(closeDishForm, "45"),
+        aG: common_vendor.p({
           visible: dishFormVisible.value,
           title: editingDishId.value ? "编辑菜品" : "新增菜品",
           ["max-height"]: "76vh"
         }),
-        aC: catFormVisible.value
+        aH: catFormVisible.value
       }, catFormVisible.value ? {
-        aD: common_vendor.o(($event) => catForm.name = $event, "44"),
-        aE: common_vendor.p({
+        aI: common_vendor.o(($event) => catForm.name = $event, "20"),
+        aJ: common_vendor.p({
           label: "分类名称",
           placeholder: "如：拿铁系列、甜品",
           required: true,
@@ -1294,28 +1347,28 @@ const _sfc_main = {
           maxlength: 20,
           modelValue: catForm.name
         }),
-        aF: common_vendor.o(cancelCatForm, "bc"),
-        aG: common_vendor.t(editingCatId.value ? "保存" : "添加"),
-        aH: common_vendor.o(onSaveCategory, "ab")
+        aK: common_vendor.o(cancelCatForm, "f7"),
+        aL: common_vendor.t(editingCatId.value ? "保存" : "添加"),
+        aM: common_vendor.o(onSaveCategory, "8b")
       } : {}, {
-        aI: currentCategories.value.length
+        aN: currentCategories.value.length
       }, currentCategories.value.length ? {
-        aJ: common_vendor.f(currentCategories.value, (cat, idx, i0) => {
+        aO: common_vendor.f(currentCategories.value, (cat, idx, i0) => {
           return common_vendor.e({
             a: common_vendor.t(cat.name),
             b: cat.name === "推荐"
           }, cat.name === "推荐" ? {} : {}, {
-            c: "dbc77958-18-" + i0 + ",dbc77958-16",
+            c: "dbc77958-20-" + i0 + ",dbc77958-18",
             d: idx === 0 ? 1 : "",
             e: common_vendor.o(($event) => moveCategory(currentCategories.value, idx, -1), cat._id),
-            f: "dbc77958-19-" + i0 + ",dbc77958-16",
+            f: "dbc77958-21-" + i0 + ",dbc77958-18",
             g: idx === currentCategories.value.length - 1 ? 1 : "",
             h: common_vendor.o(($event) => moveCategory(currentCategories.value, idx, 1), cat._id),
-            i: "dbc77958-20-" + i0 + ",dbc77958-16",
+            i: "dbc77958-22-" + i0 + ",dbc77958-18",
             j: common_vendor.o(($event) => onEditCategory(cat), cat._id),
             k: cat.name !== "推荐"
           }, cat.name !== "推荐" ? {
-            l: "dbc77958-21-" + i0 + ",dbc77958-16",
+            l: "dbc77958-23-" + i0 + ",dbc77958-18",
             m: common_vendor.p({
               name: "trash",
               size: 16
@@ -1325,40 +1378,48 @@ const _sfc_main = {
             o: cat._id
           });
         }),
-        aK: common_vendor.p({
+        aP: common_vendor.p({
           name: "chevron-up",
           size: 16
         }),
-        aL: common_vendor.p({
+        aQ: common_vendor.p({
           name: "chevron-down",
           size: 16
         }),
-        aM: common_vendor.p({
+        aR: common_vendor.p({
           name: "edit",
           size: 16
         })
       } : {}, {
-        aN: !currentCategories.value.length && !catFormVisible.value
+        aS: !currentCategories.value.length && !catFormVisible.value
       }, !currentCategories.value.length && !catFormVisible.value ? {
-        aO: common_vendor.p({
+        aT: common_vendor.p({
           text: "还没有分类，先添加一个吧",
           icon: "📂"
         })
       } : {}, {
-        aP: !catFormVisible.value
+        aU: !catFormVisible.value
       }, !catFormVisible.value ? {
-        aQ: common_vendor.p({
+        aV: common_vendor.p({
           name: "plus",
           size: 18,
           color: "#6F4E37"
         }),
-        aR: common_vendor.o(onAddCategory, "20")
+        aW: common_vendor.o(onAddCategory, "af")
       } : {}, {
-        aS: common_vendor.o(closeCategoryManager, "fa"),
-        aT: common_vendor.p({
+        aX: common_vendor.o(closeCategoryManager, "84"),
+        aY: common_vendor.p({
           visible: catManagerVisible.value,
           title: catManagerTitle.value,
           ["max-height"]: "85vh"
+        }),
+        aZ: common_vendor.o(onCropperConfirm, "96"),
+        ba: common_vendor.o(onCropperCancel, "74"),
+        bb: common_vendor.p({
+          visible: cropperVisible.value,
+          ["image-src"]: cropperSrc.value,
+          ratio: 1,
+          ["output-size"]: 800
         })
       });
     };

@@ -1,0 +1,243 @@
+/**
+ * uniapp 内置 SCSS 变量文件
+ * 此文件会被自动注入到每个组件的 <style lang="scss"> 中
+ * 因此只能包含变量声明与 mixin 定义，不能包含会生成 CSS 输出的规则
+ */
+/* 引入设计 token 变量（仅变量声明，无 CSS 输出） */
+/**
+ * 设计 Token - SCSS 变量定义
+ * 从 colors_and_type.css 提取并转换为 SCSS 变量
+ * 此文件仅包含变量声明，不生成 CSS 输出（可安全被 uni.scss 自动注入）
+ */
+/* === 暖奶油底色（全局背景） === */
+/* === 品牌主色：暖奶油 === */
+/* === 咖啡棕系（咖啡主题主色） === */
+/* === 美食绿系（美食主题主色） === */
+/* === neutral 灰阶 === */
+/* === 状态色 === */
+/* === 语义别名（指向常用 token） === */
+/* === 圆角 === */
+/* === 字体 === */
+/* === 字号 === */
+/* === 字重 === */
+/* === 行高 === */
+/* === 阴影 === */
+/* === 间距（rpx 适配小程序） === */
+/* === 动效时长与缓动 === */
+/* === 安全区域 === */
+/* 引入 mixin 定义（仅 @mixin，无 CSS 输出） */
+/**
+ * 通用 SCSS Mixin
+ * 此文件仅包含 @mixin 定义，不生成 CSS 输出（可安全被 uni.scss 自动注入）
+ */
+/* === 卡片样式 === */
+/* 主题卡片：带主题色渐变背景 */
+/* === 按钮 === */
+/* 主题主按钮 */
+/* 次级按钮 */
+/* 禁用按钮 */
+/* 圆形图标按钮（如返回按钮、加号按钮） */
+/* === 安全区域 === */
+/* === 文本省略 === */
+/* === flex 工具 === */
+/* === 状态徽章 === */
+/* === 1px 细边框（小程序适配） === */
+/* === 点击反馈 === */
+/* === 应用外壳页（页面级布局标准之一） === */
+/*
+ * 适用：点单页这类「头部/底部固定 + 中间区域内部滚动」的应用外壳页
+ * 必须 height:100vh（不能 min-height）+ overflow:hidden，
+ * 否则 flex 子项 min-height:auto 会被内容撑高，整个页面变成 body 滚动，
+ * 导致头部/底部随页面滚走、内部 scroll-view 的高度等于内容高度而完全无法滚动
+ * 搭配 page-shell-body 使用
+ */
+/* 外壳页的中间滚动区：flex:1 + min-height:0 允许收缩，内部 scroll-view 才能生效 */
+/* === uniapp 内置变量映射到设计 token === */
+/* 主色调：暖奶油 / 咖啡棕 */
+/* 文字色 */
+/* 背景色 */
+/* 边框色 */
+/* 字号 */
+/* 间距 */
+/* 圆角 */
+.cropper-root.data-v-d0be24ff {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+}
+
+/* === 遮罩 === */
+.cropper-mask.data-v-d0be24ff {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.55);
+  opacity: 0;
+  transition: opacity 250ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.cropper-mask.is-show.data-v-d0be24ff {
+  opacity: 1;
+}
+
+/* === 面板：深色底，突出裁剪区 === */
+.cropper-panel.data-v-d0be24ff {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #1c1917;
+  border-radius: 20px 20px 0 0;
+  padding-bottom: env(safe-area-inset-bottom);
+  transform: translateY(100%);
+  transition: transform 300ms cubic-bezier(0.34, 1.2, 0.64, 1);
+  box-shadow: 0 -8rpx 32rpx rgba(0, 0, 0, 0.35);
+}
+.cropper-panel.is-show.data-v-d0be24ff {
+  transform: translateY(0);
+}
+
+/* === 顶部栏 === */
+.cropper-header.data-v-d0be24ff {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24rpx 32rpx 16rpx;
+}
+.cropper-header .header-btn.data-v-d0be24ff {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.85);
+  padding: 8rpx 12rpx;
+  transition: transform 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.cropper-header .header-btn.data-v-d0be24ff:active {
+  transform: scale(0.92);
+}
+.cropper-header .header-btn.confirm.data-v-d0be24ff {
+  color: #fff;
+  background-color: var(--theme-primary);
+  border-radius: 9999px;
+  padding: 10rpx 30rpx;
+  font-weight: 600;
+}
+.cropper-header .header-title.data-v-d0be24ff {
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+}
+
+/* === 裁剪区 === */
+.cropper-body.data-v-d0be24ff {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24rpx;
+  padding: 24rpx 32rpx 40rpx;
+}
+.crop-viewport.data-v-d0be24ff {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  background-color: #000;
+  box-shadow: 0 0 0 2rpx rgba(255, 255, 255, 0.1);
+  touch-action: none;
+  /* 三分构图网格 */
+}
+.crop-viewport .crop-image.data-v-d0be24ff {
+  position: absolute;
+  left: 0;
+  top: 0;
+  will-change: transform;
+}
+.crop-viewport .grid-line.data-v-d0be24ff {
+  position: absolute;
+  background-color: rgba(255, 255, 255, 0.16);
+  pointer-events: none;
+}
+.crop-viewport .g-h1.data-v-d0be24ff {
+  left: 0;
+  right: 0;
+  top: 33.33%;
+  height: 1px;
+}
+.crop-viewport .g-h2.data-v-d0be24ff {
+  left: 0;
+  right: 0;
+  top: 66.66%;
+  height: 1px;
+}
+.crop-viewport .g-v1.data-v-d0be24ff {
+  top: 0;
+  bottom: 0;
+  left: 33.33%;
+  width: 1px;
+}
+.crop-viewport .g-v2.data-v-d0be24ff {
+  top: 0;
+  bottom: 0;
+  left: 66.66%;
+  width: 1px;
+}
+
+/* === 比例切换 === */
+.ratio-row.data-v-d0be24ff {
+  display: flex;
+  gap: 16rpx;
+}
+.ratio-row .ratio-chip.data-v-d0be24ff {
+  padding: 10rpx 28rpx;
+  border-radius: 9999px;
+  border: 1rpx solid rgba(255, 255, 255, 0.25);
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 12px;
+  transition: transform 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.ratio-row .ratio-chip.data-v-d0be24ff:active {
+  transform: scale(0.94);
+}
+.ratio-row .ratio-chip.active.data-v-d0be24ff {
+  background-color: var(--theme-primary);
+  border-color: var(--theme-primary);
+  color: #fff;
+  font-weight: 600;
+}
+
+/* === 缩放控制 === */
+.zoom-row.data-v-d0be24ff {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  width: 100%;
+}
+.zoom-row .zoom-btn.data-v-d0be24ff {
+  flex-shrink: 0;
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.zoom-row .zoom-btn.data-v-d0be24ff:active {
+  transform: scale(0.9);
+}
+.zoom-row .zoom-slider.data-v-d0be24ff {
+  flex: 1;
+  margin: 0;
+}
+.cropper-hint.data-v-d0be24ff {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+/* === 离屏导出 canvas === */
+.export-canvas.data-v-d0be24ff {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  width: 2px;
+  height: 2px;
+  opacity: 0;
+  pointer-events: none;
+}

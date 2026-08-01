@@ -9,6 +9,7 @@
     "status-badge": "../../components/status-badge/status-badge",
     "custom-tabbar": "../../components/custom-tabbar/custom-tabbar",
     "fo-input": "../../components/fo-input/fo-input",
-    "fo-sheet": "../../components/fo-sheet/fo-sheet"
+    "fo-sheet": "../../components/fo-sheet/fo-sheet",
+    "image-cropper": "../../components/image-cropper/image-cropper"
   }
 }

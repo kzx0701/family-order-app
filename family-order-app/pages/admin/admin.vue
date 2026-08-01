@@ -304,10 +304,10 @@
         <!-- 图片上传 -->
         <view class="form-label">
           <text class="label-text">菜品图片</text>
-          <text class="label-hint">推荐上传，可让点单页更诱人</text>
+          <text class="label-hint">上传后可裁剪/调整位置，列表与详情页统一展示</text>
         </view>
-        <view class="image-uploader" @tap="onChooseImage">
-          <view v-if="!dishForm.image && !uploading" class="upload-placeholder">
+        <view class="image-uploader">
+          <view v-if="!dishForm.image && !uploading" class="upload-placeholder" @tap="onChooseImage">
             <Icon name="upload" :size="32" color="#A8A29E" />
             <text class="upload-text">点击上传图片</text>
           </view>
@@ -315,10 +315,17 @@
             <view class="progress-ring"></view>
             <text class="progress-text">上传中 {{ uploadProgress }}%</text>
           </view>
-          <view v-else class="image-preview">
+          <view v-else class="image-preview" @tap="onAdjustImage">
             <image :src="dishForm.image" mode="aspectFill" class="preview-img" />
-            <view class="preview-mask">
-              <text>重新上传</text>
+            <view class="preview-actions">
+              <view class="preview-action" @tap.stop="onAdjustImage">
+                <Icon name="crop" :size="24" color="#fff" />
+                <text class="preview-action-text">裁剪调整</text>
+              </view>
+              <view class="preview-action" @tap.stop="onChooseImage">
+                <Icon name="refresh-cw" :size="24" color="#fff" />
+                <text class="preview-action-text">重新选择</text>
+              </view>
             </view>
           </view>
         </view>
@@ -472,6 +479,16 @@
         </view>
       </view>
     </fo-sheet>
+
+    <!-- 图片裁剪器：上传新图 / 重新裁剪已上传图片 -->
+    <image-cropper
+      :visible="cropperVisible"
+      :image-src="cropperSrc"
+      :ratio="1"
+      :output-size="800"
+      @confirm="onCropperConfirm"
+      @cancel="onCropperCancel"
+    />
   </view>
 </template>
 
@@ -1277,12 +1294,8 @@ const onTypeChange = (type) => {
   }
 }
 
-// 图片选择 + 上传
-// 方案A：微信原生裁剪（固定比例）。裁剪比例由 width/height 决定，默认 1:1 方形，
-// 如需 4:3 改为 { width: 800, height: 600 }；crop 仅小程序端生效，其他端自动忽略。
-const DISH_CROP = { width: 800, height: 800, quality: 85 }
-
-// 优先使用 chooseMedia（微信新版API，支持 crop 原生裁剪），降级到 chooseImage（旧版兼容，无裁剪）
+// 图片选择 + 上传（自定义裁剪）
+// 选择图片后进入裁剪器，用户可拖动/缩放调整构图，确认后再上传
 const onChooseImage = () => {
   if (uploading.value) return
   if (uni.chooseMedia) {
@@ -1290,11 +1303,10 @@ const onChooseImage = () => {
       count: 1,
       mediaType: ['image'],
       sourceType: ['album', 'camera'],
-      // 原生裁剪：选图后弹出微信裁剪界面，用户可在 1:1 框内拖动/缩放图片
-      crop: DISH_CROP,
+      sizeType: ['compressed'],
       success: (res) => {
         if (res.tempFiles && res.tempFiles[0]) {
-          uploadDishImage(res.tempFiles[0].tempFilePath)
+          openCropper(res.tempFiles[0].tempFilePath)
         }
       },
       fail: (err) => {
@@ -1310,7 +1322,7 @@ const onChooseImage = () => {
       sourceType: ['album', 'camera'],
       success: (res) => {
         const tempPath = res.tempFilePaths[0]
-        uploadDishImage(tempPath)
+        openCropper(tempPath)
       },
       fail: (err) => {
         if (String(err.errMsg || '').indexOf('cancel') === -1) {
@@ -1319,6 +1331,57 @@ const onChooseImage = () => {
       }
     })
   }
+}
+
+/* === 自定义图片裁剪器 === */
+const cropperVisible = ref(false)
+const cropperSrc = ref('')
+
+// 打开裁剪器（传入本地临时路径）
+const openCropper = (src) => {
+  cropperSrc.value = src
+  cropperVisible.value = true
+}
+
+// 裁剪完成：上传裁剪结果
+const onCropperConfirm = (tempPath) => {
+  cropperVisible.value = false
+  uploadDishImage(tempPath)
+}
+
+// 取消裁剪
+const onCropperCancel = () => {
+  cropperVisible.value = false
+}
+
+// 重新裁剪已上传的图片：远程图片先下载为本地临时文件
+const onAdjustImage = () => {
+  if (uploading.value || !dishForm.image) return
+  getLocalImagePath(dishForm.image)
+    .then((localPath) => openCropper(localPath))
+    .catch((e) => {
+      console.error('[admin] 图片下载失败', e)
+      uni.showToast({ title: '图片下载失败，请检查网络', icon: 'none' })
+    })
+}
+
+// 远程 URL 转为本地临时路径（canvas 裁剪需要本地文件）
+const getLocalImagePath = (src) => {
+  return new Promise((resolve, reject) => {
+    if (!src) return reject(new Error('图片为空'))
+    if (!/^https?:\/\//.test(src)) return resolve(src)
+    uni.downloadFile({
+      url: src,
+      success: (res) => {
+        if (res.statusCode === 200) {
+          resolve(res.tempFilePath)
+        } else {
+          reject(new Error('下载失败：' + res.statusCode))
+        }
+      },
+      fail: reject
+    })
+  })
 }
 
 const uploadDishImage = async (filePath) => {
@@ -2234,20 +2297,35 @@ const moveCategory = async (list, idx, direction) => {
       height: 100%;
     }
 
-    .preview-mask {
+    /* 底部操作条：裁剪调整 / 重新选择 */
+    .preview-actions {
       position: absolute;
-      inset: 0;
-      background-color: rgba(44, 27, 20, 0.45);
-      @include flex-center;
-      color: #fff;
-      font-size: $font-size-sm;
-      opacity: 0;
-      transition: opacity $dur-base $ease-smooth;
-    }
-  }
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      justify-content: center;
+      gap: 12rpx;
+      padding: 20rpx 0 16rpx;
+      background: linear-gradient(to top, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0));
 
-  &:active .preview-mask {
-    opacity: 1;
+      .preview-action {
+        display: flex;
+        align-items: center;
+        gap: 6rpx;
+        padding: 8rpx 18rpx;
+        border-radius: $radius-full;
+        background-color: rgba(0, 0, 0, 0.35);
+        border: 1rpx solid rgba(255, 255, 255, 0.25);
+        @include tap-feedback(0.94);
+
+        .preview-action-text {
+          color: #fff;
+          font-size: $font-size-xs;
+          font-weight: $font-weight-medium;
+        }
+      }
+    }
   }
 }
 

@@ -677,7 +677,8 @@ onShow(() => {
   }
 
   .list-bottom-spacer {
-    height: 40rpx;
+    // 为悬浮购物车条（约 108rpx + 16rpx 间隙）+ 固定 tabbar（80rpx + 安全区）预留空间
+    height: calc(220rpx + env(safe-area-inset-bottom));
   }
 }
 
@@ -749,17 +750,23 @@ onShow(() => {
   }
 }
 
-/* === 底部购物车条：悬浮圆角卡片 === */
+/* === 底部购物车条：真悬浮毛玻璃条，列表内容从其下方滚过 === */
 .cart-bar {
+  position: fixed;
+  left: 32rpx;
+  right: 32rpx;
+  // 悬浮于列表之上，固定 tabbar（80rpx + 安全区）上方留 16rpx 间隙
+  bottom: calc(96rpx + env(safe-area-inset-bottom));
+  z-index: 90;
   display: flex;
   align-items: center;
   gap: 24rpx;
-  margin: 16rpx 32rpx 0;
-  // 底部预留固定 tabbar（80rpx + 安全区）的层叠空间
-  margin-bottom: calc(16rpx + env(safe-area-inset-bottom) + 80rpx);
   padding: 16rpx 20rpx;
   border-radius: $radius-2xl;
-  background-color: $color-card;
+  background-color: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(20rpx);
+  -webkit-backdrop-filter: blur(20rpx);
+  border: 1rpx solid rgba(255, 255, 255, 0.65);
   box-shadow: $shadow-lg;
 
   // 左侧：购物车图标 + 汇总文案（点击展开浮层）

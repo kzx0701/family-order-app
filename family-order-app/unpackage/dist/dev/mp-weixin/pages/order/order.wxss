@@ -194,7 +194,7 @@
   color: #78716C;
 }
 .dish-list .list-bottom-spacer.data-v-93207a4f {
-  height: 40rpx;
+  height: calc(220rpx + env(safe-area-inset-bottom));
 }
 
 /* === 加载与空状态 === */
@@ -255,16 +255,22 @@
     opacity: 1;
 }
 }
-/* === 底部购物车条：悬浮圆角卡片 === */
+/* === 底部购物车条：真悬浮毛玻璃条，列表内容从其下方滚过 === */
 .cart-bar.data-v-93207a4f {
+  position: fixed;
+  left: 32rpx;
+  right: 32rpx;
+  bottom: calc(96rpx + env(safe-area-inset-bottom));
+  z-index: 90;
   display: flex;
   align-items: center;
   gap: 24rpx;
-  margin: 16rpx 32rpx 0;
-  margin-bottom: calc(16rpx + env(safe-area-inset-bottom) + 80rpx);
   padding: 16rpx 20rpx;
   border-radius: 20px;
-  background-color: #FFFFFF;
+  background-color: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(20rpx);
+  -webkit-backdrop-filter: blur(20rpx);
+  border: 1rpx solid rgba(255, 255, 255, 0.65);
   box-shadow: 0 8px 24px rgba(44, 27, 20, 0.1), 0 4px 12px rgba(44, 27, 20, 0.06);
 }
 .cart-bar .cart-summary.data-v-93207a4f {
