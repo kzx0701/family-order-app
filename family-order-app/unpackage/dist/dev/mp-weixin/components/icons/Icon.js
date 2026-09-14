@@ -46,6 +46,8 @@ const _sfc_main = {
       coffee: '<path d="M10 2v2"/><path d="M14 2v2"/><path d="M16 8a1 1 0 0 1 1 1v8a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1h14a4 4 0 1 1 0 8h-1"/><path d="M6 2v2"/>',
       // 美食（餐具）
       food: '<path d="M3 2v7c0 1.1.9 2 2 2h4c1.1 0 2-.9 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/>',
+      // 打开的书（菜谱 tab）
+      "book-open": '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2Z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7Z"/>',
       // 关闭
       close: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
       // 裁剪
@@ -99,7 +101,7 @@ const _sfc_main = {
     return (_ctx, _cache) => {
       return {
         a: common_vendor.s(iconStyle.value),
-        b: common_vendor.o(($event) => _ctx.$emit("click", $event), "4e")
+        b: common_vendor.o(($event) => _ctx.$emit("click", $event), "63")
       };
     };
   }

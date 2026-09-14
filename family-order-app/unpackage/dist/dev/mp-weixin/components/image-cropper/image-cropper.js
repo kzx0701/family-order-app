@@ -252,10 +252,10 @@ const _sfc_main = {
         a: __props.visible
       }, __props.visible ? common_vendor.e({
         b: show.value ? 1 : "",
-        c: common_vendor.o(onCancel, "9f"),
-        d: common_vendor.o(noop, "8e"),
-        e: common_vendor.o(onCancel, "a5"),
-        f: common_vendor.o(onConfirm, "d4"),
+        c: common_vendor.o(onCancel, "42"),
+        d: common_vendor.o(noop, "7d"),
+        e: common_vendor.o(onCancel, "87"),
+        f: common_vendor.o(onConfirm, "0a"),
         g: displaySrc.value
       }, displaySrc.value ? {
         h: displaySrc.value,
@@ -263,27 +263,27 @@ const _sfc_main = {
       } : {}, {
         j: viewportW.value + "px",
         k: viewportH.value + "px",
-        l: common_vendor.o(onTouchStart, "43"),
-        m: common_vendor.o(onTouchMove, "1c"),
-        n: common_vendor.o(onTouchEnd, "75"),
-        o: common_vendor.o(onTouchEnd, "fa"),
+        l: common_vendor.o(onTouchStart, "1c"),
+        m: common_vendor.o(onTouchMove, "99"),
+        n: common_vendor.o(onTouchEnd, "15"),
+        o: common_vendor.o(onTouchEnd, "86"),
         p: ratio.value === 1 ? 1 : "",
-        q: common_vendor.o(($event) => setRatio(1), "75"),
+        q: common_vendor.o(($event) => setRatio(1), "cb"),
         r: ratio.value === RATIO_43 ? 1 : "",
-        s: common_vendor.o(($event) => setRatio(RATIO_43), "83"),
+        s: common_vendor.o(($event) => setRatio(RATIO_43), "ab"),
         t: common_vendor.p({
           name: "minus",
           size: 14
         }),
-        v: common_vendor.o(($event) => zoomStep(-1), "37"),
+        v: common_vendor.o(($event) => zoomStep(-1), "64"),
         w: zoomPercent.value,
-        x: common_vendor.o(onSliderChanging, "0d"),
-        y: common_vendor.o(onSliderChange, "7d"),
+        x: common_vendor.o(onSliderChanging, "d2"),
+        y: common_vendor.o(onSliderChange, "98"),
         z: common_vendor.p({
           name: "plus",
           size: 14
         }),
-        A: common_vendor.o(($event) => zoomStep(1), "b8"),
+        A: common_vendor.o(($event) => zoomStep(1), "9d"),
         B: show.value ? 1 : ""
       }) : {});
     };

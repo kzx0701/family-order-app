@@ -1,7 +1,5 @@
 "use strict";
 const common_vendor = require("../../common/vendor.js");
-const store_user = require("../../store/user.js");
-const store_cart = require("../../store/cart.js");
 if (!Array) {
   const _easycom_Icon2 = common_vendor.resolveComponent("Icon");
   _easycom_Icon2();
@@ -13,23 +11,13 @@ if (!Math) {
 const _sfc_main = {
   __name: "custom-tabbar",
   setup(__props) {
-    const userStore = store_user.useUserStore();
-    store_cart.useCartStore();
     const allTabs = [
       { key: "home", text: "首页", icon: "home", path: "/pages/home/home" },
-      { key: "order", text: "点单", icon: "utensils-crossed", path: "/pages/order/order" },
-      { key: "record", text: "记录", icon: "clipboard-list", path: "/pages/record/record" },
-      { key: "admin", text: "管理", icon: "settings", path: "/pages/admin/admin" }
+      { key: "menu", text: "菜单", icon: "food", path: "/pages/order/order" },
+      { key: "recipe", text: "菜谱", icon: "book-open", path: "/pages/recipe/recipe" },
+      { key: "my", text: "我的", icon: "user", path: "/pages/my/my" }
     ];
-    const visibleTabs = common_vendor.computed(() => {
-      if (userStore.isAdmin)
-        return allTabs;
-      return allTabs.filter((t) => t.key !== "admin");
-    });
     const activeKey = common_vendor.ref("home");
-    common_vendor.onMounted(() => {
-      syncActiveFromRoute();
-    });
     const syncActiveFromRoute = () => {
       try {
         const pages = getCurrentPages();
@@ -37,12 +25,11 @@ const _sfc_main = {
         if (!current)
           return;
         const route = "/" + current.route;
-        const matched = allTabs.find((t) => t.path === route);
-        if (matched) {
+        const matched = allTabs.find((tab) => tab.path === route);
+        if (matched)
           activeKey.value = matched.key;
-        }
       } catch (e) {
-        common_vendor.index.__f__("error", "at components/custom-tabbar/custom-tabbar.vue:61", "[custom-tabbar] syncActiveFromRoute error", e);
+        common_vendor.index.__f__("error", "at components/custom-tabbar/custom-tabbar.vue:44", "[custom-tabbar] syncActiveFromRoute error", e);
       }
     };
     const onTabTap = (tab) => {
@@ -50,24 +37,25 @@ const _sfc_main = {
         return;
       common_vendor.index.switchTab({ url: tab.path });
     };
+    common_vendor.onMounted(syncActiveFromRoute);
     return (_ctx, _cache) => {
       return {
-        a: common_vendor.f(visibleTabs.value, (tab, index, i0) => {
-          return common_vendor.e({
+        a: common_vendor.f(allTabs, (tab, k0, i0) => {
+          return {
             a: "51c48e3c-0-" + i0,
             b: common_vendor.p({
               name: tab.icon,
-              size: 20
+              size: 21,
+              ["stroke-width"]: 2.2
             }),
-            c: tab.badge
-          }, tab.badge ? {
-            d: common_vendor.t(tab.badge)
-          } : {}, {
-            e: common_vendor.t(tab.text),
-            f: tab.key,
-            g: activeKey.value === tab.key ? 1 : "",
-            h: common_vendor.o(($event) => onTabTap(tab), tab.key)
-          });
+            c: common_vendor.t(tab.text),
+            d: tab.key,
+            e: common_vendor.n({
+              active: activeKey.value === tab.key
+            }),
+            f: common_vendor.n(`tab-${tab.key}`),
+            g: common_vendor.o(($event) => onTabTap(tab), tab.key)
+          };
         })
       };
     };

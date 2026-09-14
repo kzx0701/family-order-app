@@ -25,7 +25,7 @@ const _sfc_main = {
       return {
         a: __props.modelValue ? 1 : "",
         b: __props.disabled ? 1 : "",
-        c: common_vendor.o(onToggle, "5c")
+        c: common_vendor.o(onToggle, "eb")
       };
     };
   }

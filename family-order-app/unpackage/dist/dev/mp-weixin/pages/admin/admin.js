@@ -303,7 +303,7 @@ const _sfc_main = {
         ...typeList.map((d) => ({ ...d, sortOrder: sortMap[d._id] })),
         ...others
       ];
-      common_vendor._r.callFunction({
+      common_vendor.Vs.callFunction({
         name: "app-service",
         data: { module: "dishes-crud", action: "sort", token: userStore.token, items }
       }).then((res) => {
@@ -536,7 +536,7 @@ const _sfc_main = {
     const loadDishes = async () => {
       loadingDishes.value = true;
       try {
-        const res = await common_vendor._r.callFunction({
+        const res = await common_vendor.Vs.callFunction({
           name: "app-service",
           data: { module: "dishes-crud", action: "list", token: userStore.token }
         });
@@ -554,7 +554,7 @@ const _sfc_main = {
     };
     const loadCategories = async () => {
       try {
-        const res = await common_vendor._r.callFunction({
+        const res = await common_vendor.Vs.callFunction({
           name: "app-service",
           data: { module: "categories-crud", action: "list", token: userStore.token }
         });
@@ -591,7 +591,7 @@ const _sfc_main = {
     const loadOrders = async () => {
       loadingOrders.value = true;
       try {
-        const res = await common_vendor._r.callFunction({
+        const res = await common_vendor.Vs.callFunction({
           name: "app-service",
           data: { module: "orders-crud", action: "list", token: userStore.token, pageSize: 100 }
         });
@@ -617,7 +617,7 @@ const _sfc_main = {
       order.status = "cancelled";
       triggerOrderFlash(order._id);
       try {
-        const res = await common_vendor._r.callFunction({
+        const res = await common_vendor.Vs.callFunction({
           name: "app-service",
           data: {
             module: "orders-crud",
@@ -648,7 +648,7 @@ const _sfc_main = {
           if (!r.confirm)
             return;
           try {
-            const res = await common_vendor._r.callFunction({
+            const res = await common_vendor.Vs.callFunction({
               name: "app-service",
               data: {
                 module: "orders-crud",
@@ -799,7 +799,7 @@ const _sfc_main = {
       uploading.value = true;
       uploadProgress.value = 0;
       try {
-        const res = await common_vendor._r.uploadFile({
+        const res = await common_vendor.Vs.uploadFile({
           filePath,
           cloudPath,
           onProgressCall: (p) => {
@@ -838,7 +838,7 @@ const _sfc_main = {
         if (editingDishId.value) {
           payload._id = editingDishId.value;
         }
-        const res = await common_vendor._r.callFunction({
+        const res = await common_vendor.Vs.callFunction({
           name: "app-service",
           data: { module: "dishes-crud", ...payload }
         });
@@ -868,7 +868,7 @@ const _sfc_main = {
           if (!res.confirm)
             return;
           try {
-            const r = await common_vendor._r.callFunction({
+            const r = await common_vendor.Vs.callFunction({
               name: "app-service",
               data: { module: "dishes-crud", action: "delete", token: userStore.token, _id: dish._id }
             });
@@ -889,7 +889,7 @@ const _sfc_main = {
       const oldVal = dish.isOnSale;
       dish.isOnSale = value;
       try {
-        const res = await common_vendor._r.callFunction({
+        const res = await common_vendor.Vs.callFunction({
           name: "app-service",
           data: { module: "dishes-crud", action: "toggleSale", token: userStore.token, _id: dish._id, isOnSale: value }
         });
@@ -951,7 +951,7 @@ const _sfc_main = {
         if (editingCatId.value) {
           payload._id = editingCatId.value;
         }
-        const res = await common_vendor._r.callFunction({
+        const res = await common_vendor.Vs.callFunction({
           name: "app-service",
           data: { module: "categories-crud", ...payload }
         });
@@ -979,7 +979,7 @@ const _sfc_main = {
           if (!res.confirm)
             return;
           try {
-            const r = await common_vendor._r.callFunction({
+            const r = await common_vendor.Vs.callFunction({
               name: "app-service",
               data: { module: "categories-crud", action: "delete", token: userStore.token, _id: cat._id }
             });
@@ -1014,7 +1014,7 @@ const _sfc_main = {
         return c;
       });
       try {
-        await common_vendor._r.callFunction({
+        await common_vendor.Vs.callFunction({
           name: "app-service",
           data: {
             module: "categories-crud",
@@ -1043,22 +1043,22 @@ const _sfc_main = {
         e: common_vendor.unref(statusBarHeight) + 28 + "px",
         f: common_vendor.unref(headerHeight) + "px",
         g: activeTab.value === "menu" ? 1 : "",
-        h: common_vendor.o(($event) => activeTab.value = "menu", "2d"),
+        h: common_vendor.o(($event) => activeTab.value = "menu", "4f"),
         i: activeTab.value === "orders" ? 1 : "",
-        j: common_vendor.o(onOrdersTabTap, "81"),
+        j: common_vendor.o(onOrdersTabTap, "6f"),
         k: activeTab.value === "menu"
       }, activeTab.value === "menu" ? common_vendor.e({
         l: menuType.value === "coffee" ? 1 : "",
-        m: common_vendor.o(($event) => onMenuTypeChange("coffee"), "f2"),
+        m: common_vendor.o(($event) => onMenuTypeChange("coffee"), "57"),
         n: menuType.value === "food" ? 1 : "",
-        o: common_vendor.o(($event) => onMenuTypeChange("food"), "fc"),
+        o: common_vendor.o(($event) => onMenuTypeChange("food"), "40"),
         p: common_vendor.p({
           name: "settings",
           size: 16
         }),
-        q: common_vendor.o(openCategoryManager, "19"),
+        q: common_vendor.o(openCategoryManager, "34"),
         r: filterCategoryId.value === "" ? 1 : "",
-        s: common_vendor.o(($event) => filterCategoryId.value = "", "54"),
+        s: common_vendor.o(($event) => filterCategoryId.value = "", "04"),
         t: common_vendor.f(currentCategories.value, (cat, k0, i0) => {
           return {
             a: common_vendor.t(cat.name),
@@ -1176,7 +1176,7 @@ const _sfc_main = {
           icon: menuType.value === "coffee" ? "☕" : "🍲"
         })
       }), {
-        D: common_vendor.o(closeDishSwipe, "c4")
+        D: common_vendor.o(closeDishSwipe, "72")
       }) : common_vendor.e({
         E: common_vendor.f(orderFilters, (f, k0, i0) => {
           return {
@@ -1231,14 +1231,14 @@ const _sfc_main = {
         })
       }, {
         H: filteredOrders.value.length,
-        K: common_vendor.o(closeOrderSwipe, "74")
+        K: common_vendor.o(closeOrderSwipe, "c0")
       }), {
         L: !dragState.active,
         M: refreshing.value,
-        N: common_vendor.o(onPaneRefresh, "5a"),
+        N: common_vendor.o(onPaneRefresh, "8c"),
         O: sortMode.value && activeTab.value === "menu"
       }, sortMode.value && activeTab.value === "menu" ? {
-        P: common_vendor.o(exitSortMode, "90")
+        P: common_vendor.o(exitSortMode, "80")
       } : {}, {
         Q: !sortMode.value && activeTab.value === "menu"
       }, !sortMode.value && activeTab.value === "menu" ? {
@@ -1247,9 +1247,9 @@ const _sfc_main = {
           size: 28,
           color: "#fff"
         }),
-        S: common_vendor.o(onAddDish, "48")
+        S: common_vendor.o(onAddDish, "c8")
       } : {}, {
-        T: common_vendor.o(($event) => dishForm.name = $event, "11"),
+        T: common_vendor.o(($event) => dishForm.name = $event, "26"),
         U: common_vendor.p({
           label: "菜品名称",
           placeholder: "如：拿铁咖啡",
@@ -1264,7 +1264,7 @@ const _sfc_main = {
           size: 32,
           color: "#A8A29E"
         }),
-        X: common_vendor.o(onChooseImage, "de")
+        X: common_vendor.o(onChooseImage, "9c")
       } : uploading.value ? {
         Z: common_vendor.t(uploadProgress.value)
       } : {
@@ -1274,17 +1274,17 @@ const _sfc_main = {
           size: 24,
           color: "#fff"
         }),
-        ac: common_vendor.o(onAdjustImage, "81"),
+        ac: common_vendor.o(onAdjustImage, "73"),
         ad: common_vendor.p({
           name: "refresh-cw",
           size: 24,
           color: "#fff"
         }),
-        ae: common_vendor.o(onChooseImage, "fb"),
-        af: common_vendor.o(onAdjustImage, "52")
+        ae: common_vendor.o(onChooseImage, "06"),
+        af: common_vendor.o(onAdjustImage, "aa")
       }, {
         Y: uploading.value,
-        ag: common_vendor.o(($event) => dishForm.description = $event, "4b"),
+        ag: common_vendor.o(($event) => dishForm.description = $event, "8c"),
         ah: common_vendor.p({
           label: "描述",
           type: "textarea",
@@ -1293,20 +1293,20 @@ const _sfc_main = {
           modelValue: dishForm.description
         }),
         ai: dishForm.type === "coffee" ? 1 : "",
-        aj: common_vendor.o(($event) => onTypeChange("coffee"), "e2"),
+        aj: common_vendor.o(($event) => onTypeChange("coffee"), "81"),
         ak: dishForm.type === "food" ? 1 : "",
-        al: common_vendor.o(($event) => onTypeChange("food"), "7b"),
+        al: common_vendor.o(($event) => onTypeChange("food"), "f3"),
         am: dishForm.type === "coffee"
       }, dishForm.type === "coffee" ? {
         an: dishForm.temp === "ice" ? 1 : "",
-        ao: common_vendor.o(($event) => dishForm.temp = "ice", "bb"),
+        ao: common_vendor.o(($event) => dishForm.temp = "ice", "37"),
         ap: dishForm.temp === "hot" ? 1 : "",
-        aq: common_vendor.o(($event) => dishForm.temp = "hot", "e0")
+        aq: common_vendor.o(($event) => dishForm.temp = "hot", "c3")
       } : {}, {
         ar: availableCategories.value.length
       }, availableCategories.value.length ? {
         as: !dishForm.categoryId ? 1 : "",
-        at: common_vendor.o(($event) => dishForm.categoryId = "", "8a"),
+        at: common_vendor.o(($event) => dishForm.categoryId = "", "e9"),
         av: common_vendor.f(availableCategories.value, (cat, k0, i0) => {
           return {
             a: common_vendor.t(cat.name),
@@ -1316,21 +1316,21 @@ const _sfc_main = {
           };
         })
       } : {
-        aw: common_vendor.o(openCategoryManager, "ec")
+        aw: common_vendor.o(openCategoryManager, "46")
       }, {
-        ax: common_vendor.o(($event) => dishForm.isOnSale = $event, "48"),
+        ax: common_vendor.o(($event) => dishForm.isOnSale = $event, "a9"),
         ay: common_vendor.p({
           modelValue: dishForm.isOnSale
         }),
-        az: common_vendor.o(($event) => dishForm.isRecommended = $event, "96"),
+        az: common_vendor.o(($event) => dishForm.isRecommended = $event, "44"),
         aA: common_vendor.p({
           modelValue: dishForm.isRecommended
         }),
-        aB: common_vendor.o(closeDishForm, "e1"),
+        aB: common_vendor.o(closeDishForm, "a5"),
         aC: common_vendor.t(saving.value ? "保存中..." : "保存"),
         aD: saving.value ? 1 : "",
-        aE: common_vendor.o(onSaveDish, "30"),
-        aF: common_vendor.o(closeDishForm, "45"),
+        aE: common_vendor.o(onSaveDish, "5e"),
+        aF: common_vendor.o(closeDishForm, "90"),
         aG: common_vendor.p({
           visible: dishFormVisible.value,
           title: editingDishId.value ? "编辑菜品" : "新增菜品",
@@ -1338,7 +1338,7 @@ const _sfc_main = {
         }),
         aH: catFormVisible.value
       }, catFormVisible.value ? {
-        aI: common_vendor.o(($event) => catForm.name = $event, "20"),
+        aI: common_vendor.o(($event) => catForm.name = $event, "fb"),
         aJ: common_vendor.p({
           label: "分类名称",
           placeholder: "如：拿铁系列、甜品",
@@ -1347,9 +1347,9 @@ const _sfc_main = {
           maxlength: 20,
           modelValue: catForm.name
         }),
-        aK: common_vendor.o(cancelCatForm, "f7"),
+        aK: common_vendor.o(cancelCatForm, "46"),
         aL: common_vendor.t(editingCatId.value ? "保存" : "添加"),
-        aM: common_vendor.o(onSaveCategory, "8b")
+        aM: common_vendor.o(onSaveCategory, "a4")
       } : {}, {
         aN: currentCategories.value.length
       }, currentCategories.value.length ? {
@@ -1405,16 +1405,16 @@ const _sfc_main = {
           size: 18,
           color: "#6F4E37"
         }),
-        aW: common_vendor.o(onAddCategory, "af")
+        aW: common_vendor.o(onAddCategory, "e5")
       } : {}, {
-        aX: common_vendor.o(closeCategoryManager, "84"),
+        aX: common_vendor.o(closeCategoryManager, "78"),
         aY: common_vendor.p({
           visible: catManagerVisible.value,
           title: catManagerTitle.value,
           ["max-height"]: "85vh"
         }),
-        aZ: common_vendor.o(onCropperConfirm, "96"),
-        ba: common_vendor.o(onCropperCancel, "74"),
+        aZ: common_vendor.o(onCropperConfirm, "7f"),
+        ba: common_vendor.o(onCropperCancel, "da"),
         bb: common_vendor.p({
           visible: cropperVisible.value,
           ["image-src"]: cropperSrc.value,

@@ -1,7 +1,0 @@
-{
-  "component": true,
-  "usingComponents": {
-    "status-badge": "../status-badge/status-badge",
-    "icon": "../icons/Icon"
-  }
-}

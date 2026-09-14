@@ -442,7 +442,7 @@ const _sfc_main = {
       loading.value = true;
       loadError.value = "";
       try {
-        const res = await common_vendor._r.callFunction({
+        const res = await common_vendor.Vs.callFunction({
           name: "app-service",
           data: { module: "dishes-crud", action: "detail", _id: dishId }
         });
@@ -491,7 +491,7 @@ const _sfc_main = {
           size: 22
         }),
         b: common_vendor.unref(statusBarHeight) + 14 + "px",
-        c: common_vendor.o(goBack, "1d"),
+        c: common_vendor.o(goBack, "87"),
         d: loading.value
       }, loading.value ? {
         e: common_vendor.p({
@@ -500,7 +500,7 @@ const _sfc_main = {
           height: "160rpx"
         })
       } : loadError.value ? {
-        g: common_vendor.o(retryLoad, "91"),
+        g: common_vendor.o(retryLoad, "c3"),
         h: common_vendor.p({
           emoji: "😵",
           title: "加载失败",
@@ -550,7 +550,7 @@ const _sfc_main = {
           size: 14
         }),
         D: quantity.value <= 1 ? 1 : "",
-        E: common_vendor.o(onMinus, "02"),
+        E: common_vendor.o(onMinus, "45"),
         F: common_vendor.t(quantity.value),
         G: quantity.value,
         H: common_vendor.p({
@@ -558,13 +558,13 @@ const _sfc_main = {
           size: 14,
           color: "#fff"
         }),
-        I: common_vendor.o(onPlus, "c8"),
+        I: common_vendor.o(onPlus, "dd"),
         J: common_vendor.n(tempClass.value)
       }), {
         f: loadError.value,
         K: !loading.value && !loadError.value
       }, !loading.value && !loadError.value ? {
-        L: common_vendor.o(onAddToCart, "cf")
+        L: common_vendor.o(onAddToCart, "e9")
       } : {}, {
         M: common_vendor.n(themeClass.value)
       });

@@ -4,18 +4,18 @@ const store_user = require("../../store/user.js");
 const composables_useSafeArea = require("../../composables/useSafeArea.js");
 const composables_useHeaderFixed = require("../../composables/useHeaderFixed.js");
 if (!Array) {
+  const _easycom_Icon2 = common_vendor.resolveComponent("Icon");
   const _easycom_skeleton2 = common_vendor.resolveComponent("skeleton");
   const _easycom_fo_empty2 = common_vendor.resolveComponent("fo-empty");
   const _easycom_status_badge2 = common_vendor.resolveComponent("status-badge");
-  const _easycom_custom_tabbar2 = common_vendor.resolveComponent("custom-tabbar");
-  (_easycom_skeleton2 + _easycom_fo_empty2 + _easycom_status_badge2 + _easycom_custom_tabbar2)();
+  (_easycom_Icon2 + _easycom_skeleton2 + _easycom_fo_empty2 + _easycom_status_badge2)();
 }
+const _easycom_Icon = () => "../../components/icons/Icon.js";
 const _easycom_skeleton = () => "../../components/skeleton/skeleton.js";
 const _easycom_fo_empty = () => "../../components/fo-empty/fo-empty.js";
 const _easycom_status_badge = () => "../../components/status-badge/status-badge.js";
-const _easycom_custom_tabbar = () => "../../components/custom-tabbar/custom-tabbar.js";
 if (!Math) {
-  (_easycom_skeleton + _easycom_fo_empty + _easycom_status_badge + _easycom_custom_tabbar)();
+  (_easycom_Icon + _easycom_skeleton + _easycom_fo_empty + _easycom_status_badge)();
 }
 const pageSize = 20;
 const _sfc_main = {
@@ -24,6 +24,9 @@ const _sfc_main = {
     const { statusBarHeight } = composables_useSafeArea.useSafeArea();
     const { headerHeight } = composables_useHeaderFixed.useHeaderFixed(".header");
     const userStore = store_user.useUserStore();
+    const goBack = () => {
+      common_vendor.index.navigateBack();
+    };
     const orders = common_vendor.ref([]);
     const loading = common_vendor.ref(false);
     const loadingMore = common_vendor.ref(false);
@@ -230,7 +233,7 @@ const _sfc_main = {
         page.value += 1;
       }
       try {
-        const res = await common_vendor._r.callFunction({
+        const res = await common_vendor.Vs.callFunction({
           name: "app-service",
           data: {
             module: "orders-crud",
@@ -250,12 +253,12 @@ const _sfc_main = {
             orders.value = orders.value.concat(list);
           }
         } else if (res.result.code === 401) {
-          common_vendor.index.__f__("warn", "at pages/record/record.vue:363", "[record] orders-crud 401", res.result.message);
+          common_vendor.index.__f__("warn", "at pages/record/record.vue:369", "[record] orders-crud 401", res.result.message);
         } else {
           common_vendor.index.showToast({ title: res.result.message || "加载失败", icon: "none" });
         }
       } catch (e) {
-        common_vendor.index.__f__("error", "at pages/record/record.vue:368", "[record] loadOrders error", e);
+        common_vendor.index.__f__("error", "at pages/record/record.vue:374", "[record] loadOrders error", e);
         common_vendor.index.showToast({ title: "加载失败", icon: "none" });
       } finally {
         loading.value = false;
@@ -274,7 +277,7 @@ const _sfc_main = {
           order.status = "cancelled";
           triggerFlash(order._id);
           try {
-            const res = await common_vendor._r.callFunction({
+            const res = await common_vendor.Vs.callFunction({
               name: "app-service",
               data: {
                 module: "orders-crud",
@@ -290,7 +293,7 @@ const _sfc_main = {
             }
             common_vendor.index.showToast({ title: "已取消", icon: "success" });
           } catch (e) {
-            common_vendor.index.__f__("error", "at pages/record/record.vue:405", "[record] onCancel error", e);
+            common_vendor.index.__f__("error", "at pages/record/record.vue:411", "[record] onCancel error", e);
             order.status = oldStatus;
             common_vendor.index.showToast({ title: "取消失败", icon: "none" });
           }
@@ -307,7 +310,7 @@ const _sfc_main = {
           if (!r.confirm)
             return;
           try {
-            const res = await common_vendor._r.callFunction({
+            const res = await common_vendor.Vs.callFunction({
               name: "app-service",
               data: {
                 module: "orders-crud",
@@ -324,7 +327,7 @@ const _sfc_main = {
             total.value = Math.max(0, total.value - 1);
             common_vendor.index.showToast({ title: "已删除", icon: "success" });
           } catch (e) {
-            common_vendor.index.__f__("error", "at pages/record/record.vue:441", "[record] onDelete error", e);
+            common_vendor.index.__f__("error", "at pages/record/record.vue:447", "[record] onDelete error", e);
             common_vendor.index.showToast({ title: "删除失败", icon: "none" });
           }
         }
@@ -342,21 +345,26 @@ const _sfc_main = {
     });
     return (_ctx, _cache) => {
       return common_vendor.e({
-        a: common_vendor.unref(statusBarHeight) + 40 + "px",
-        b: common_vendor.unref(headerHeight) + "px",
-        c: loading.value && orders.value.length === 0
+        a: common_vendor.p({
+          name: "arrow-left",
+          size: 20
+        }),
+        b: common_vendor.o(goBack, "71"),
+        c: common_vendor.unref(statusBarHeight) + 40 + "px",
+        d: common_vendor.unref(headerHeight) + "px",
+        e: loading.value && orders.value.length === 0
       }, loading.value && orders.value.length === 0 ? {
-        d: common_vendor.p({
+        f: common_vendor.p({
           type: "card",
           count: 4
         })
       } : orders.value.length === 0 ? {
-        f: common_vendor.p({
+        h: common_vendor.p({
           text: "还没有点单记录哦~",
           icon: "☕"
         })
       } : common_vendor.e({
-        g: common_vendor.f(groupedOrders.value, (group, gIdx, i0) => {
+        i: common_vendor.f(groupedOrders.value, (group, gIdx, i0) => {
           return {
             a: common_vendor.t(group.label),
             b: common_vendor.t(group.orders.length),
@@ -381,7 +389,7 @@ const _sfc_main = {
               } : {}, {
                 j: common_vendor.t(buildSummary(order.items)),
                 k: common_vendor.t(formatTime(order.createTime)),
-                l: "ef6850c5-2-" + i0 + "-" + i1,
+                l: "ef6850c5-3-" + i0 + "-" + i1,
                 m: common_vendor.p({
                   status: order.status
                 }),
@@ -400,12 +408,12 @@ const _sfc_main = {
             e: groupDelay(gIdx)
           };
         }),
-        h: loadingMore.value
+        j: loadingMore.value
       }, loadingMore.value ? {} : !hasMore.value && orders.value.length > 0 ? {} : {}, {
-        i: !hasMore.value && orders.value.length > 0
+        k: !hasMore.value && orders.value.length > 0
       }), {
-        e: orders.value.length === 0,
-        j: common_vendor.o(onPageTap, "25")
+        g: orders.value.length === 0,
+        l: common_vendor.o(onPageTap, "93")
       });
     };
   }

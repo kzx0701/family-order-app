@@ -68,7 +68,7 @@ const _sfc_main = {
         return;
       loading.value = true;
       try {
-        const res = await common_vendor._r.callFunction({
+        const res = await common_vendor.Vs.callFunction({
           name: "app-service",
           data: { module: "menu-list", type: orderType.value }
         });
@@ -310,7 +310,7 @@ const _sfc_main = {
           name: "arrow-left",
           size: 20
         }),
-        b: common_vendor.o(goHome, "0b"),
+        b: common_vendor.o(goHome, "8d"),
         c: common_vendor.t(pageTitle.value),
         d: common_vendor.unref(statusBarHeight) + 32 + "px",
         e: common_vendor.f(categories.value, (cat, k0, i0) => {
@@ -332,7 +332,7 @@ const _sfc_main = {
       } : dishes.value.length === 0 ? {
         j: common_vendor.t(emptyEmoji.value),
         k: common_vendor.t(emptyText.value),
-        l: common_vendor.o(loadMenu, "2b")
+        l: common_vendor.o(loadMenu, "f8")
       } : {
         m: common_vendor.f(categories.value, (cat, k0, i0) => {
           return common_vendor.e({
@@ -362,8 +362,8 @@ const _sfc_main = {
         i: dishes.value.length === 0,
         n: dishScrollTop.value,
         o: refreshing.value,
-        p: common_vendor.o(onRefresh, "e6"),
-        q: common_vendor.o(onScroll, "bf"),
+        p: common_vendor.o(onRefresh, "81"),
+        q: common_vendor.o(onScroll, "63"),
         r: common_vendor.p({
           name: "shopping-bag",
           size: 22
@@ -376,9 +376,9 @@ const _sfc_main = {
         w: cartBarBounce.value ? 1 : "",
         x: common_vendor.t(cartTotal.value > 0 ? `已选 ${cartTotal.value} 件` : "购物车是空的"),
         y: common_vendor.t(cartTotal.value > 0 ? "点击查看已选菜品" : "快去挑选喜欢的菜品吧"),
-        z: common_vendor.o(onCartClick, "32"),
+        z: common_vendor.o(onCartClick, "34"),
         A: cartTotal.value === 0 ? 1 : "",
-        B: common_vendor.o(goSubmit, "82"),
+        B: common_vendor.o(goSubmit, "fa"),
         C: common_vendor.f(flyingItems.value, (fly, k0, i0) => {
           return common_vendor.e({
             a: fly.image
@@ -392,8 +392,8 @@ const _sfc_main = {
             f: common_vendor.o(($event) => onFlyEnd(fly.id), fly.id)
           });
         }),
-        D: common_vendor.o(onPopupClose, "59"),
-        E: common_vendor.o(onPopupSubmit, "b0"),
+        D: common_vendor.o(onPopupClose, "36"),
+        E: common_vendor.o(onPopupSubmit, "65"),
         F: common_vendor.p({
           visible: cartVisible.value,
           theme: orderType.value

@@ -6,6 +6,8 @@ const utils_roleGuard = require("./utils/role-guard.js");
 if (!Math) {
   "./pages/home/home.js";
   "./pages/order/order.js";
+  "./pages/recipe/recipe.js";
+  "./pages/my/my.js";
   "./pages/record/record.js";
   "./pages/admin/admin.js";
   "./pages/dish-detail/dish-detail.js";

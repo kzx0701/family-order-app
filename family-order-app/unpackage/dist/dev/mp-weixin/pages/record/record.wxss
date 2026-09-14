@@ -25,6 +25,10 @@
 /* === 间距（rpx 适配小程序） === */
 /* === 动效时长与缓动 === */
 /* === 安全区域 === */
+/**
+ * 二期视觉 Token
+ * 仅包含变量声明，供新版页面逐步迁移使用，不直接生成 CSS。
+ */
 /* 引入 mixin 定义（仅 @mixin，无 CSS 输出） */
 /**
  * 通用 SCSS Mixin
@@ -62,7 +66,7 @@
 /* 圆角 */
 .page-record.data-v-ef6850c5 {
   min-height: 100vh;
-  padding-bottom: calc(80rpx + env(safe-area-inset-bottom));
+  padding-bottom: calc(40rpx + env(safe-area-inset-bottom));
   background-color: #FFFBF5;
 }
 
@@ -75,6 +79,25 @@
   z-index: 100;
   padding: 56rpx 40rpx 24rpx;
   background-color: #FFFBF5;
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+}
+.header .back-button.data-v-ef6850c5 {
+  width: 64rpx;
+  height: 64rpx;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2rpx solid #765540;
+  border-radius: 45% 55% 48% 52%;
+  background: #fffef9;
+  color: #624735;
+  box-shadow: 4rpx 5rpx 0 rgba(98, 71, 53, 0.12);
+}
+.header .header-copy.data-v-ef6850c5 {
+  flex: 1;
 }
 .header .title.data-v-ef6850c5 {
   display: block;

@@ -6,6 +6,7 @@
 
 /* 引入设计 token 变量（仅变量声明，无 CSS 输出） */
 @import '@/scss/tokens.scss';
+@import '@/scss/phase2-tokens.scss';
 
 /* 引入 mixin 定义（仅 @mixin，无 CSS 输出） */
 @import '@/scss/mixins.scss';

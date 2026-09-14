@@ -1,378 +1,212 @@
 <template>
   <view class="page-home page-enter">
-    <!-- 顶部 header：趣味问候 + 头像 + 装饰图案（fixed 固定，滚动时常驻顶部） -->
-    <view class="header" :style="{ paddingTop: statusBarHeight + 40 + 'px' }">
-      <!-- 背景装饰 emoji（绝对定位，错落漂浮） -->
-      <view class="header-deco">
-        <!-- Lottie 装饰：咖啡杯冒热气，加载成功时显示动画，失败时 emoji 降级 -->
-        <view class="deco-lottie-wrap" :class="{ 'is-loaded': decoLottieLoaded }">
-          <canvas
-            type="2d"
-            id="home-deco-lottie"
-            class="deco-lottie-canvas"
-          ></canvas>
+    <view class="paper-dot dot-a"></view>
+    <view class="paper-dot dot-b"></view>
+    <view class="paper-dot dot-c"></view>
+
+    <view class="home-header" :style="{ paddingTop: statusBarHeight + 28 + 'px' }">
+      <view class="family-chip">
+        <view class="house-mark">
+          <view class="house-roof"></view>
+          <view class="house-body"></view>
         </view>
-        <text v-show="!decoLottieLoaded" class="deco deco-1">☕</text>
-        <text class="deco deco-2">🍃</text>
-        <text class="deco deco-3">✨</text>
-        <text class="deco deco-4">🥐</text>
+        <text>{{ familyName }}</text>
       </view>
 
-      <view class="header-content">
-        <view class="greeting-wrap">
+      <view class="greeting-row">
+        <view>
           <text class="greeting">{{ greeting }}</text>
           <text class="greeting-sub">{{ greetingSub }}</text>
         </view>
-        <view class="avatar-wrap" @tap="onAvatarTap">
-          <image
-            v-if="avatarUrl"
-            class="avatar-img"
-            :src="avatarUrl"
-            mode="aspectFill"
-          />
-          <view v-else class="avatar-fallback">
-            <default-avatar :role="userStore.role || 'admin'" />
+        <view class="sun-doodle">
+          <view class="sun-face">
+            <view class="sun-eye eye-left"></view>
+            <view class="sun-eye eye-right"></view>
+            <view class="sun-smile"></view>
+          </view>
+          <view class="sun-ray ray-a"></view>
+          <view class="sun-ray ray-b"></view>
+          <view class="sun-ray ray-c"></view>
+        </view>
+      </view>
+
+      <view class="header-scribble"></view>
+    </view>
+
+    <view class="entry-section">
+      <view class="entry-card entry-food" @tap="goOrder('food')">
+        <view class="entry-copy">
+          <view class="entry-kicker">
+            <view class="kicker-dot"></view>
+            <text>今天吃什么</text>
+          </view>
+          <text class="entry-title">干饭</text>
+          <text class="entry-desc">挑一道家里会做的菜</text>
+          <view class="entry-link">
+            <text>去点菜</text>
+            <Icon name="chevron-right" :size="15" :stroke-width="2.4" />
+          </view>
+        </view>
+
+        <view class="entry-art food-art">
+          <view class="food-steam steam-a"></view>
+          <view class="food-steam steam-b"></view>
+          <view class="food-bowl-top">
+            <view class="food-dot food-dot-a"></view>
+            <view class="food-dot food-dot-b"></view>
+            <view class="food-leaf"></view>
+          </view>
+          <view class="food-bowl">
+            <view class="face-eye face-eye-left"></view>
+            <view class="face-eye face-eye-right"></view>
+            <view class="face-smile"></view>
+          </view>
+          <view class="art-spark spark-a">✦</view>
+          <view class="art-spark spark-b">·</view>
+        </view>
+      </view>
+
+      <view class="entry-card entry-coffee" @tap="goOrder('coffee')">
+        <view class="entry-copy">
+          <view class="entry-kicker coffee-kicker">
+            <view class="kicker-dot"></view>
+            <text>来点小幸福</text>
+          </view>
+          <text class="entry-title">咖啡</text>
+          <text class="entry-desc">给今天加一点香气</text>
+          <view class="entry-link">
+            <text>去点咖啡</text>
+            <Icon name="chevron-right" :size="15" :stroke-width="2.4" />
+          </view>
+        </view>
+
+        <view class="entry-art coffee-art">
+          <view class="coffee-steam steam-a"></view>
+          <view class="coffee-steam steam-b"></view>
+          <view class="coffee-cup">
+            <view class="coffee-mouth"></view>
+            <view class="coffee-eye eye-left"></view>
+            <view class="coffee-eye eye-right"></view>
+            <view class="coffee-smile"></view>
+          </view>
+          <view class="coffee-handle"></view>
+          <view class="coffee-saucer"></view>
+          <view class="art-spark spark-a">✦</view>
+          <view class="art-spark spark-b">·</view>
+        </view>
+      </view>
+    </view>
+
+    <view class="recent-section">
+      <view class="section-head">
+        <view class="section-title-wrap">
+          <text class="section-title">最近点单</text>
+          <view class="title-scribble"></view>
+        </view>
+        <view class="section-action" @tap="goMy">
+          <text>全部记录</text>
+          <Icon name="chevron-right" :size="14" :stroke-width="2.3" />
+        </view>
+      </view>
+
+      <view v-if="loading && orders.length === 0" class="loading-list">
+        <view v-for="n in 2" :key="n" class="loading-card">
+          <view class="loading-thumb shimmer-line"></view>
+          <view class="loading-copy">
+            <view class="loading-line line-long shimmer-line"></view>
+            <view class="loading-line line-short shimmer-line"></view>
           </view>
         </view>
       </view>
-    </view>
-    <!-- header 固定后的占位 view，撑开与 header 等高的空间 -->
-    <view class="header-spacer" :style="{ height: headerHeight + 'px' }"></view>
 
-    <!-- 双入口卡片（咖啡/美食） -->
-    <view class="entries">
-      <view
-        class="entry-card entry-coffee animate-pop-in"
-        :style="{ animationDelay: '80ms' }"
-        @tap="goOrder('coffee')"
-      >
-        <view class="entry-deco deco-a">🥐</view>
-        <view class="entry-deco deco-b">✨</view>
-        <view class="entry-content">
-          <text class="entry-emoji">☕</text>
-          <text class="entry-title">来杯咖啡</text>
-          <text class="entry-sub">香浓醇厚</text>
+      <view v-else-if="displayOrders.length === 0" class="empty-card">
+        <view class="empty-art">
+          <view class="empty-plate">
+            <view class="empty-eye eye-left"></view>
+            <view class="empty-eye eye-right"></view>
+            <view class="empty-mouth"></view>
+          </view>
+          <view class="empty-spoon"></view>
+          <view class="empty-spark">✦</view>
+        </view>
+        <view class="empty-copy">
+          <text class="empty-title">还没有最近点单</text>
+          <text class="empty-desc">从上面的入口挑点喜欢的吧</text>
         </view>
       </view>
 
-      <view
-        class="entry-card entry-food animate-pop-in"
-        :style="{ animationDelay: '180ms' }"
-        @tap="goOrder('food')"
-      >
-        <view class="entry-deco deco-a">🥗</view>
-        <view class="entry-deco deco-b">🍃</view>
-        <view class="entry-content">
-          <text class="entry-emoji">🍲</text>
-          <text class="entry-title">想吃美食</text>
-          <text class="entry-sub">家常美味</text>
-        </view>
-      </view>
-    </view>
-
-    <!-- 今日订单区域（角色差异化） -->
-    <view class="section">
-      <view class="section-header">
-        <view class="section-title-wrap">
-          <text class="section-title">{{ todaySectionTitle }}</text>
-          <text class="section-count">{{ displayOrders.length }}</text>
-        </view>
-        <text class="section-more" @tap="goRecord">查看全部 ›</text>
-      </view>
-
-      <!-- 加载占位：骨架屏（替代原来的三点动效，更现代） -->
-      <skeleton
-        v-if="loading && orders.length === 0"
-        type="card"
-        :count="2"
-      />
-
-      <!-- 空状态：Lottie 空盘动画 + 趣味文案，Lottie 失败降级到 emoji -->
-      <view v-else-if="orders.length === 0" class="empty-state animate-fade-in">
-        <view class="empty-lottie-wrap" :class="{ 'is-loaded': emptyLottieLoaded }">
-          <canvas
-            type="2d"
-            id="home-empty-lottie"
-            class="empty-lottie-canvas"
-          ></canvas>
-        </view>
-        <text v-show="!emptyLottieLoaded" class="empty-emoji">{{ emptyEmoji }}</text>
-        <text class="empty-text">{{ emptyText }}</text>
-      </view>
-
-      <!-- 订单列表 -->
-      <view v-else class="order-list">
-        <order-card
-          v-for="(order, idx) in displayOrders"
+      <view v-else class="recent-list">
+        <view
+          v-for="(order, index) in displayOrders"
           :key="order._id"
-          :order="order"
-          :show-user="userStore.isAdmin"
-          class="order-card-item animate-item-enter"
-          :style="{ animationDelay: `${idx * 60}ms` }"
-          @tap="onOrderTap"
-        />
-      </view>
-    </view>
-
-    <!-- 编辑昵称弹窗 -->
-    <view
-      v-if="showProfileModal"
-      class="profile-modal-mask"
-      @tap="closeProfileModal"
-    >
-      <view class="profile-modal" @tap.stop>
-        <!-- 顶部大头像：点击触发微信 chooseAvatar 授权 -->
-        <button
-          class="modal-avatar-btn"
-          open-type="chooseAvatar"
-          @chooseavatar="onChooseAvatar"
+          class="recent-card"
+          :style="{ animationDelay: `${index * 70}ms` }"
+          @tap="goOrderDetail(order)"
         >
-          <image
-            v-if="editAvatar"
-            class="modal-avatar"
-            :src="editAvatar"
-            mode="aspectFill"
-          />
-          <view v-else class="modal-avatar modal-avatar-fallback">
-            <default-avatar :role="userStore.role || 'admin'" />
-            <view class="modal-avatar-edit-hint">
-              <text class="modal-avatar-edit-text">点击更换</text>
+          <view class="recent-icon" :class="orderKind(order)">
+            <text>{{ orderEmoji(order) }}</text>
+          </view>
+          <view class="recent-main">
+            <text class="recent-summary">{{ orderSummary(order) }}</text>
+            <view class="recent-meta">
+              <text>{{ order.userName || '家庭成员' }}</text>
+              <view class="meta-dot"></view>
+              <text>{{ formatOrderTime(order.createTime) }}</text>
             </view>
           </view>
-        </button>
-
-        <!-- 标题 -->
-        <text class="modal-title">编辑资料</text>
-
-        <!-- 昵称输入框 -->
-        <view class="modal-input-wrap">
-          <input
-            class="modal-input"
-            type="text"
-            :value="editNickname"
-            placeholder="请输入昵称"
-            placeholder-class="modal-input-placeholder"
-            maxlength="20"
-            :focus="showProfileModal"
-            @input="onNicknameInput"
-            @confirm="saveProfile"
-          />
-          <view class="modal-input-count">{{ editNickname.length }}/20</view>
-        </view>
-
-        <!-- 按钮组 -->
-        <view class="modal-actions">
-          <view class="modal-btn modal-btn-cancel" @tap="closeProfileModal">
-            <text class="modal-btn-text">取消</text>
-          </view>
-          <view
-            class="modal-btn modal-btn-save"
-            :class="{ disabled: saving || !editNickname.trim() }"
-            @tap="saveProfile"
-          >
-            <text class="modal-btn-text">{{ saving ? '保存中...' : '保存' }}</text>
+          <view class="recent-side">
+            <view class="status-pill" :class="`status-${order.status || 'pending'}`">
+              {{ statusLabel(order.status) }}
+            </view>
+            <Icon name="chevron-right" :size="14" :stroke-width="2.4" />
           </view>
         </view>
       </view>
     </view>
 
-    <!-- 自定义底部 tab -->
+    <view class="page-bottom-space"></view>
     <custom-tabbar />
   </view>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick, getCurrentInstance, watch } from 'vue'
-import { onShow, onPullDownRefresh } from '@dcloudio/uni-app'
+import { computed, ref, watch } from 'vue'
+import { onPullDownRefresh, onShow } from '@dcloudio/uni-app'
+import { useCartStore } from '@/store/cart.js'
 import { useUserStore } from '@/store/user.js'
 import { useSafeArea } from '@/composables/useSafeArea.js'
-import { useHeaderFixed } from '@/composables/useHeaderFixed.js'
-import { useCartStore } from '@/store/cart.js'
-import { loadLottieOnReady, destroyLottie } from '@/utils/lottie.js'
-import homeDecoAnim from '@/static/lottie/home-decoration.json'
-import emptyAnim from '@/static/lottie/empty.json'
 
 const { statusBarHeight } = useSafeArea()
-const { headerHeight } = useHeaderFixed('.header')
 const userStore = useUserStore()
 const cartStore = useCartStore()
 
-// 今日订单列表（由 home-data 云函数返回）
 const orders = ref([])
 const loading = ref(false)
 
-/* === 编辑昵称弹窗状态 === */
-const showProfileModal = ref(false) // 弹窗是否显示
-const editNickname = ref('')        // 输入框中的昵称（可编辑）
-const editAvatar = ref('')          // 临时头像路径（点击 chooseAvatar 后更新）
-const avatarChanged = ref(false)    // 头像是否变化（决定是否上传）
-const saving = ref(false)           // 保存中状态
+const familyName = computed(() => userStore.userInfo?.familyName || '我的家庭')
 
-/**
- * 点击头像：打开编辑资料弹窗
- * 把当前昵称和头像同步到输入框/预览
- */
-const onAvatarTap = () => {
-  editNickname.value = userStore.nickname || ''
-  editAvatar.value = userStore.avatar || ''
-  avatarChanged.value = false
-  showProfileModal.value = true
-}
-
-/**
- * 关闭弹窗
- */
-const closeProfileModal = () => {
-  if (saving.value) return // 保存中不允许关闭
-  showProfileModal.value = false
-}
-
-/**
- * 输入框输入事件
- */
-const onNicknameInput = (e) => {
-  editNickname.value = e.detail.value || ''
-}
-
-/**
- * 微信 chooseAvatar 回调
- * 用户从微信头像列表选择后触发，得到临时文件路径
- */
-const onChooseAvatar = (e) => {
-  const path = e.detail.avatarUrl
-  if (path) {
-    editAvatar.value = path
-    avatarChanged.value = true
-  }
-}
-
-/**
- * 保存资料
- * 1. 头像变化则上传
- * 2. 昵称变化则更新
- * 3. 都没变化直接关闭
- */
-const saveProfile = async () => {
-  const name = editNickname.value.trim()
-  if (!name) {
-    uni.showToast({ title: '昵称不能为空', icon: 'none' })
-    return
-  }
-
-  const nicknameChanged = name !== userStore.nickname
-  const needUploadAvatar = avatarChanged.value && editAvatar.value
-  if (!nicknameChanged && !needUploadAvatar) {
-    showProfileModal.value = false
-    return
-  }
-
-  saving.value = true
-  try {
-    // 头像先上传
-    if (needUploadAvatar) {
-      await userStore.updateAvatar(editAvatar.value)
-    }
-    // 昵称变化才更新
-    if (nicknameChanged) {
-      await userStore.updateNickname(name)
-    }
-    uni.showToast({ title: '保存成功', icon: 'success' })
-    showProfileModal.value = false
-  } catch (e) {
-    console.error('[home] saveProfile error', e)
-    uni.showToast({ title: e.message || '保存失败', icon: 'none' })
-  } finally {
-    saving.value = false
-  }
-}
-
-/* === Lottie 装饰加载状态 === */
-const decoLottieLoaded = ref(false)  // header 装饰 Lottie 是否加载成功
-const emptyLottieLoaded = ref(false) // 空状态 Lottie 是否加载成功
-const DECO_CANVAS_ID = 'home-deco-lottie'
-const EMPTY_CANVAS_ID = 'home-empty-lottie'
-const instance = getCurrentInstance()
-
-/**
- * 加载 header 装饰 Lottie（咖啡杯冒热气）
- * 失败时 decoLottieLoaded 保持 false，emoji ☕ 自然作为降级
- */
-const loadDecoLottie = async () => {
-  await nextTick()
-  await new Promise((r) => setTimeout(r, 100))
-  const anim = await loadLottieOnReady(
-    DECO_CANVAS_ID,
-    homeDecoAnim,
-    { loop: true, autoplay: true },
-    instance?.proxy || null
-  )
-  if (anim) {
-    decoLottieLoaded.value = true
-  }
-}
-
-/**
- * 加载空状态 Lottie（空盘子）
- * 失败时 emptyLottieLoaded 保持 false，emoji 自然作为降级
- */
-const loadEmptyLottie = async () => {
-  await nextTick()
-  await new Promise((r) => setTimeout(r, 100))
-  const anim = await loadLottieOnReady(
-    EMPTY_CANVAS_ID,
-    emptyAnim,
-    { loop: true, autoplay: true },
-    instance?.proxy || null
-  )
-  if (anim) {
-    emptyLottieLoaded.value = true
-  }
-}
-
-/* === 问候语（按本地时段切换） === */
 const greeting = computed(() => {
-  const h = new Date().getHours()
-  if (h >= 5 && h < 11) return '早安~'
-  if (h >= 11 && h < 14) return '午安~'
-  if (h >= 14 && h < 18) return '下午好~'
-  if (h >= 18 && h < 22) return '晚上好~'
-  return '深夜啦~'
+  const hour = new Date().getHours()
+  if (hour >= 5 && hour < 11) return '早安，开饭啦'
+  if (hour >= 11 && hour < 14) return '午饭时间到'
+  if (hour >= 14 && hour < 18) return '下午好呀'
+  if (hour >= 18 && hour < 22) return '晚饭吃什么'
+  return '夜宵也可以'
 })
+
 const greetingSub = computed(() => {
-  const h = new Date().getHours()
-  if (h >= 5 && h < 11) return '今天想吃点啥呀~'
-  if (h >= 11 && h < 14) return '肚子饿了吗~'
-  if (h >= 14 && h < 18) return '来杯下午茶吧~'
-  if (h >= 18 && h < 22) return '晚饭想吃点啥~'
-  return '夜宵时间到啦~'
+  const hour = new Date().getHours()
+  if (hour >= 5 && hour < 11) return '新的一天，从喜欢的味道开始'
+  if (hour >= 11 && hour < 14) return '看看家里今天能做点什么'
+  if (hour >= 14 && hour < 18) return '想喝咖啡，还是提前点个菜？'
+  if (hour >= 18 && hour < 22) return '家里的饭，总有一点不一样'
+  return '小声点单，别把做饭人吵醒啦'
 })
 
-/* === 头像：有图用图，无图用默认 user 图标 === */
-const avatarUrl = computed(() => userStore.avatar || '')
+const displayOrders = computed(() => orders.value.slice(0, 3))
 
-/* === 今日订单区域：标题、空状态文案、列表（角色差异化） === */
-const todaySectionTitle = computed(() =>
-  userStore.isAdmin ? '今日待制作' : '今日我的点单'
-)
-
-const emptyEmoji = computed(() => (userStore.isAdmin ? '👨‍🍳' : '🛒'))
-const emptyText = computed(() =>
-  userStore.isAdmin
-    ? '今天还没有订单~ 等老婆来点单吧'
-    : '今天还没点单哦~ 去点一杯吧'
-)
-
-// 下单人视图最多展示 3 条；管理员展示全部今日待制作
-const displayOrders = computed(() => {
-  if (userStore.isAdmin) return orders.value
-  return orders.value.slice(0, 3)
-})
-
-/* === 加载今日订单 === */
 const loadOrders = async () => {
-  if (loading.value) return
-  // token 未就绪时跳过：App.vue bootstrap 异步恢复登录态，首页 onShow 可能先于 token 就绪
-  if (!userStore.token) return
+  if (loading.value || !userStore.token) return
   loading.value = true
   try {
     const res = await uniCloud.callFunction({
@@ -383,588 +217,804 @@ const loadOrders = async () => {
         role: userStore.role
       }
     })
-    if (res.result.code === 0) {
-      orders.value = res.result.list || []
-    } else if (res.result.code === 401) {
-      // 登录态未就绪或失效：静默不提示（由 App.vue bootstrap 管理登录态）
-      console.warn('[home] home-data 401', res.result.message)
-    } else {
-      uni.showToast({ title: res.result.message || '加载失败', icon: 'none' })
-    }
+    if (res.result?.code === 0) orders.value = res.result.list || []
   } catch (e) {
-    console.error('[home] loadOrders error', e)
-    uni.showToast({ title: '加载失败', icon: 'none' })
+    console.warn('[home] recent orders unavailable during phase2 shell preview', e)
   } finally {
     loading.value = false
   }
 }
 
-/* === 跳转入口 === */
-// 注意：order 是 tabBar 页面，switchTab 不支持 query 参数
-// 故通过 cart store 的 pendingType 字段中转，点单页 onShow 时消费
 const goOrder = (type) => {
   cartStore.setPendingType(type)
   uni.switchTab({ url: '/pages/order/order' })
 }
 
-const goRecord = () => {
-  uni.switchTab({ url: '/pages/record/record' })
+const goMy = () => {
+  uni.switchTab({ url: '/pages/my/my' })
 }
 
-/* === 点击订单卡片：跳转订单详情页 === */
-const onOrderTap = ({ order }) => {
-  uni.navigateTo({
-    url: `/pages/order-detail/order-detail?id=${order._id}`
-  })
+const goOrderDetail = (order) => {
+  if (!order?._id) return
+  uni.navigateTo({ url: `/pages/order-detail/order-detail?id=${order._id}` })
 }
 
-/* === 生命周期 === */
-// onMounted：加载 header 装饰 Lottie
-onMounted(() => {
-  loadDecoLottie()
-})
+const orderItems = (order) => (Array.isArray(order?.items) ? order.items : [])
 
-// 监听空状态出现：当订单列表为空且非加载中时，加载空状态 Lottie
-watch(
-  () => !loading.value && orders.value.length === 0,
-  (isEmpty) => {
-    if (isEmpty) {
-      nextTick(() => {
-        loadEmptyLottie()
-      })
-    }
-  }
-)
+const orderSummary = (order) => {
+  if (order?.summary) return order.summary
+  const items = orderItems(order)
+  if (!items.length) return '一份家庭点单'
+  return items.map((item) => `${item.name} ×${item.quantity || 1}`).join('、')
+}
 
-// 监听 token 就绪：App.vue bootstrap 异步恢复登录态，
-// 首次 onShow 时 token 可能未就绪导致 loadOrders 跳过；
-// token 就绪后自动触发首次加载，避免首页空白
+const orderKind = (order) => {
+  const type = order?.orderType || orderItems(order)[0]?.type
+  return type === 'coffee' ? 'kind-coffee' : 'kind-food'
+}
+
+const orderEmoji = (order) => (orderKind(order) === 'kind-coffee' ? '☕' : '🍚')
+
+const formatOrderTime = (timestamp) => {
+  if (!timestamp) return '刚刚'
+  const date = new Date(timestamp)
+  const today = new Date()
+  const sameDay = date.toDateString() === today.toDateString()
+  const hour = String(date.getHours()).padStart(2, '0')
+  const minute = String(date.getMinutes()).padStart(2, '0')
+  if (sameDay) return `今天 ${hour}:${minute}`
+  return `${date.getMonth() + 1}月${date.getDate()}日`
+}
+
+const statusLabel = (status) => ({
+  pending: '等开饭',
+  preparing: '制作中',
+  completed: '已完成',
+  cancelled: '已取消'
+}[status] || '等开饭')
+
 watch(
   () => userStore.token,
-  (newToken) => {
-    if (newToken && orders.value.length === 0 && !loading.value) {
-      loadOrders()
-    }
+  (token) => {
+    if (token && !orders.value.length) loadOrders()
   }
 )
 
-// onShow：每次返回首页都刷新一次（下单返回后能看到新订单）
-onShow(() => {
-  loadOrders()
-})
+onShow(loadOrders)
 
-// 下拉刷新
 onPullDownRefresh(async () => {
   await loadOrders()
   uni.stopPullDownRefresh()
-})
-
-// 卸载时销毁 Lottie 实例
-onUnmounted(() => {
-  destroyLottie(DECO_CANVAS_ID)
-  destroyLottie(EMPTY_CANVAS_ID)
 })
 </script>
 
 <style lang="scss" scoped>
 .page-home {
+  position: relative;
   min-height: 100vh;
-  padding-bottom: calc(80rpx + env(safe-area-inset-bottom));
-  background-color: $color-bg;
-  display: flex;
-  flex-direction: column;
-}
-
-/* === 顶部 header（fixed 固定，滚动时常驻顶部） === */
-.header {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 100;
   overflow: hidden;
-  padding: 56rpx 40rpx 32rpx;
-  background: linear-gradient(160deg, #FFF8F0 0%, #FFEFD6 100%);
-  border-bottom-left-radius: $radius-2xl;
-  border-bottom-right-radius: $radius-2xl;
-
-  .header-deco {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-
-    .deco {
-      position: absolute;
-      opacity: 0.55;
-      font-size: 36rpx;
-    }
-    .deco-1 {
-      top: 24rpx;
-      right: 56rpx;
-      font-size: 44rpx;
-      animation: floatA 4.2s $ease-smooth infinite;
-    }
-    .deco-2 {
-      top: 80rpx;
-      right: 180rpx;
-      animation: floatB 5s $ease-smooth infinite;
-    }
-    .deco-3 {
-      top: 40rpx;
-      left: 220rpx;
-      animation: floatA 3.6s $ease-smooth infinite;
-    }
-    .deco-4 {
-      top: 96rpx;
-      left: 40rpx;
-      font-size: 28rpx;
-      opacity: 0.4;
-      animation: floatB 4.8s $ease-smooth infinite;
-    }
-
-    /* Lottie 装饰：咖啡杯冒热气，定位与 deco-1 ☕ 重合 */
-    /* 加载成功时 is-loaded 触发 opacity 渐显；失败时保持隐藏，emoji 降级 */
-    .deco-lottie-wrap {
-      position: absolute;
-      top: 16rpx;
-      right: 48rpx;
-      width: 88rpx;
-      height: 88rpx;
-      opacity: 0;
-      transition: opacity $dur-slow $ease-smooth;
-
-      &.is-loaded {
-        opacity: 0.9;
-      }
-
-      .deco-lottie-canvas {
-        width: 100%;
-        height: 100%;
-      }
-    }
-  }
-
-  .header-content {
-    position: relative;
-    z-index: 1;
-    @include flex-between;
-    gap: 24rpx;
-  }
-
-  .greeting-wrap {
-    @include flex-column;
-    gap: 6rpx;
-    flex: 1;
-    min-width: 0;
-
-    .greeting {
-      font-size: $font-size-2xl;
-      font-weight: $font-weight-bold;
-      color: $color-coffee-700;
-      line-height: $line-height-tight;
-    }
-
-    .greeting-sub {
-      font-size: $font-size-sm;
-      color: $color-coffee-500;
-      line-height: $line-height-normal;
-    }
-  }
-
-  .avatar-wrap {
-    flex-shrink: 0;
-
-    .avatar-img,
-    .avatar-fallback {
-      width: 88rpx;
-      height: 88rpx;
-      border-radius: 50%;
-      border: 4rpx solid #fff;
-      box-shadow: $shadow-md;
-    }
-
-    .avatar-img {
-      background-color: $color-bg-soft;
-    }
-
-    .avatar-fallback {
-      overflow: hidden;
-    }
-  }
+  padding-bottom: calc(120rpx + env(safe-area-inset-bottom));
+  background:
+    radial-gradient(circle at 9% 15%, rgba(242, 198, 93, 0.12) 0 3rpx, transparent 4rpx),
+    radial-gradient(circle at 86% 34%, rgba(133, 169, 111, 0.11) 0 2rpx, transparent 3rpx),
+    $p2-paper;
+  color: $p2-ink;
 }
 
-@keyframes floatA {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  50% { transform: translateY(-10rpx) rotate(8deg); }
-}
-@keyframes floatB {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  50% { transform: translateY(8rpx) rotate(-8deg); }
-}
-
-/* === 双入口卡片 === */
-.entries {
-  display: flex;
-  gap: 24rpx;
-  padding: 32rpx 40rpx 8rpx;
-
-  .entry-card {
-    position: relative;
-    overflow: hidden;
-    flex: 1;
-    min-height: 220rpx;
-    border-radius: $radius-2xl;
-    box-shadow: $shadow-md;
-    transition: transform $dur-base $ease-bounce, box-shadow $dur-base $ease-smooth;
-
-    &:active {
-      transform: scale(0.96);
-      box-shadow: $shadow-sm;
-    }
-
-    .entry-deco {
-      position: absolute;
-      pointer-events: none;
-      opacity: 0.55;
-      z-index: 0;
-
-      &.deco-a {
-        top: 16rpx;
-        right: 20rpx;
-        font-size: 44rpx;
-        animation: floatA 3.6s $ease-smooth infinite;
-      }
-      &.deco-b {
-        bottom: 20rpx;
-        left: 20rpx;
-        font-size: 32rpx;
-        animation: floatB 4.4s $ease-smooth infinite;
-      }
-    }
-
-    .entry-content {
-      position: relative;
-      z-index: 1;
-      height: 100%;
-      @include flex-column;
-      align-items: center;
-      justify-content: center;
-      padding: 32rpx 0;
-      gap: 8rpx;
-
-      .entry-emoji {
-        font-size: 64rpx;
-        line-height: 1;
-        margin-bottom: 4rpx;
-      }
-
-      .entry-title {
-        font-size: $font-size-lg;
-        font-weight: $font-weight-semibold;
-        line-height: 1;
-      }
-
-      .entry-sub {
-        font-size: $font-size-xs;
-        opacity: 0.85;
-      }
-    }
-  }
-
-  /* 咖啡卡片：棕系渐变 */
-  .entry-coffee {
-    background: linear-gradient(160deg, #F5E6D3 0%, #E8D0B3 100%);
-    .entry-title { color: $color-coffee-700; }
-    .entry-sub { color: $color-coffee-400; }
-  }
-
-  /* 美食卡片：绿系渐变 */
-  .entry-food {
-    background: linear-gradient(160deg, #DCFCE7 0%, #BBF7D0 100%);
-    .entry-title { color: $color-food-700; }
-    .entry-sub { color: $color-food-600; opacity: 0.75; }
-  }
+.paper-dot {
+  position: absolute;
+  z-index: 0;
+  border: 3rpx solid rgba(98, 71, 53, 0.12);
+  border-radius: 48% 52% 46% 54%;
+  pointer-events: none;
 }
 
-/* === 今日订单区域 === */
-.section {
-  flex: 1;
-  padding: 40rpx 40rpx 0;
-  display: flex;
-  flex-direction: column;
-
-  .section-header {
-    @include flex-between;
-    margin-bottom: 24rpx;
-
-    .section-title-wrap {
-      display: flex;
-      align-items: baseline;
-      gap: 12rpx;
-
-      .section-title {
-        font-size: $font-size-lg;
-        font-weight: $font-weight-semibold;
-        color: $color-coffee-700;
-      }
-      .section-count {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        min-width: 36rpx;
-        height: 36rpx;
-        padding: 0 12rpx;
-        margin-left: 12rpx;
-        border-radius: $radius-full;
-        background-color: $color-coffee-100;
-        font-size: $font-size-sm;
-        color: $color-coffee-700;
-        font-weight: $font-weight-bold;
-        line-height: 1;
-      }
-    }
-
-    .section-more {
-      font-size: $font-size-sm;
-      color: $color-coffee-500;
-      @include tap-feedback;
-    }
-  }
-
-  /* 加载占位 */
-  .loading-state {
-    @include flex-center;
-    gap: 8rpx;
-    padding: 64rpx 0;
-
-    .loading-dot {
-      font-size: $font-size-2xl;
-      color: $color-coffee-400;
-      animation: dotBlink 1.2s $ease-smooth infinite;
-
-      &:nth-child(2) { animation-delay: 0.2s; }
-      &:nth-child(3) { animation-delay: 0.4s; }
-    }
-  }
-
-  /* 空状态 */
-  .empty-state {
-    flex: 1;
-    @include flex-column;
-    align-items: center;
-    justify-content: center;
-    gap: 16rpx;
-    padding: 32rpx 0;
-
-    /* Lottie 空状态：空盘子动画，加载成功时渐显，失败时 emoji 降级 */
-    .empty-lottie-wrap {
-      width: 160rpx;
-      height: 160rpx;
-      opacity: 0;
-      transition: opacity $dur-slow $ease-smooth;
-
-      &.is-loaded {
-        opacity: 1;
-      }
-
-      .empty-lottie-canvas {
-        width: 100%;
-        height: 100%;
-      }
-    }
-
-    .empty-emoji {
-      font-size: 96rpx;
-      animation: pulse 2.4s $ease-smooth infinite;
-    }
-
-    .empty-text {
-      font-size: $font-size-sm;
-      color: $color-text-muted;
-      text-align: center;
-      line-height: $line-height-relaxed;
-    }
-  }
-
-  /* 订单列表 */
-  .order-list {
-    flex: 1;
-    @include flex-column;
-    gap: 20rpx;
-
-    .order-card-item {
-      /* 配合 .animate-item-enter，逐条滑入 */
-    }
-  }
+.dot-a {
+  top: 216rpx;
+  left: -26rpx;
+  width: 82rpx;
+  height: 38rpx;
+  transform: rotate(18deg);
 }
 
-@keyframes dotBlink {
-  0%, 100% { opacity: 0.3; }
-  50% { opacity: 1; }
+.dot-b {
+  top: 580rpx;
+  right: -32rpx;
+  width: 104rpx;
+  height: 48rpx;
+  transform: rotate(-22deg);
 }
 
-/* === 编辑昵称弹窗 === */
-.profile-modal-mask {
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
-  background-color: rgba(0, 0, 0, 0.45);
-  @include flex-center;
-  animation: maskFadeIn $dur-base $ease-smooth both;
+.dot-c {
+  bottom: 240rpx;
+  left: 42rpx;
+  width: 28rpx;
+  height: 28rpx;
+  border-color: rgba(233, 122, 105, 0.18);
 }
 
-@keyframes maskFadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+.home-header,
+.entry-section,
+.recent-section {
+  position: relative;
+  z-index: 1;
 }
 
-.profile-modal {
-  width: 600rpx;
-  padding: 48rpx 40rpx 32rpx;
-  background-color: $color-card;
-  border-radius: $radius-2xl;
-  box-shadow: $shadow-lg;
-  display: flex;
-  flex-direction: column;
+.home-header {
+  padding: 38rpx 34rpx 22rpx;
+}
+
+.family-chip {
+  display: inline-flex;
   align-items: center;
-  animation: modalPopIn $dur-base $ease-bounce both;
+  gap: 10rpx;
+  padding: 9rpx 16rpx 8rpx 12rpx;
+  background: rgba(255, 254, 249, 0.82);
+  border: 2rpx solid rgba(118, 85, 64, 0.45);
+  border-radius: 16rpx 20rpx 17rpx 22rpx;
+  box-shadow: 3rpx 4rpx 0 rgba(98, 71, 53, 0.08);
+  color: $p2-ink-soft;
+  font-size: 22rpx;
+  font-weight: 600;
+  transform: rotate(-1deg);
 }
 
-@keyframes modalPopIn {
-  from {
-    opacity: 0;
-    transform: scale(0.85) translateY(20rpx);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
-}
-
-/* 顶部大头像：button 重置为透明，承载 chooseAvatar */
-.modal-avatar-btn {
+.house-mark {
   position: relative;
-  width: 140rpx;
-  height: 140rpx;
-  padding: 0;
-  margin: 0 0 24rpx;
-  border: none;
-  background: transparent;
-  line-height: normal;
-
-  &::after {
-    border: none;
-  }
+  width: 28rpx;
+  height: 28rpx;
 }
 
-.modal-avatar {
-  width: 140rpx;
-  height: 140rpx;
-  border-radius: 50%;
-  border: 6rpx solid #fff;
-  box-shadow: $shadow-md;
-  background-color: $color-bg-soft;
-  box-sizing: border-box;
+.house-roof {
+  position: absolute;
+  top: 2rpx;
+  left: 4rpx;
+  width: 18rpx;
+  height: 18rpx;
+  border-left: 3rpx solid $p2-coral;
+  border-top: 3rpx solid $p2-coral;
+  transform: rotate(45deg);
+  border-radius: 3rpx;
 }
 
-.modal-avatar-fallback {
-  position: relative;
-
-  .modal-avatar-edit-hint {
-    position: absolute;
-    bottom: -12rpx;
-    left: 50%;
-    transform: translateX(-50%);
-    padding: 4rpx 14rpx;
-    border-radius: $radius-full;
-    background-color: rgba(0, 0, 0, 0.55);
-    white-space: nowrap;
-
-    .modal-avatar-edit-text {
-      color: #fff;
-      font-size: 20rpx;
-      line-height: 1.2;
-    }
-  }
+.house-body {
+  position: absolute;
+  left: 6rpx;
+  bottom: 1rpx;
+  width: 18rpx;
+  height: 16rpx;
+  border: 3rpx solid $p2-coral;
+  border-top: 0;
+  border-radius: 2rpx 2rpx 5rpx 5rpx;
 }
 
-.modal-title {
-  font-size: $font-size-lg;
-  font-weight: $font-weight-semibold;
-  color: $color-text-strong;
-  margin-bottom: 32rpx;
-}
-
-/* 昵称输入框 */
-.modal-input-wrap {
-  position: relative;
-  width: 100%;
-  margin-bottom: 40rpx;
-
-  .modal-input {
-    width: 100%;
-    height: 88rpx;
-    padding: 0 100rpx 0 28rpx;
-    border-radius: $radius-lg;
-    background-color: $color-bg-soft;
-    font-size: $font-size-base;
-    color: $color-text;
-    box-sizing: border-box;
-    transition: background-color $dur-base $ease-smooth;
-  }
-
-  .modal-input-placeholder {
-    color: $color-text-muted;
-  }
-
-  .modal-input-count {
-    position: absolute;
-    top: 50%;
-    right: 24rpx;
-    transform: translateY(-50%);
-    font-size: $font-size-xs;
-    color: $color-text-muted;
-  }
-}
-
-/* 按钮组 */
-.modal-actions {
+.greeting-row {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 24rpx;
-  width: 100%;
+  margin-top: 24rpx;
+}
 
-  .modal-btn {
-    flex: 1;
-    height: 88rpx;
-    border-radius: $radius-full;
-    @include flex-center;
-    @include tap-feedback(0.96);
-    transition: opacity $dur-fast $ease-smooth, transform $dur-fast $ease-smooth;
+.greeting {
+  display: block;
+  font-size: 52rpx;
+  line-height: 1.18;
+  font-weight: 800;
+  letter-spacing: 1rpx;
+  color: $p2-ink;
+}
 
-    .modal-btn-text {
-      font-size: $font-size-base;
-      font-weight: $font-weight-semibold;
-    }
+.greeting-sub {
+  display: block;
+  margin-top: 10rpx;
+  font-size: 24rpx;
+  line-height: 1.6;
+  color: $p2-ink-soft;
+}
 
-    &.modal-btn-cancel {
-      background-color: $color-neutral-100;
+.sun-doodle {
+  position: relative;
+  flex: 0 0 auto;
+  width: 100rpx;
+  height: 100rpx;
+  transform: rotate(5deg);
+  animation: sunFloat 4s ease-in-out infinite;
+}
 
-      .modal-btn-text {
-        color: $color-text-muted;
-      }
-    }
+.sun-face {
+  position: absolute;
+  top: 19rpx;
+  left: 18rpx;
+  width: 62rpx;
+  height: 59rpx;
+  background: $p2-butter;
+  border: 3rpx solid $p2-line;
+  border-radius: 48% 54% 46% 52%;
+  box-shadow: 3rpx 4rpx 0 rgba(98, 71, 53, 0.1);
+}
 
-    &.modal-btn-save {
-      background: linear-gradient(135deg, $color-coffee-500, $color-coffee-700);
+.sun-eye {
+  position: absolute;
+  top: 23rpx;
+  width: 5rpx;
+  height: 7rpx;
+  background: $p2-ink;
+  border-radius: 50%;
+}
 
-      .modal-btn-text {
-        color: #fff;
-      }
+.sun-eye.eye-left { left: 17rpx; }
+.sun-eye.eye-right { right: 17rpx; }
 
-      &.disabled {
-        opacity: 0.5;
-      }
-    }
+.sun-smile {
+  position: absolute;
+  left: 23rpx;
+  bottom: 13rpx;
+  width: 15rpx;
+  height: 8rpx;
+  border-bottom: 3rpx solid $p2-ink;
+  border-radius: 50%;
+}
+
+.sun-ray {
+  position: absolute;
+  width: 18rpx;
+  height: 4rpx;
+  background: $p2-coral;
+  border-radius: 999rpx;
+}
+
+.ray-a { top: 7rpx; left: 42rpx; transform: rotate(78deg); }
+.ray-b { top: 50rpx; right: 1rpx; transform: rotate(6deg); }
+.ray-c { bottom: 5rpx; left: 7rpx; transform: rotate(-43deg); }
+
+.header-scribble {
+  width: 130rpx;
+  height: 10rpx;
+  margin-top: 20rpx;
+  border-top: 4rpx solid $p2-coral;
+  border-radius: 50%;
+  transform: rotate(-2deg);
+  opacity: 0.78;
+}
+
+.entry-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18rpx;
+  padding: 8rpx 28rpx 18rpx;
+}
+
+.entry-card {
+  position: relative;
+  min-height: 330rpx;
+  overflow: hidden;
+  padding: 26rpx 22rpx 22rpx;
+  border: 3rpx solid $p2-line;
+  box-shadow: $p2-shadow-md;
+  transition: transform $p2-dur-fast $p2-ease, box-shadow $p2-dur-fast $p2-ease;
+
+  &:active {
+    transform: translate(3rpx, 4rpx) rotate(0deg) scale(0.98);
+    box-shadow: 2rpx 3rpx 0 rgba(98, 71, 53, 0.12);
   }
+}
+
+.entry-food {
+  background: #fbe0d4;
+  border-radius: 30rpx 38rpx 29rpx 42rpx;
+  transform: rotate(-0.8deg);
+}
+
+.entry-coffee {
+  background: #e1eef0;
+  border-radius: 40rpx 30rpx 42rpx 28rpx;
+  transform: rotate(0.7deg);
+}
+
+.entry-copy {
+  position: relative;
+  z-index: 2;
+}
+
+.entry-kicker {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  color: #9c5f54;
+  font-size: 20rpx;
+  font-weight: 600;
+}
+
+.entry-kicker .kicker-dot {
+  width: 9rpx;
+  height: 9rpx;
+  border-radius: 43% 57% 48% 52%;
+  background: $p2-coral;
+}
+
+.coffee-kicker {
+  color: #567c84;
+
+  .kicker-dot { background: $p2-sky; }
+}
+
+.entry-title {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 46rpx;
+  line-height: 1.15;
+  font-weight: 800;
+  letter-spacing: 3rpx;
+}
+
+.entry-desc {
+  display: block;
+  margin-top: 8rpx;
+  max-width: 190rpx;
+  color: $p2-ink-soft;
+  font-size: 21rpx;
+  line-height: 1.5;
+}
+
+.entry-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 2rpx;
+  margin-top: 18rpx;
+  padding: 9rpx 12rpx 8rpx 14rpx;
+  color: $p2-ink;
+  font-size: 21rpx;
+  font-weight: 700;
+  background: rgba(255, 254, 249, 0.62);
+  border: 2rpx solid rgba(98, 71, 53, 0.28);
+  border-radius: 14rpx 18rpx 15rpx 20rpx;
+}
+
+.entry-art {
+  position: absolute;
+  right: 13rpx;
+  bottom: 11rpx;
+  width: 145rpx;
+  height: 145rpx;
+  z-index: 1;
+}
+
+.food-bowl-top {
+  position: absolute;
+  left: 23rpx;
+  top: 41rpx;
+  width: 100rpx;
+  height: 42rpx;
+  background: #fffdf4;
+  border: 3rpx solid $p2-line;
+  border-radius: 50%;
+  transform: rotate(-2deg);
+}
+
+.food-bowl {
+  position: absolute;
+  left: 27rpx;
+  top: 62rpx;
+  width: 93rpx;
+  height: 60rpx;
+  background: #fff8e8;
+  border: 3rpx solid $p2-line;
+  border-top: 0;
+  border-radius: 0 0 44rpx 48rpx;
+  transform: rotate(-2deg);
+}
+
+.food-dot {
+  position: absolute;
+  border-radius: 50%;
+}
+
+.food-dot-a {
+  left: 26rpx;
+  top: 12rpx;
+  width: 22rpx;
+  height: 18rpx;
+  background: $p2-coral;
+}
+
+.food-dot-b {
+  right: 20rpx;
+  top: 8rpx;
+  width: 24rpx;
+  height: 22rpx;
+  background: $p2-butter;
+}
+
+.food-leaf {
+  position: absolute;
+  left: 46rpx;
+  top: 2rpx;
+  width: 18rpx;
+  height: 29rpx;
+  background: $p2-leaf;
+  border-radius: 80% 20% 72% 28%;
+  transform: rotate(38deg);
+}
+
+.food-steam,
+.coffee-steam {
+  position: absolute;
+  width: 20rpx;
+  height: 36rpx;
+  border-left: 4rpx solid rgba(118, 85, 64, 0.55);
+  border-radius: 50%;
+}
+
+.food-steam.steam-a { left: 55rpx; top: 5rpx; transform: rotate(8deg); }
+.food-steam.steam-b { left: 86rpx; top: 10rpx; transform: rotate(-7deg); }
+
+.face-eye,
+.coffee-eye,
+.empty-eye {
+  position: absolute;
+  width: 5rpx;
+  height: 7rpx;
+  background: $p2-ink;
+  border-radius: 50%;
+}
+
+.food-bowl .face-eye-left { left: 25rpx; top: 19rpx; }
+.food-bowl .face-eye-right { right: 25rpx; top: 19rpx; }
+
+.face-smile,
+.coffee-smile {
+  position: absolute;
+  border-bottom: 3rpx solid $p2-ink;
+  border-radius: 50%;
+}
+
+.food-bowl .face-smile {
+  left: 39rpx;
+  top: 29rpx;
+  width: 17rpx;
+  height: 10rpx;
+}
+
+.art-spark {
+  position: absolute;
+  color: $p2-butter;
+  font-size: 25rpx;
+  font-weight: 700;
+}
+
+.food-art .spark-a { right: 2rpx; top: 21rpx; }
+.food-art .spark-b { left: 7rpx; top: 58rpx; color: $p2-coral; font-size: 38rpx; }
+
+.coffee-cup {
+  position: absolute;
+  left: 25rpx;
+  top: 49rpx;
+  width: 87rpx;
+  height: 67rpx;
+  background: #fff9ec;
+  border: 3rpx solid $p2-line;
+  border-radius: 13rpx 13rpx 31rpx 34rpx;
+  transform: rotate(1deg);
+}
+
+.coffee-mouth {
+  position: absolute;
+  left: -3rpx;
+  top: -8rpx;
+  width: 88rpx;
+  height: 20rpx;
+  background: #9a6548;
+  border: 3rpx solid $p2-line;
+  border-radius: 50%;
+}
+
+.coffee-handle {
+  position: absolute;
+  left: 101rpx;
+  top: 65rpx;
+  width: 32rpx;
+  height: 39rpx;
+  border: 4rpx solid $p2-line;
+  border-left: 0;
+  border-radius: 0 22rpx 22rpx 0;
+  transform: rotate(4deg);
+}
+
+.coffee-saucer {
+  position: absolute;
+  left: 18rpx;
+  top: 113rpx;
+  width: 108rpx;
+  height: 17rpx;
+  border-bottom: 4rpx solid $p2-line;
+  border-radius: 50%;
+  transform: rotate(-1deg);
+}
+
+.coffee-steam.steam-a { left: 57rpx; top: 4rpx; transform: rotate(9deg); }
+.coffee-steam.steam-b { left: 83rpx; top: 10rpx; transform: rotate(-8deg); }
+.coffee-cup .coffee-eye.eye-left { left: 24rpx; top: 31rpx; }
+.coffee-cup .coffee-eye.eye-right { right: 24rpx; top: 31rpx; }
+.coffee-cup .coffee-smile { left: 35rpx; top: 40rpx; width: 16rpx; height: 9rpx; }
+.coffee-art .spark-a { right: 0; top: 15rpx; color: $p2-coral; }
+.coffee-art .spark-b { left: 4rpx; top: 70rpx; color: $p2-sky; font-size: 36rpx; }
+
+.recent-section {
+  padding: 28rpx 28rpx 0;
+}
+
+.section-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20rpx;
+  margin-bottom: 22rpx;
+}
+
+.section-title-wrap {
+  position: relative;
+  padding-bottom: 7rpx;
+}
+
+.section-title {
+  position: relative;
+  z-index: 1;
+  font-size: 34rpx;
+  font-weight: 800;
+  letter-spacing: 1rpx;
+}
+
+.title-scribble {
+  position: absolute;
+  left: -3rpx;
+  right: -8rpx;
+  bottom: 2rpx;
+  height: 10rpx;
+  background: rgba(242, 198, 93, 0.56);
+  border-radius: 58% 42% 51% 49%;
+  transform: rotate(-2deg);
+}
+
+.section-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 2rpx;
+  padding: 8rpx 4rpx;
+  color: $p2-ink-soft;
+  font-size: 21rpx;
+}
+
+.loading-list,
+.recent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.loading-card,
+.recent-card,
+.empty-card {
+  background: rgba(255, 254, 249, 0.9);
+  border: 3rpx solid rgba(118, 85, 64, 0.78);
+  box-shadow: $p2-shadow-sm;
+}
+
+.loading-card {
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+  min-height: 112rpx;
+  padding: 18rpx;
+  border-radius: 24rpx 29rpx 22rpx 30rpx;
+}
+
+.shimmer-line {
+  background: linear-gradient(100deg, #f3ead8 25%, #fffaf0 42%, #f3ead8 58%);
+  background-size: 200% 100%;
+  animation: p2Shimmer 1.5s linear infinite;
+}
+
+.loading-thumb {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 23rpx 19rpx 25rpx 20rpx;
+}
+
+.loading-copy { flex: 1; }
+.loading-line { height: 16rpx; border-radius: 999rpx; }
+.line-long { width: 72%; }
+.line-short { width: 42%; margin-top: 17rpx; }
+
+.empty-card {
+  display: flex;
+  align-items: center;
+  gap: 26rpx;
+  min-height: 176rpx;
+  padding: 26rpx 28rpx;
+  border-radius: 29rpx 24rpx 34rpx 25rpx;
+}
+
+.empty-art {
+  position: relative;
+  flex: 0 0 auto;
+  width: 126rpx;
+  height: 112rpx;
+}
+
+.empty-plate {
+  position: absolute;
+  left: 11rpx;
+  top: 25rpx;
+  width: 86rpx;
+  height: 58rpx;
+  background: $p2-butter-soft;
+  border: 3rpx solid $p2-line;
+  border-radius: 50%;
+  transform: rotate(-4deg);
+}
+
+.empty-plate::after {
+  content: '';
+  position: absolute;
+  inset: 10rpx 12rpx;
+  border: 2rpx dashed rgba(118, 85, 64, 0.45);
+  border-radius: 50%;
+}
+
+.empty-plate .empty-eye { top: 21rpx; z-index: 1; }
+.empty-plate .eye-left { left: 27rpx; }
+.empty-plate .eye-right { right: 27rpx; }
+
+.empty-mouth {
+  position: absolute;
+  left: 36rpx;
+  top: 31rpx;
+  width: 13rpx;
+  height: 6rpx;
+  border-top: 3rpx solid $p2-ink;
+  border-radius: 50%;
+  z-index: 1;
+}
+
+.empty-spoon {
+  position: absolute;
+  right: 8rpx;
+  top: 24rpx;
+  width: 14rpx;
+  height: 79rpx;
+  border: 3rpx solid $p2-line;
+  border-radius: 50% 50% 9rpx 9rpx;
+  transform: rotate(24deg);
+}
+
+.empty-spark {
+  position: absolute;
+  top: 0;
+  left: 4rpx;
+  color: $p2-coral;
+  font-size: 27rpx;
+}
+
+.empty-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.empty-title {
+  font-size: 28rpx;
+  font-weight: 750;
+}
+
+.empty-desc {
+  color: $p2-ink-soft;
+  font-size: 22rpx;
+  line-height: 1.5;
+}
+
+.recent-card {
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+  min-height: 118rpx;
+  padding: 18rpx 17rpx;
+  border-radius: 25rpx 31rpx 24rpx 29rpx;
+  animation: cardIn 360ms $p2-ease backwards;
+  transition: transform $p2-dur-fast $p2-ease, box-shadow $p2-dur-fast $p2-ease;
+
+  &:nth-child(even) {
+    border-radius: 31rpx 23rpx 30rpx 24rpx;
+  }
+
+  &:active {
+    transform: translate(2rpx, 3rpx) rotate(-0.4deg);
+    box-shadow: 1rpx 2rpx 0 rgba(98, 71, 53, 0.1);
+  }
+}
+
+.recent-icon {
+  flex: 0 0 auto;
+  width: 78rpx;
+  height: 78rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3rpx solid $p2-line;
+  border-radius: 45% 55% 48% 52%;
+  font-size: 37rpx;
+  transform: rotate(-2deg);
+}
+
+.kind-food { background: $p2-coral-soft; }
+.kind-coffee { background: $p2-sky-soft; transform: rotate(2deg); }
+
+.recent-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.recent-summary {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 26rpx;
+  font-weight: 700;
+  color: $p2-ink;
+}
+
+.recent-meta {
+  display: flex;
+  align-items: center;
+  gap: 9rpx;
+  margin-top: 9rpx;
+  color: $p2-ink-soft;
+  font-size: 20rpx;
+}
+
+.meta-dot {
+  width: 6rpx;
+  height: 6rpx;
+  background: $p2-butter;
+  border-radius: 45% 55% 48% 52%;
+}
+
+.recent-side {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  color: $p2-ink-soft;
+}
+
+.status-pill {
+  padding: 7rpx 12rpx;
+  border: 2rpx solid rgba(118, 85, 64, 0.32);
+  border-radius: 13rpx 16rpx 14rpx 18rpx;
+  font-size: 19rpx;
+  font-weight: 700;
+}
+
+.status-pending { background: $p2-butter-soft; color: #8a6a25; }
+.status-preparing { background: $p2-sky-soft; color: #527984; }
+.status-completed { background: $p2-leaf-soft; color: #5c784c; }
+.status-cancelled { background: #eee7df; color: #8d7b6d; }
+
+.page-bottom-space { height: 26rpx; }
+
+@keyframes sunFloat {
+  0%, 100% { transform: translateY(0) rotate(5deg); }
+  50% { transform: translateY(-7rpx) rotate(1deg); }
+}
+
+@keyframes p2Shimmer {
+  from { background-position: 160% 0; }
+  to { background-position: -60% 0; }
+}
+
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(14rpx) rotate(0.5deg); }
+  to { opacity: 1; transform: translateY(0) rotate(0); }
 }
 </style>

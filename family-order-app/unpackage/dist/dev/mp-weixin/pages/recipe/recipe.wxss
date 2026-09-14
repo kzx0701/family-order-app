@@ -1,0 +1,207 @@
+/**
+ * uniapp 内置 SCSS 变量文件
+ * 此文件会被自动注入到每个组件的 <style lang="scss"> 中
+ * 因此只能包含变量声明与 mixin 定义，不能包含会生成 CSS 输出的规则
+ */
+/* 引入设计 token 变量（仅变量声明，无 CSS 输出） */
+/**
+ * 设计 Token - SCSS 变量定义
+ * 从 colors_and_type.css 提取并转换为 SCSS 变量
+ * 此文件仅包含变量声明，不生成 CSS 输出（可安全被 uni.scss 自动注入）
+ */
+/* === 暖奶油底色（全局背景） === */
+/* === 品牌主色：暖奶油 === */
+/* === 咖啡棕系（咖啡主题主色） === */
+/* === 美食绿系（美食主题主色） === */
+/* === neutral 灰阶 === */
+/* === 状态色 === */
+/* === 语义别名（指向常用 token） === */
+/* === 圆角 === */
+/* === 字体 === */
+/* === 字号 === */
+/* === 字重 === */
+/* === 行高 === */
+/* === 阴影 === */
+/* === 间距（rpx 适配小程序） === */
+/* === 动效时长与缓动 === */
+/* === 安全区域 === */
+/**
+ * 二期视觉 Token
+ * 仅包含变量声明，供新版页面逐步迁移使用，不直接生成 CSS。
+ */
+/* 引入 mixin 定义（仅 @mixin，无 CSS 输出） */
+/**
+ * 通用 SCSS Mixin
+ * 此文件仅包含 @mixin 定义，不生成 CSS 输出（可安全被 uni.scss 自动注入）
+ */
+/* === 卡片样式 === */
+/* 主题卡片：带主题色渐变背景 */
+/* === 按钮 === */
+/* 主题主按钮 */
+/* 次级按钮 */
+/* 禁用按钮 */
+/* 圆形图标按钮（如返回按钮、加号按钮） */
+/* === 安全区域 === */
+/* === 文本省略 === */
+/* === flex 工具 === */
+/* === 状态徽章 === */
+/* === 1px 细边框（小程序适配） === */
+/* === 点击反馈 === */
+/* === 应用外壳页（页面级布局标准之一） === */
+/*
+ * 适用：点单页这类「头部/底部固定 + 中间区域内部滚动」的应用外壳页
+ * 必须 height:100vh（不能 min-height）+ overflow:hidden，
+ * 否则 flex 子项 min-height:auto 会被内容撑高，整个页面变成 body 滚动，
+ * 导致头部/底部随页面滚走、内部 scroll-view 的高度等于内容高度而完全无法滚动
+ * 搭配 page-shell-body 使用
+ */
+/* 外壳页的中间滚动区：flex:1 + min-height:0 允许收缩，内部 scroll-view 才能生效 */
+/* === uniapp 内置变量映射到设计 token === */
+/* 主色调：暖奶油 / 咖啡棕 */
+/* 文字色 */
+/* 背景色 */
+/* 边框色 */
+/* 字号 */
+/* 间距 */
+/* 圆角 */
+.page-recipe.data-v-fb437fc6 {
+  min-height: 100vh;
+  padding: 0 28rpx calc(140rpx + env(safe-area-inset-bottom));
+  background: radial-gradient(circle at 87% 18%, rgba(133, 169, 111, 0.14) 0 3rpx, transparent 4rpx), #fff9ed;
+  color: #624735;
+}
+.page-header.data-v-fb437fc6 {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24rpx;
+  padding-bottom: 32rpx;
+}
+.page-kicker.data-v-fb437fc6 {
+  display: block;
+  color: #8c725e;
+  font-size: 22rpx;
+}
+.page-title.data-v-fb437fc6 {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 48rpx;
+  font-weight: 800;
+}
+.config-button.data-v-fb437fc6 {
+  display: flex;
+  align-items: center;
+  gap: 7rpx;
+  padding: 12rpx 18rpx;
+  border: 3rpx solid #765540;
+  border-radius: 18rpx 23rpx 17rpx 21rpx;
+  background: #dbe8c8;
+  box-shadow: 4rpx 5rpx 0 rgba(98, 71, 53, 0.12);
+  font-size: 22rpx;
+  font-weight: 700;
+  transform: rotate(1deg);
+}
+.config-button.data-v-fb437fc6:active {
+  transform: translate(2rpx, 3rpx) rotate(0);
+  box-shadow: none;
+}
+.recipe-preview-card.data-v-fb437fc6 {
+  min-height: 560rpx;
+  padding: 62rpx 36rpx 44rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  border: 3rpx solid #765540;
+  border-radius: 34rpx 28rpx 39rpx 30rpx;
+  background: rgba(255, 254, 249, 0.92);
+  box-shadow: 7rpx 8rpx 0 rgba(98, 71, 53, 0.14);
+}
+.book-doodle.data-v-fb437fc6 {
+  position: relative;
+  width: 230rpx;
+  height: 180rpx;
+  margin-bottom: 34rpx;
+}
+.book-left.data-v-fb437fc6,
+.book-right.data-v-fb437fc6 {
+  position: absolute;
+  top: 35rpx;
+  width: 102rpx;
+  height: 118rpx;
+  background: #f9e8aa;
+  border: 4rpx solid #765540;
+}
+.book-left.data-v-fb437fc6 {
+  left: 13rpx;
+  border-radius: 24rpx 5rpx 12rpx 28rpx;
+  transform: rotate(-5deg);
+}
+.book-right.data-v-fb437fc6 {
+  right: 13rpx;
+  background: #f8c1b4;
+  border-radius: 5rpx 24rpx 28rpx 12rpx;
+  transform: rotate(5deg);
+}
+.book-line.data-v-fb437fc6 {
+  position: absolute;
+  z-index: 2;
+  height: 4rpx;
+  width: 58rpx;
+  border-radius: 999rpx;
+  background: rgba(98, 71, 53, 0.48);
+}
+.line-a.data-v-fb437fc6 {
+  left: 35rpx;
+  top: 82rpx;
+  transform: rotate(-7deg);
+}
+.line-b.data-v-fb437fc6 {
+  right: 35rpx;
+  top: 103rpx;
+  transform: rotate(7deg);
+}
+.book-leaf.data-v-fb437fc6 {
+  position: absolute;
+  z-index: 3;
+  right: 39rpx;
+  top: 54rpx;
+  width: 28rpx;
+  height: 47rpx;
+  background: #85a96f;
+  border: 3rpx solid #765540;
+  border-radius: 78% 22% 70% 30%;
+  transform: rotate(38deg);
+}
+.preview-title.data-v-fb437fc6 {
+  font-size: 33rpx;
+  font-weight: 800;
+}
+.preview-desc.data-v-fb437fc6 {
+  max-width: 430rpx;
+  margin-top: 12rpx;
+  color: #8c725e;
+  font-size: 23rpx;
+  line-height: 1.7;
+}
+.preview-tags.data-v-fb437fc6 {
+  display: flex;
+  gap: 14rpx;
+  margin-top: 32rpx;
+}
+.preview-tags view.data-v-fb437fc6 {
+  padding: 10rpx 18rpx;
+  border: 2rpx solid rgba(118, 85, 64, 0.36);
+  border-radius: 16rpx 19rpx 14rpx 20rpx;
+  background: #f8efd9;
+  color: #8c725e;
+  font-size: 21rpx;
+}
+.preview-tags view.data-v-fb437fc6:nth-child(2) {
+  transform: rotate(-2deg);
+  background: #dbe8c8;
+}
+.preview-tags view.data-v-fb437fc6:nth-child(3) {
+  transform: rotate(2deg);
+  background: #dceef1;
+}

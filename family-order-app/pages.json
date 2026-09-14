@@ -13,7 +13,21 @@
             "path": "pages/order/order",
             "style": {
                 "navigationStyle": "custom",
-                "navigationBarTitleText": "点单"
+                "navigationBarTitleText": "菜单"
+            }
+        },
+        {
+            "path": "pages/recipe/recipe",
+            "style": {
+                "navigationStyle": "custom",
+                "navigationBarTitleText": "菜谱"
+            }
+        },
+        {
+            "path": "pages/my/my",
+            "style": {
+                "navigationStyle": "custom",
+                "navigationBarTitleText": "我的"
             }
         },
         {
@@ -90,15 +104,15 @@
             },
             {
                 "pagePath": "pages/order/order",
-                "text": "点单"
+                "text": "菜单"
             },
             {
-                "pagePath": "pages/record/record",
-                "text": "记录"
+                "pagePath": "pages/recipe/recipe",
+                "text": "菜谱"
             },
             {
-                "pagePath": "pages/admin/admin",
-                "text": "管理"
+                "pagePath": "pages/my/my",
+                "text": "我的"
             }
         ]
     },

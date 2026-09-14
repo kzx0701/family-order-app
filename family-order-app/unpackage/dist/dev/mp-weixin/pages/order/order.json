@@ -1,6 +1,6 @@
 {
   "navigationStyle": "custom",
-  "navigationBarTitleText": "点单",
+  "navigationBarTitleText": "菜单",
   "usingComponents": {
     "icon": "../../components/icons/Icon",
     "skeleton": "../../components/skeleton/skeleton",

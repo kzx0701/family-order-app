@@ -1,0 +1,8 @@
+{
+  "navigationStyle": "custom",
+  "navigationBarTitleText": "菜谱",
+  "usingComponents": {
+    "icon": "../../components/icons/Icon",
+    "custom-tabbar": "../../components/custom-tabbar/custom-tabbar"
+  }
+}

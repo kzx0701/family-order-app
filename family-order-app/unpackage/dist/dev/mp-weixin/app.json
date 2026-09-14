@@ -2,6 +2,8 @@
   "pages": [
     "pages/home/home",
     "pages/order/order",
+    "pages/recipe/recipe",
+    "pages/my/my",
     "pages/record/record",
     "pages/admin/admin",
     "pages/dish-detail/dish-detail",
@@ -31,15 +33,15 @@
       },
       {
         "pagePath": "pages/order/order",
-        "text": "点单"
+        "text": "菜单"
       },
       {
-        "pagePath": "pages/record/record",
-        "text": "记录"
+        "pagePath": "pages/recipe/recipe",
+        "text": "菜谱"
       },
       {
-        "pagePath": "pages/admin/admin",
-        "text": "管理"
+        "pagePath": "pages/my/my",
+        "text": "我的"
       }
     ]
   },

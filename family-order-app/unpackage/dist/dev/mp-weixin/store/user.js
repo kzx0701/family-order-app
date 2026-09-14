@@ -48,7 +48,7 @@ const useUserStore = common_vendor.defineStore("user", {
     async login() {
       try {
         const code = await this.getWxCode();
-        const res = await common_vendor._r.callFunction({
+        const res = await common_vendor.Vs.callFunction({
           name: "app-service",
           data: { module: "user-login", code }
         });
@@ -103,7 +103,7 @@ const useUserStore = common_vendor.defineStore("user", {
       if (!["orderer", "admin"].includes(role)) {
         throw new Error("无效的角色");
       }
-      let res = await common_vendor._r.callFunction({
+      let res = await common_vendor.Vs.callFunction({
         name: "app-service",
         data: {
           module: "user-update-role",
@@ -114,7 +114,7 @@ const useUserStore = common_vendor.defineStore("user", {
       if (res.result.code === 401) {
         common_vendor.index.__f__("warn", "at store/user.js:144", "[user] setRole 缺少登录凭证，尝试重新登录");
         await this.login();
-        res = await common_vendor._r.callFunction({
+        res = await common_vendor.Vs.callFunction({
           name: "app-service",
           data: {
             module: "user-update-role",
@@ -125,7 +125,7 @@ const useUserStore = common_vendor.defineStore("user", {
       }
       if (res.result.code === 404) {
         await this.login();
-        res = await common_vendor._r.callFunction({
+        res = await common_vendor.Vs.callFunction({
           name: "app-service",
           data: {
             module: "user-update-role",
@@ -160,7 +160,7 @@ const useUserStore = common_vendor.defineStore("user", {
       if (!name) {
         throw new Error("昵称不能为空");
       }
-      const res = await common_vendor._r.callFunction({
+      const res = await common_vendor.Vs.callFunction({
         name: "app-service",
         data: {
           module: "user-update-profile",
@@ -186,14 +186,14 @@ const useUserStore = common_vendor.defineStore("user", {
       }
       const ext = filePath.split(".").pop() || "png";
       const cloudPath = `avatars/${this.token || "anonymous"}_${Date.now()}.${ext}`;
-      const uploadRes = await common_vendor._r.uploadFile({
+      const uploadRes = await common_vendor.Vs.uploadFile({
         filePath,
         cloudPath
       });
       if (!uploadRes.fileID) {
         throw new Error("头像上传失败");
       }
-      const res = await common_vendor._r.callFunction({
+      const res = await common_vendor.Vs.callFunction({
         name: "app-service",
         data: {
           module: "user-update-profile",

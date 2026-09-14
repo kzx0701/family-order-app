@@ -62,10 +62,10 @@ const _sfc_main = {
           size: 18,
           color: "#fff"
         }),
-        n: common_vendor.o(onAddTap, "ae"),
+        n: common_vendor.o(onAddTap, "c1"),
         o: common_vendor.n(tempClass.value),
         p: `${__props.index * 50}ms`,
-        q: common_vendor.o(onCardTap, "28")
+        q: common_vendor.o(onCardTap, "24")
       });
     };
   }

@@ -2,8 +2,13 @@
   <view class="page-record page-enter" @tap="onPageTap">
     <!-- 顶部 header：标题 + 副标题（fixed 固定，滚动时常驻顶部） -->
     <view class="header" :style="{ paddingTop: statusBarHeight + 40 + 'px' }">
-      <text class="title">点单记录</text>
-      <text class="subtitle">查看我的点单历史</text>
+      <view class="back-button" @tap.stop="goBack">
+        <Icon name="arrow-left" :size="20" />
+      </view>
+      <view class="header-copy">
+        <text class="title">点单记录</text>
+        <text class="subtitle">查看我的点单历史</text>
+      </view>
     </view>
     <!-- header 固定后的占位 view -->
     <view class="header-spacer" :style="{ height: headerHeight + 'px' }"></view>
@@ -96,9 +101,6 @@
       <view v-if="loadingMore" class="load-more">加载中...</view>
       <view v-else-if="!hasMore && orders.length > 0" class="load-more">没有更多了~</view>
     </view>
-
-    <!-- 自定义 tabBar -->
-    <custom-tabbar />
   </view>
 </template>
 
@@ -113,6 +115,10 @@ const { statusBarHeight } = useSafeArea()
 const { headerHeight } = useHeaderFixed('.header')
 
 const userStore = useUserStore()
+
+const goBack = () => {
+  uni.navigateBack()
+}
 
 /* === 订单列表与分页状态 === */
 const orders = ref([]) // 当前已加载订单（按 createTime 倒序）
@@ -466,7 +472,7 @@ onReachBottom(() => {
 <style lang="scss" scoped>
 .page-record {
   min-height: 100vh;
-  padding-bottom: calc(80rpx + env(safe-area-inset-bottom));
+  padding-bottom: calc(40rpx + env(safe-area-inset-bottom));
   background-color: $color-bg;
 }
 
@@ -479,6 +485,27 @@ onReachBottom(() => {
   z-index: 100;
   padding: 56rpx 40rpx 24rpx;
   background-color: $color-bg;
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+
+  .back-button {
+    width: 64rpx;
+    height: 64rpx;
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2rpx solid $p2-line;
+    border-radius: 45% 55% 48% 52%;
+    background: $p2-white;
+    color: $p2-ink;
+    box-shadow: $p2-shadow-sm;
+  }
+
+  .header-copy {
+    flex: 1;
+  }
 
   .title {
     display: block;
