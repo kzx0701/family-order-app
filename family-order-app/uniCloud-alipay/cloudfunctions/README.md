@@ -48,19 +48,19 @@ uniCloud.callFunction({
 
 ## 微信配置填写位置
 
-当前代码已经预留以下配置位。除前端公开配置外，不需要修改源码：
+当前代码已经预留以下配置位。AppID 和模板 ID 已随项目代码保留；新服务空间只需要重新配置未进入 Git 的微信 AppSecret：
 
-| 配置项 | 获取位置 | 填写位置 |
+| 配置项 | 新空间是否必须填写 | 当前来源 |
 | --- | --- | --- |
-| `WX_APPID` | 微信公众平台 → 开发与服务 → 开发管理 → 开发设置 → AppID（小程序ID） | 支付宝云控制台 → 云函数 `app-service` → 环境变量 |
-| `WX_SECRET` | 同一页面的 AppSecret（小程序密钥），必要时点击生成/重置并扫码确认 | 支付宝云控制台 → 云函数 `app-service` → 环境变量 |
-| `WX_TPL_ORDER_NOTIFY` | 微信公众平台 → 功能 → 订阅消息 → 我的模板 → 对应模板 ID | 支付宝云控制台 → 云函数 `app-service` → 环境变量 |
-| `WX_TPL_COMPLETE_NOTIFY` | 同上，订单完成通知模板 ID | 支付宝云控制台 → 云函数 `app-service` → 环境变量 |
-| `WX_TPL_PICKUP_NOTIFY` | 同上，取餐提醒模板 ID | 支付宝云控制台 → 云函数 `app-service` → 环境变量 |
+| `WX_APPID` | 否，已有回退配置；只有 AppID 变更时才需更新 | `manifest.json`、`utils/wx-config.js`、云函数配置 |
+| `WX_SECRET` | 是，新空间不会继承旧空间的环境变量 | 微信公众平台获取后，填写支付宝云 `app-service` 环境变量 |
+| `WX_TPL_ORDER_NOTIFY` | 否，模板 ID 未变化时无需重复配置 | `app-service/config.json` 和 `utils/wx-config.js` |
+| `WX_TPL_COMPLETE_NOTIFY` | 否，模板 ID 未变化时无需重复配置 | `app-service/config.json` 和 `utils/wx-config.js` |
+| `WX_TPL_PICKUP_NOTIFY` | 否，模板 ID 未变化时无需重复配置 | `app-service/config.json` 和 `utils/wx-config.js` |
 
 说明：
 
 - `WX_SECRET` 只放云函数环境变量，绝不写入前端或 Git。
-- 三个 `WX_TPL_*` 环境变量可选；不配置时，代码会回退到 `app-service/config.json` 中的模板 ID。
+- `WX_APPID` 和三个 `WX_TPL_*` 环境变量是可选覆盖项；不配置时，代码会回退到项目中已有的配置。
 - 前端的公开 AppID 和模板 ID 位于 `utils/wx-config.js`，需要与微信公众平台和云函数配置保持一致。
 - 截图、日志或提交代码时，不要暴露微信 AppSecret、支付宝云 AK/SK。
