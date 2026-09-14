@@ -82,8 +82,7 @@ async function getDishDetail({ _id } = {}, dishCol, catCol) {
     return { code: 400, message: '缺少 _id' }
   }
 
-  // 用 where 查询替代 doc(_id).get()
-  // 阿里云 uniCloud 的 doc(_id) 在云函数环境中对部分 _id 有兼容性问题
+  // 用 where 查询替代 doc(_id).get()，保持不同 uniCloud 服务商下的查询兼容性
   const res = await dishCol.where({ _id }).get()
   if (!res.data || res.data.length === 0) {
     return { code: 404, message: '菜品不存在或已下架' }
