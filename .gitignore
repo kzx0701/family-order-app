@@ -1,0 +1,13 @@
+# macOS 系统文件
+.DS_Store
+**/.DS_Store
+
+# 依赖目录：依赖统一在 family-order-app/ 下安装，
+# 不要放在仓库根（根目录的 node_modules 无法被小程序构建解析）
+node_modules/
+
+# 工具临时目录
+.uploads/
+
+# 本地工作记录，不纳入版本库
+.workbuddy/
