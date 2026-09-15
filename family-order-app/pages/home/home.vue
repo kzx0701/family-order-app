@@ -36,63 +36,23 @@
     <view class="entry-section">
       <view class="entry-card entry-food" @tap="goOrder('food')">
         <view class="entry-copy">
-          <view class="entry-kicker">
-            <view class="kicker-dot"></view>
-            <text>今天吃什么</text>
-          </view>
-          <text class="entry-title">干饭</text>
-          <text class="entry-desc">挑一道家里会做的菜</text>
-          <view class="entry-link">
-            <text>去点菜</text>
-            <Icon name="chevron-right" :size="15" :stroke-width="2.4" />
-          </view>
+          <image class="entry-title-image" :src="entryTitleArt.food" mode="aspectFit" />
         </view>
 
         <view class="entry-art food-art">
-          <view class="food-steam steam-a"></view>
-          <view class="food-steam steam-b"></view>
-          <view class="food-bowl-top">
-            <view class="food-dot food-dot-a"></view>
-            <view class="food-dot food-dot-b"></view>
-            <view class="food-leaf"></view>
-          </view>
-          <view class="food-bowl">
-            <view class="face-eye face-eye-left"></view>
-            <view class="face-eye face-eye-right"></view>
-            <view class="face-smile"></view>
-          </view>
-          <view class="art-spark spark-a">✦</view>
-          <view class="art-spark spark-b">·</view>
+          <view class="entry-art-spot"></view>
+          <image class="entry-art-image" :src="entryArt.food" mode="aspectFill" />
         </view>
       </view>
 
       <view class="entry-card entry-coffee" @tap="goOrder('coffee')">
         <view class="entry-copy">
-          <view class="entry-kicker coffee-kicker">
-            <view class="kicker-dot"></view>
-            <text>来点小幸福</text>
-          </view>
-          <text class="entry-title">咖啡</text>
-          <text class="entry-desc">给今天加一点香气</text>
-          <view class="entry-link">
-            <text>去点咖啡</text>
-            <Icon name="chevron-right" :size="15" :stroke-width="2.4" />
-          </view>
+          <image class="entry-title-image" :src="entryTitleArt.coffee" mode="aspectFit" />
         </view>
 
         <view class="entry-art coffee-art">
-          <view class="coffee-steam steam-a"></view>
-          <view class="coffee-steam steam-b"></view>
-          <view class="coffee-cup">
-            <view class="coffee-mouth"></view>
-            <view class="coffee-eye eye-left"></view>
-            <view class="coffee-eye eye-right"></view>
-            <view class="coffee-smile"></view>
-          </view>
-          <view class="coffee-handle"></view>
-          <view class="coffee-saucer"></view>
-          <view class="art-spark spark-a">✦</view>
-          <view class="art-spark spark-b">·</view>
+          <view class="entry-art-spot"></view>
+          <image class="entry-art-image" :src="entryArt.coffee" mode="aspectFill" />
         </view>
       </view>
     </view>
@@ -182,6 +142,16 @@ const cartStore = useCartStore()
 
 const orders = ref([])
 const loading = ref(false)
+
+const entryArt = {
+  food: 'https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E7%95%8C%E9%9D%A2/exec-6356c060-78ee-47d4-a481-a3b61fdf2c3e.png',
+  coffee: 'https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E7%95%8C%E9%9D%A2/exec-a8278d19-e4a0-4e8d-9a1c-83483951710b.png'
+}
+
+const entryTitleArt = {
+  food: 'https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E7%95%8C%E9%9D%A2/title-%E6%88%91%E8%A6%81%E5%B9%B2%E9%A5%AD-standardized.png',
+  coffee: 'https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E7%95%8C%E9%9D%A2/title-%E6%9D%A5%E6%9D%AF%E5%92%96%E5%95%A1-standardized.png'
+}
 
 const familyName = computed(() => userStore.userInfo?.familyName || '我的家庭')
 
@@ -481,264 +451,148 @@ onPullDownRefresh(async () => {
 .entry-section {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 18rpx;
-  padding: 8rpx 28rpx 18rpx;
+  gap: 12rpx;
+  padding: 8rpx 28rpx 12rpx;
 }
 
 .entry-card {
   position: relative;
-  min-height: 330rpx;
+  min-height: 334rpx;
   overflow: hidden;
-  padding: 26rpx 22rpx 22rpx;
-  border: 3rpx solid $p2-line;
-  box-shadow: $p2-shadow-md;
+  padding: 14rpx 18rpx 10rpx;
+  border: 4rpx solid $p2-line;
+  box-shadow: 9rpx 11rpx 0 rgba(98, 71, 53, 0.16);
   transition: transform $p2-dur-fast $p2-ease, box-shadow $p2-dur-fast $p2-ease;
 
   &:active {
     transform: translate(3rpx, 4rpx) rotate(0deg) scale(0.98);
     box-shadow: 2rpx 3rpx 0 rgba(98, 71, 53, 0.12);
   }
+
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    pointer-events: none;
+  }
+
+  &::before {
+    right: -72rpx;
+    bottom: -116rpx;
+    width: 264rpx;
+    height: 264rpx;
+    border: 4rpx solid rgba(118, 85, 64, 0.16);
+    border-radius: 48% 52% 42% 58%;
+    transform: rotate(-17deg);
+  }
+
+  &::after {
+    top: 22rpx;
+    right: 24rpx;
+    width: 42rpx;
+    height: 12rpx;
+    border-top: 4rpx solid rgba(118, 85, 64, 0.26);
+    border-bottom: 3rpx solid rgba(118, 85, 64, 0.14);
+    transform: rotate(11deg);
+  }
 }
 
 .entry-food {
-  background: #fbe0d4;
-  border-radius: 30rpx 38rpx 29rpx 42rpx;
-  transform: rotate(-0.8deg);
+  background: #f6c7b8;
+  border-radius: 32rpx 44rpx 29rpx 46rpx;
+  transform: rotate(-1.1deg);
+
+  &::before { border-color: rgba(233, 122, 105, 0.28); }
 }
 
 .entry-coffee {
-  background: #e1eef0;
-  border-radius: 40rpx 30rpx 42rpx 28rpx;
-  transform: rotate(0.7deg);
+  background: #c9e3e7;
+  border-radius: 44rpx 31rpx 47rpx 28rpx;
+  transform: rotate(1.1deg);
+
+  &::before {
+    border-color: rgba(84, 137, 147, 0.24);
+    transform: rotate(15deg);
+  }
 }
 
 .entry-copy {
   position: relative;
-  z-index: 2;
+  z-index: 3;
+  width: 60%;
 }
 
-.entry-kicker {
-  display: flex;
-  align-items: center;
-  gap: 8rpx;
-  color: #9c5f54;
-  font-size: 20rpx;
-  font-weight: 600;
-}
-
-.entry-kicker .kicker-dot {
-  width: 9rpx;
-  height: 9rpx;
-  border-radius: 43% 57% 48% 52%;
-  background: $p2-coral;
-}
-
-.coffee-kicker {
-  color: #567c84;
-
-  .kicker-dot { background: $p2-sky; }
-}
-
-.entry-title {
+.entry-title-image {
   display: block;
-  margin-top: 8rpx;
-  font-size: 46rpx;
-  line-height: 1.15;
-  font-weight: 800;
-  letter-spacing: 3rpx;
+  width: 300rpx;
+  height: 112rpx;
+  margin-left: -33rpx;
+  transform: translateY(14rpx) rotate(-1.8deg);
+  pointer-events: none;
 }
 
-.entry-desc {
-  display: block;
-  margin-top: 8rpx;
-  max-width: 190rpx;
-  color: $p2-ink-soft;
-  font-size: 21rpx;
-  line-height: 1.5;
-}
-
-.entry-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 2rpx;
-  margin-top: 18rpx;
-  padding: 9rpx 12rpx 8rpx 14rpx;
-  color: $p2-ink;
-  font-size: 21rpx;
-  font-weight: 700;
-  background: rgba(255, 254, 249, 0.62);
-  border: 2rpx solid rgba(98, 71, 53, 0.28);
-  border-radius: 14rpx 18rpx 15rpx 20rpx;
-}
-
+/* 云端人物插画：卡片右下角主视觉，保留手绘贴纸感 */
 .entry-art {
+  right: -54rpx;
+  bottom: -26rpx;
+  width: 300rpx;
+  height: 322rpx;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.entry-art-spot {
   position: absolute;
-  right: 13rpx;
-  bottom: 11rpx;
-  width: 145rpx;
-  height: 145rpx;
+  right: 38rpx;
+  bottom: 40rpx;
+  width: 230rpx;
+  height: 204rpx;
+  border: 4rpx solid rgba(118, 85, 64, 0.18);
+  border-radius: 54% 46% 48% 52%;
+  transform: rotate(-11deg);
+}
+
+.entry-art-image {
+  position: relative;
   z-index: 1;
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(5rpx 7rpx 0 rgba(98, 71, 53, 0.16));
 }
 
-.food-bowl-top {
-  position: absolute;
-  left: 23rpx;
-  top: 41rpx;
-  width: 100rpx;
-  height: 42rpx;
-  background: #fffdf4;
-  border: 3rpx solid $p2-line;
-  border-radius: 50%;
-  transform: rotate(-2deg);
+.entry-food .entry-art-spot {
+  background: rgba(255, 249, 235, 0.82);
+  transform: rotate(-11deg) scale(0.98);
 }
 
-.food-bowl {
-  position: absolute;
-  left: 27rpx;
-  top: 62rpx;
-  width: 93rpx;
-  height: 60rpx;
-  background: #fff8e8;
-  border: 3rpx solid $p2-line;
-  border-top: 0;
-  border-radius: 0 0 44rpx 48rpx;
-  transform: rotate(-2deg);
+.entry-food .entry-art-image {
+  transform: translateY(22rpx) rotate(-4deg);
 }
 
-.food-dot {
-  position: absolute;
-  border-radius: 50%;
+.entry-coffee .entry-art {
+  right: -60rpx;
+  bottom: -22rpx;
+  width: 314rpx;
+  height: 336rpx;
 }
 
-.food-dot-a {
-  left: 26rpx;
-  top: 12rpx;
-  width: 22rpx;
-  height: 18rpx;
-  background: $p2-coral;
+.entry-coffee .entry-art-spot {
+  right: 42rpx;
+  bottom: 42rpx;
+  width: 238rpx;
+  height: 214rpx;
+  background: rgba(255, 254, 249, 0.84);
+  transform: rotate(8deg) scale(1.02);
 }
 
-.food-dot-b {
-  right: 20rpx;
-  top: 8rpx;
-  width: 24rpx;
-  height: 22rpx;
-  background: $p2-butter;
+.entry-coffee .entry-title-image {
+  transform: translateY(14rpx) rotate(1.8deg);
 }
 
-.food-leaf {
-  position: absolute;
-  left: 46rpx;
-  top: 2rpx;
-  width: 18rpx;
-  height: 29rpx;
-  background: $p2-leaf;
-  border-radius: 80% 20% 72% 28%;
-  transform: rotate(38deg);
+.entry-coffee .entry-art-image {
+  transform: translateY(22rpx) rotate(3deg);
 }
-
-.food-steam,
-.coffee-steam {
-  position: absolute;
-  width: 20rpx;
-  height: 36rpx;
-  border-left: 4rpx solid rgba(118, 85, 64, 0.55);
-  border-radius: 50%;
-}
-
-.food-steam.steam-a { left: 55rpx; top: 5rpx; transform: rotate(8deg); }
-.food-steam.steam-b { left: 86rpx; top: 10rpx; transform: rotate(-7deg); }
-
-.face-eye,
-.coffee-eye,
-.empty-eye {
-  position: absolute;
-  width: 5rpx;
-  height: 7rpx;
-  background: $p2-ink;
-  border-radius: 50%;
-}
-
-.food-bowl .face-eye-left { left: 25rpx; top: 19rpx; }
-.food-bowl .face-eye-right { right: 25rpx; top: 19rpx; }
-
-.face-smile,
-.coffee-smile {
-  position: absolute;
-  border-bottom: 3rpx solid $p2-ink;
-  border-radius: 50%;
-}
-
-.food-bowl .face-smile {
-  left: 39rpx;
-  top: 29rpx;
-  width: 17rpx;
-  height: 10rpx;
-}
-
-.art-spark {
-  position: absolute;
-  color: $p2-butter;
-  font-size: 25rpx;
-  font-weight: 700;
-}
-
-.food-art .spark-a { right: 2rpx; top: 21rpx; }
-.food-art .spark-b { left: 7rpx; top: 58rpx; color: $p2-coral; font-size: 38rpx; }
-
-.coffee-cup {
-  position: absolute;
-  left: 25rpx;
-  top: 49rpx;
-  width: 87rpx;
-  height: 67rpx;
-  background: #fff9ec;
-  border: 3rpx solid $p2-line;
-  border-radius: 13rpx 13rpx 31rpx 34rpx;
-  transform: rotate(1deg);
-}
-
-.coffee-mouth {
-  position: absolute;
-  left: -3rpx;
-  top: -8rpx;
-  width: 88rpx;
-  height: 20rpx;
-  background: #9a6548;
-  border: 3rpx solid $p2-line;
-  border-radius: 50%;
-}
-
-.coffee-handle {
-  position: absolute;
-  left: 101rpx;
-  top: 65rpx;
-  width: 32rpx;
-  height: 39rpx;
-  border: 4rpx solid $p2-line;
-  border-left: 0;
-  border-radius: 0 22rpx 22rpx 0;
-  transform: rotate(4deg);
-}
-
-.coffee-saucer {
-  position: absolute;
-  left: 18rpx;
-  top: 113rpx;
-  width: 108rpx;
-  height: 17rpx;
-  border-bottom: 4rpx solid $p2-line;
-  border-radius: 50%;
-  transform: rotate(-1deg);
-}
-
-.coffee-steam.steam-a { left: 57rpx; top: 4rpx; transform: rotate(9deg); }
-.coffee-steam.steam-b { left: 83rpx; top: 10rpx; transform: rotate(-8deg); }
-.coffee-cup .coffee-eye.eye-left { left: 24rpx; top: 31rpx; }
-.coffee-cup .coffee-eye.eye-right { right: 24rpx; top: 31rpx; }
-.coffee-cup .coffee-smile { left: 35rpx; top: 40rpx; width: 16rpx; height: 9rpx; }
-.coffee-art .spark-a { right: 0; top: 15rpx; color: $p2-coral; }
-.coffee-art .spark-b { left: 4rpx; top: 70rpx; color: $p2-sky; font-size: 36rpx; }
 
 .recent-section {
   padding: 28rpx 28rpx 0;

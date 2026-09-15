@@ -21,6 +21,14 @@ const _sfc_main = {
     const cartStore = store_cart.useCartStore();
     const orders = common_vendor.ref([]);
     const loading = common_vendor.ref(false);
+    const entryArt = {
+      food: "https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E7%95%8C%E9%9D%A2/exec-6356c060-78ee-47d4-a481-a3b61fdf2c3e.png",
+      coffee: "https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E7%95%8C%E9%9D%A2/exec-a8278d19-e4a0-4e8d-9a1c-83483951710b.png"
+    };
+    const entryTitleArt = {
+      food: "https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E7%95%8C%E9%9D%A2/title-%E6%88%91%E8%A6%81%E5%B9%B2%E9%A5%AD-standardized.png",
+      coffee: "https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E7%95%8C%E9%9D%A2/title-%E6%9D%A5%E6%9D%AF%E5%92%96%E5%95%A1-standardized.png"
+    };
     const familyName = common_vendor.computed(() => {
       var _a;
       return ((_a = userStore.userInfo) == null ? void 0 : _a.familyName) || "我的家庭";
@@ -67,7 +75,7 @@ const _sfc_main = {
         if (((_a = res.result) == null ? void 0 : _a.code) === 0)
           orders.value = res.result.list || [];
       } catch (e) {
-        common_vendor.index.__f__("warn", "at pages/home/home.vue:222", "[home] recent orders unavailable during phase2 shell preview", e);
+        common_vendor.index.__f__("warn", "at pages/home/home.vue:192", "[home] recent orders unavailable during phase2 shell preview", e);
       } finally {
         loading.value = false;
       }
@@ -135,33 +143,27 @@ const _sfc_main = {
         b: common_vendor.t(greeting.value),
         c: common_vendor.t(greetingSub.value),
         d: common_vendor.unref(statusBarHeight) + 28 + "px",
-        e: common_vendor.p({
-          name: "chevron-right",
-          size: 15,
-          ["stroke-width"]: 2.4
-        }),
-        f: common_vendor.o(($event) => goOrder("food"), "3e"),
-        g: common_vendor.p({
-          name: "chevron-right",
-          size: 15,
-          ["stroke-width"]: 2.4
-        }),
-        h: common_vendor.o(($event) => goOrder("coffee"), "b1"),
-        i: common_vendor.p({
+        e: entryTitleArt.food,
+        f: entryArt.food,
+        g: common_vendor.o(($event) => goOrder("food"), "3e"),
+        h: entryTitleArt.coffee,
+        i: entryArt.coffee,
+        j: common_vendor.o(($event) => goOrder("coffee"), "fe"),
+        k: common_vendor.p({
           name: "chevron-right",
           size: 14,
           ["stroke-width"]: 2.3
         }),
-        j: common_vendor.o(goMy, "a4"),
-        k: loading.value && orders.value.length === 0
+        l: common_vendor.o(goMy, "54"),
+        m: loading.value && orders.value.length === 0
       }, loading.value && orders.value.length === 0 ? {
-        l: common_vendor.f(2, (n, k0, i0) => {
+        n: common_vendor.f(2, (n, k0, i0) => {
           return {
             a: n
           };
         })
       } : displayOrders.value.length === 0 ? {} : {
-        n: common_vendor.f(displayOrders.value, (order, index, i0) => {
+        p: common_vendor.f(displayOrders.value, (order, index, i0) => {
           return {
             a: common_vendor.t(orderEmoji(order)),
             b: common_vendor.n(orderKind(order)),
@@ -170,19 +172,19 @@ const _sfc_main = {
             e: common_vendor.t(formatOrderTime(order.createTime)),
             f: common_vendor.t(statusLabel(order.status)),
             g: common_vendor.n(`status-${order.status || "pending"}`),
-            h: "07e72d3c-3-" + i0,
+            h: "07e72d3c-1-" + i0,
             i: order._id,
             j: `${index * 70}ms`,
             k: common_vendor.o(($event) => goOrderDetail(order), order._id)
           };
         }),
-        o: common_vendor.p({
+        q: common_vendor.p({
           name: "chevron-right",
           size: 14,
           ["stroke-width"]: 2.4
         })
       }, {
-        m: displayOrders.value.length === 0
+        o: displayOrders.value.length === 0
       });
     };
   }
