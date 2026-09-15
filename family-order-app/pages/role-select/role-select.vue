@@ -21,7 +21,7 @@
 
     <!-- 角色卡片 -->
     <view class="role-cards">
-      <!-- 下单人（老婆） -->
+      <!-- 干饭人 -->
       <view
         class="role-card card-orderer"
         :class="{ selected: selectingRole === 'orderer' }"
@@ -51,8 +51,8 @@
         </view>
 
         <view class="card-body">
-          <view class="card-role-tag tag-orderer">下单人</view>
-          <text class="card-role-name">老婆大人</text>
+          <view class="card-role-tag tag-orderer">点单</view>
+          <text class="card-role-name">干饭人</text>
           <text class="card-desc">我来点单，等吃等喝</text>
         </view>
         <view class="card-cta">
@@ -61,7 +61,7 @@
         </view>
       </view>
 
-      <!-- 管理员（老公） -->
+      <!-- 饲养员 -->
       <view
         class="role-card card-admin"
         :class="{ selected: selectingRole === 'admin' }"
@@ -95,8 +95,8 @@
         </view>
 
         <view class="card-body">
-          <view class="card-role-tag tag-admin">管理员</view>
-          <text class="card-role-name">老公大厨</text>
+          <view class="card-role-tag tag-admin">做饭</view>
+          <text class="card-role-name">饲养员</text>
           <text class="card-desc">我来做饭，管理菜单</text>
         </view>
         <view class="card-cta">

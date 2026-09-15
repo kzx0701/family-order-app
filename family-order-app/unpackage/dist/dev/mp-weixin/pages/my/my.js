@@ -23,7 +23,7 @@ const _sfc_main = {
       var _a;
       return ((_a = userStore.userInfo) == null ? void 0 : _a.familyName) || "我的家庭";
     });
-    const modeLabel = common_vendor.computed(() => userStore.isAdmin ? "做饭人" : "干饭人");
+    const modeLabel = common_vendor.computed(() => userStore.isAdmin ? "饲养员" : "干饭人");
     const goRecords = () => {
       common_vendor.index.navigateTo({ url: "/pages/record/record" });
     };
@@ -32,43 +32,38 @@ const _sfc_main = {
     };
     return (_ctx, _cache) => {
       return common_vendor.e({
-        a: common_vendor.unref(statusBarHeight) + 28 + "px",
-        b: common_vendor.unref(userStore).avatar
+        a: common_vendor.unref(userStore).avatar
       }, common_vendor.unref(userStore).avatar ? {
-        c: common_vendor.unref(userStore).avatar
+        b: common_vendor.unref(userStore).avatar
       } : {
-        d: common_vendor.p({
+        c: common_vendor.p({
           role: common_vendor.unref(userStore).isAdmin ? "admin" : "orderer"
         })
       }, {
-        e: common_vendor.t(common_vendor.unref(userStore).nickname || "家庭成员"),
-        f: common_vendor.t(modeLabel.value),
-        g: common_vendor.unref(userStore).isAdmin ? 1 : "",
-        h: common_vendor.p({
+        d: common_vendor.t(common_vendor.unref(userStore).nickname || "家庭成员"),
+        e: common_vendor.t(modeLabel.value),
+        f: common_vendor.unref(userStore).isAdmin ? 1 : "",
+        g: common_vendor.p({
           name: "edit",
           size: 17,
           ["stroke-width"]: 2.2
         }),
-        i: common_vendor.o(($event) => showPreviewTip("个人资料将在后续接入"), "7c"),
-        j: common_vendor.p({
-          name: "home",
-          size: 21,
-          ["stroke-width"]: 2.2
-        }),
-        k: common_vendor.t(familyName.value),
-        l: common_vendor.t(modeLabel.value),
-        m: common_vendor.p({
-          name: "chevron-right",
-          size: 15,
-          ["stroke-width"]: 2.3
-        }),
-        n: common_vendor.o(($event) => showPreviewTip("身份切换将在登录改造中接入"), "75"),
-        o: common_vendor.p({
+        h: common_vendor.o(($event) => showPreviewTip("个人资料将在后续接入"), "b3"),
+        i: common_vendor.unref(statusBarHeight) + 52 + "px",
+        j: common_vendor.t(familyName.value),
+        k: common_vendor.t(modeLabel.value),
+        l: common_vendor.p({
           name: "chevron-right",
           size: 19,
           ["stroke-width"]: 2.4
         }),
-        p: common_vendor.o(goRecords, "6e")
+        m: common_vendor.o(($event) => showPreviewTip("身份切换将在登录改造中接入"), "60"),
+        n: common_vendor.p({
+          name: "chevron-right",
+          size: 19,
+          ["stroke-width"]: 2.4
+        }),
+        o: common_vendor.o(goRecords, "6d")
       });
     };
   }

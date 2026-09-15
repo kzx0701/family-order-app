@@ -24,7 +24,7 @@
 
 以下三张图片是二期视觉基准参考，不直接作为小程序运行资源：
 
-- [character-pair-v1.png](./design-references/phase-2-visual/character-pair-v1.png)：干饭人/做饭人角色方向
+- [character-pair-v1.png](./design-references/phase-2-visual/character-pair-v1.png)：干饭人/饲养员角色方向
 - [ingredient-sheet-v1.png](./design-references/phase-2-visual/ingredient-sheet-v1.png)：公共食材素材方向
 - [home-hero-v1.png](./design-references/phase-2-visual/home-hero-v1.png)：首页家庭点餐氛围方向
 
@@ -129,7 +129,7 @@ clean vector / smooth outline / glossy sticker / 3D render
 
 ### 7.1 角色素材
 
-- 干饭人和做饭人保持同一比例、同一线条和同一色彩语言。
+- 干饭人和饲养员保持同一比例、同一线条和同一色彩语言。
 - 通过碗筷、围裙、锅铲等少量道具表达身份。
 - 表情应开朗、亲切、带轻微脸红或眼神变化。
 - 动作可以有一点夸张，但不要过度幼儿化。

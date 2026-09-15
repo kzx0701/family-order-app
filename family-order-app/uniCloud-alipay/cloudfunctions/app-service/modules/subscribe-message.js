@@ -212,7 +212,7 @@ async function sendOrderNotify({
     thing6: { value: dishSummary },       // 商品名称
     number11: { value: totalQty },        // 订单数量
     thing5: { value: noteText },          // 操作备注
-    name3: { value: truncate(userName || '下单人', 20) } // 提交人
+    name3: { value: truncate(userName || '干饭人', 20) } // 提交人
   }
 
   const page = `pages/order-detail/order-detail?id=${orderId}`

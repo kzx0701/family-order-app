@@ -125,7 +125,7 @@
     <view v-if="showPickupModal" class="pickup-modal-mask" @tap="closePickupModal">
       <view class="pickup-modal" @tap.stop>
         <text class="pickup-modal-title">提醒取餐</text>
-        <text class="pickup-modal-desc">填写取餐方式与温馨提示，发送给下单人</text>
+        <text class="pickup-modal-desc">填写取餐方式与温馨提示，发送给干饭人</text>
 
         <view class="pickup-field">
           <text class="pickup-label">取餐方式</text>

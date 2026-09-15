@@ -95,7 +95,7 @@ async function getCallerUser(token, db) {
  */
 function requireAdmin(user) {
   if (!user) return { ok: false, message: '未授权：请先登录' }
-  if (user.role !== 'admin') return { ok: false, message: '无权限：仅管理员可操作' }
+  if (user.role !== 'admin') return { ok: false, message: '无权限：仅饲养员可操作' }
   return { ok: true }
 }
 

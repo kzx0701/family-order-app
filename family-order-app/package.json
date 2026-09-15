@@ -1,7 +1,7 @@
 {
     "name": "family-order-app",
     "version": "1.0.0",
-    "description": "家庭点餐小程序 - 老婆下单、丈夫做饭",
+    "description": "家庭点餐小程序 - 干饭人点单、饲养员做饭",
     "main": "main.js",
     "scripts": {
         "dev:mp-weixin": "uni -p mp-weixin",

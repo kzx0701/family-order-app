@@ -31,3 +31,10 @@ $p2-shadow-md: 7rpx 8rpx 0 rgba(98, 71, 53, 0.14);
 $p2-dur-fast: 140ms;
 $p2-dur-base: 260ms;
 $p2-ease: cubic-bezier(0.22, 0.75, 0.24, 1);
+
+/* 手绘标题字体（猫啃什锦黑，OFL 1.1）
+ * 此处只声明字体名；@font-face 本体在 scss/font-maoken.scss，
+ * 需要使用的页面自行 @import，避免 base64 数据被重复打进每个页面的 wxss
+ * 注意：该字体为单字重（usWeightClass 500），使用处不要再设 font-weight: bold */
+$p2-font-hand: 'MaokenAssortedSans';
+$p2-font-fallback: -apple-system, 'PingFang SC', 'Helvetica Neue', sans-serif;

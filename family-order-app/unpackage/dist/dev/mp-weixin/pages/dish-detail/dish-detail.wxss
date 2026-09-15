@@ -29,6 +29,10 @@
  * 二期视觉 Token
  * 仅包含变量声明，供新版页面逐步迁移使用，不直接生成 CSS。
  */
+/* 手绘标题字体（猫啃什锦黑，OFL 1.1）
+ * 此处只声明字体名；@font-face 本体在 scss/font-maoken.scss，
+ * 需要使用的页面自行 @import，避免 base64 数据被重复打进每个页面的 wxss
+ * 注意：该字体为单字重（usWeightClass 500），使用处不要再设 font-weight: bold */
 /* 引入 mixin 定义（仅 @mixin，无 CSS 输出） */
 /**
  * 通用 SCSS Mixin

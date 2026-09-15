@@ -184,7 +184,7 @@ const SCENES = [
   { key: 'noon', from: 11, to: 14, title: '到饭点啦', sub: '看看家里能做点什么' },
   { key: 'afternoon', from: 14, to: 18, title: '下午茶时间', sub: '来杯咖啡，还是先点个菜' },
   { key: 'evening', from: 18, to: 22, title: '今晚吃什么', sub: '家里的饭，总有点不一样' },
-  { key: 'night', from: 22, to: 24, title: '还没睡呀', sub: '小声点单，别吵醒做饭人' }
+  { key: 'night', from: 22, to: 24, title: '还没睡呀', sub: '小声点单，别吵醒饲养员' }
 ]
 
 // 当前小时，onShow 时刷新一次，避免页面停留跨时段后文案仍是旧的
@@ -199,24 +199,28 @@ const currentScene = computed(
 const sceneTitle = computed(() => currentScene.value.title)
 const sceneSub = computed(() => currentScene.value.sub)
 
-/* === 顶部场景插画（位置已预留，素材待补）===
- * 留空时自动回退到内置的 CSS 太阳涂鸦，不影响当前视觉
- * 素材到位后把云存储地址填进 SCENE_ART_SOURCE 对应项即可，会自动走
- * imgUrl 的 960px + WebP 处理，无需改动其他代码
- * 建议题材：morning 吐司 / noon 饭碗筷子 / afternoon 咖啡杯 / evening 小锅 / night 月牙小碗
+/* === 顶部场景插画（5 个时段各一张）===
+ * 留空时回退到内置的 CSS 太阳涂鸦；填入地址后自动走 imgUrl 的 480px + WebP 处理
+ * 素材对应：morning 太阳 / noon 米饭 / afternoon 咖啡 / evening 落日小屋 / night 月牙
+ * 素材命名建议：scene-<时段区间>-<主题>-v<版本>-<尺寸>.png
  */
+
+/* 场景插画显示尺寸仅 132rpx（最大机型约需 227 物理像素），480px 已有约 2.1 倍余量，
+ * 无需与入口图同为 960px */
+const SCENE_ART_WIDTH = 480
+
 const SCENE_ART_SOURCE = {
-  morning: '',
-  noon: '',
-  afternoon: '',
-  evening: '',
-  night: ''
+  morning: 'https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E5%9C%BA%E6%99%AF/exec-51031047-c358-406f-8339-f837b96e9c7b.png',
+  noon: 'https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E5%9C%BA%E6%99%AF/exec-7b6620ff-7380-4c40-8933-c2fc7ca33375.png',
+  afternoon: 'https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E5%9C%BA%E6%99%AF/exec-a653e17c-4186-4c05-b069-07d47e146b62.png',
+  evening: 'https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E5%9C%BA%E6%99%AF/scene-18-22-%E6%99%9A%E4%B8%8A-v2-512.png',
+  night: 'https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E5%9C%BA%E6%99%AF/exec-a9988768-ab65-498e-b4dc-770b1d9ef4dc.png'
 }
 
 const sceneArt = Object.fromEntries(
   Object.entries(SCENE_ART_SOURCE).map(([key, url]) => [
     key,
-    url ? imgUrl(url, { w: ENTRY_ART_WIDTH }) : ''
+    url ? imgUrl(url, { w: SCENE_ART_WIDTH }) : ''
   ])
 )
 
@@ -312,6 +316,9 @@ onPullDownRefresh(async () => {
 </script>
 
 <style lang="scss" scoped>
+/* 顶部主标题的手绘字体（含 base64 数据，按需引入；不可放进 uni.scss，否则会被重复打进每个页面的 wxss） */
+@import '@/scss/font-maoken.scss';
+
 .page-home {
   position: relative;
   min-height: 100vh;
@@ -369,7 +376,8 @@ onPullDownRefresh(async () => {
 
 .greeting-row {
   display: flex;
-  align-items: center;
+  /* 顶部对齐：插画从行顶部起向下延伸。垂直居中会让变大的插画向上顶到微信胶囊 */
+  align-items: flex-start;
   justify-content: space-between;
   gap: 24rpx;
   margin-top: 0;
@@ -377,9 +385,11 @@ onPullDownRefresh(async () => {
 
 .greeting {
   display: block;
+  /* 猫啃什锦黑：单字重手绘体，固定 normal 以避免合成加粗破坏手绘笔触 */
+  font-family: $p2-font-hand, $p2-font-fallback;
   font-size: 52rpx;
   line-height: 1.18;
-  font-weight: 800;
+  font-weight: normal;
   letter-spacing: 1rpx;
   color: $p2-ink;
 }
@@ -392,11 +402,13 @@ onPullDownRefresh(async () => {
   color: $p2-ink-soft;
 }
 
-/* 场景插画位：尺寸固定，素材未到位时内部是回退的太阳涂鸦，不影响布局 */
+/* 场景插画位：顶部与标题齐平，底部向下延伸（吃掉头部下方空白，不撑高头部也不碰入口卡）
+ * 素材未到位时内部是回退的太阳涂鸦 */
 .scene-art {
   flex: 0 0 auto;
-  width: 132rpx;
-  height: 132rpx;
+  width: 200rpx;
+  height: 200rpx;
+  margin-bottom: -30rpx;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -405,6 +417,8 @@ onPullDownRefresh(async () => {
 .scene-art-image {
   width: 100%;
   height: 100%;
+  /* 延续原先 CSS 太阳涂鸦的浮动动效，避免换成静态图后丢掉这层节奏 */
+  animation: sunFloat 4s ease-in-out infinite;
 }
 
 .sun-doodle {

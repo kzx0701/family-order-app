@@ -15,6 +15,7 @@ if (!Math) {
   (_easycom_Icon + _easycom_custom_tabbar)();
 }
 const ENTRY_ART_WIDTH = 960;
+const SCENE_ART_WIDTH = 480;
 const _sfc_main = {
   __name: "home",
   setup(__props) {
@@ -41,7 +42,7 @@ const _sfc_main = {
       { key: "noon", from: 11, to: 14, title: "到饭点啦", sub: "看看家里能做点什么" },
       { key: "afternoon", from: 14, to: 18, title: "下午茶时间", sub: "来杯咖啡，还是先点个菜" },
       { key: "evening", from: 18, to: 22, title: "今晚吃什么", sub: "家里的饭，总有点不一样" },
-      { key: "night", from: 22, to: 24, title: "还没睡呀", sub: "小声点单，别吵醒做饭人" }
+      { key: "night", from: 22, to: 24, title: "还没睡呀", sub: "小声点单，别吵醒饲养员" }
     ];
     const currentHour = common_vendor.ref((/* @__PURE__ */ new Date()).getHours());
     const currentScene = common_vendor.computed(
@@ -50,16 +51,16 @@ const _sfc_main = {
     const sceneTitle = common_vendor.computed(() => currentScene.value.title);
     const sceneSub = common_vendor.computed(() => currentScene.value.sub);
     const SCENE_ART_SOURCE = {
-      morning: "",
-      noon: "",
-      afternoon: "",
-      evening: "",
-      night: ""
+      morning: "https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E5%9C%BA%E6%99%AF/exec-51031047-c358-406f-8339-f837b96e9c7b.png",
+      noon: "https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E5%9C%BA%E6%99%AF/exec-7b6620ff-7380-4c40-8933-c2fc7ca33375.png",
+      afternoon: "https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E5%9C%BA%E6%99%AF/exec-a653e17c-4186-4c05-b069-07d47e146b62.png",
+      evening: "https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E5%9C%BA%E6%99%AF/scene-18-22-%E6%99%9A%E4%B8%8A-v2-512.png",
+      night: "https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E5%9C%BA%E6%99%AF/exec-a9988768-ab65-498e-b4dc-770b1d9ef4dc.png"
     };
     const sceneArt = Object.fromEntries(
       Object.entries(SCENE_ART_SOURCE).map(([key, url]) => [
         key,
-        url ? utils_image.imgUrl(url, { w: ENTRY_ART_WIDTH }) : ""
+        url ? utils_image.imgUrl(url, { w: SCENE_ART_WIDTH }) : ""
       ])
     );
     const sceneArtSrc = common_vendor.computed(() => sceneArt[currentScene.value.key] || "");
@@ -81,7 +82,7 @@ const _sfc_main = {
         if (((_a = res.result) == null ? void 0 : _a.code) === 0)
           orders.value = res.result.list || [];
       } catch (e) {
-        common_vendor.index.__f__("warn", "at pages/home/home.vue:241", "[home] recent orders unavailable during phase2 shell preview", e);
+        common_vendor.index.__f__("warn", "at pages/home/home.vue:245", "[home] recent orders unavailable during phase2 shell preview", e);
       } finally {
         loading.value = false;
       }
