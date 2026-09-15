@@ -8,6 +8,9 @@ import { ref } from 'vue'
  * 本 composable 在首次调用时初始化，后续共享同一份状态。
  */
 const statusBarHeight = ref(0)
+// 微信胶囊按钮位置（··· 与 ⊙）：自定义导航栏下它固定悬浮在右上角，
+// 页面内容需要避让，否则右侧元素会与胶囊重叠
+const menuButton = ref(null)
 let initialized = false
 
 export function useSafeArea() {
@@ -20,6 +23,12 @@ export function useSafeArea() {
     } catch (e) {
       statusBarHeight.value = 20
     }
+    try {
+      // 微信小程序专有 API，其他平台不存在时保持 null，由调用方兜底
+      menuButton.value = uni.getMenuButtonBoundingClientRect?.() || null
+    } catch (e) {
+      menuButton.value = null
+    }
   }
-  return { statusBarHeight }
+  return { statusBarHeight, menuButton }
 }

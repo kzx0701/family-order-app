@@ -1,6 +1,6 @@
 <template>
   <view class="page-recipe page-enter">
-    <view class="page-header" :style="{ paddingTop: statusBarHeight + 28 + 'px' }">
+    <view class="page-header" :style="{ paddingTop: headerTop + 'px' }">
       <view>
         <text class="page-kicker">家里会做的，都记在这里</text>
         <text class="page-title">家庭菜谱</text>
@@ -33,11 +33,20 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
 import { useSafeArea } from '@/composables/useSafeArea.js'
 import { useUserStore } from '@/store/user.js'
 
-const { statusBarHeight } = useSafeArea()
+const { statusBarHeight, menuButton } = useSafeArea()
 const userStore = useUserStore()
+
+/* 顶部内容起始位置：右侧「配置」按钮与微信胶囊按钮水平范围重合，需按胶囊底边避让
+ * 取不到胶囊信息（非微信端）时退回状态栏 + 42px
+ */
+const headerTop = computed(() => {
+  const bottom = menuButton.value?.bottom
+  return bottom ? Math.round(bottom + 6) : statusBarHeight.value + 42
+})
 
 const showPreviewTip = () => {
   uni.showToast({ title: '菜谱配置将在下一步接入', icon: 'none' })

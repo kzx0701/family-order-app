@@ -4,21 +4,32 @@
     <view class="paper-dot dot-b"></view>
     <view class="paper-dot dot-c"></view>
 
-    <view class="home-header" :style="{ paddingTop: statusBarHeight + 28 + 'px' }">
+    <view class="home-header" :style="{ paddingTop: headerTop + 'px' }">
       <view class="greeting-row">
         <view>
-          <text class="greeting">{{ greeting }}</text>
-          <text class="greeting-sub">{{ greetingSub }}</text>
+          <text class="greeting">{{ sceneTitle }}</text>
+          <text class="greeting-sub">{{ sceneSub }}</text>
         </view>
-        <view class="sun-doodle">
-          <view class="sun-face">
-            <view class="sun-eye eye-left"></view>
-            <view class="sun-eye eye-right"></view>
-            <view class="sun-smile"></view>
+
+        <!-- 场景插画位：素材未到位时回退为内置的 CSS 太阳涂鸦 -->
+        <view class="scene-art">
+          <image
+            v-if="sceneArtSrc"
+            class="scene-art-image"
+            :src="sceneArtSrc"
+            mode="aspectFit"
+            :webp="true"
+          />
+          <view v-else class="sun-doodle">
+            <view class="sun-face">
+              <view class="sun-eye eye-left"></view>
+              <view class="sun-eye eye-right"></view>
+              <view class="sun-smile"></view>
+            </view>
+            <view class="sun-ray ray-a"></view>
+            <view class="sun-ray ray-b"></view>
+            <view class="sun-ray ray-c"></view>
           </view>
-          <view class="sun-ray ray-a"></view>
-          <view class="sun-ray ray-b"></view>
-          <view class="sun-ray ray-c"></view>
         </view>
       </view>
 
@@ -129,12 +140,22 @@ import { useUserStore } from '@/store/user.js'
 import { useSafeArea } from '@/composables/useSafeArea.js'
 import { imgUrl } from '@/utils/image.js'
 
-const { statusBarHeight } = useSafeArea()
+const { statusBarHeight, menuButton } = useSafeArea()
 const userStore = useUserStore()
 const cartStore = useCartStore()
 
 const orders = ref([])
 const loading = ref(false)
+
+/* === 顶部内容起始位置 ===
+ * 自定义导航栏下微信胶囊按钮固定悬浮在右上角，内容若从状态栏下方紧接开始会与它重叠
+ * （首页右侧的插画就在胶囊水平范围内），故按胶囊底边下移
+ * 取不到胶囊信息（非微信端）时退回状态栏 + 42px
+ */
+const headerTop = computed(() => {
+  const bottom = menuButton.value?.bottom
+  return bottom ? Math.round(bottom + 6) : statusBarHeight.value + 42
+})
 
 /* === 入口素材 ===
  * 云存储原图合计约 5.4MB，经 imgUrl 按 960px + WebP 输出后约 0.43MB
@@ -153,23 +174,53 @@ const entryTitleArt = {
   coffee: imgUrl('https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E7%95%8C%E9%9D%A2/title-%E6%9D%A5%E6%9D%AF%E5%92%96%E5%95%A1-standardized.png', { w: ENTRY_ART_WIDTH })
 }
 
-const greeting = computed(() => {
-  const hour = new Date().getHours()
-  if (hour >= 5 && hour < 11) return '早安，开饭啦'
-  if (hour >= 11 && hour < 14) return '午饭时间到'
-  if (hour >= 14 && hour < 18) return '下午好呀'
-  if (hour >= 18 && hour < 22) return '晚饭吃什么'
-  return '夜宵也可以'
-})
+/* === 顶部时段场景 ===
+ * 按设备本地时间落在哪个区间决定文案与插画，共 5 档
+ * 文案口吻统一为「短句 + 轻语气」：主文案 4–6 字，副文案 10–12 字
+ * 22:00–05:00 跨夜，靠 find 未命中时兜底到最后一档
+ */
+const SCENES = [
+  { key: 'morning', from: 5, to: 11, title: '早呀，饿了吗', sub: '今天第一口，想吃点什么' },
+  { key: 'noon', from: 11, to: 14, title: '到饭点啦', sub: '看看家里能做点什么' },
+  { key: 'afternoon', from: 14, to: 18, title: '下午茶时间', sub: '来杯咖啡，还是先点个菜' },
+  { key: 'evening', from: 18, to: 22, title: '今晚吃什么', sub: '家里的饭，总有点不一样' },
+  { key: 'night', from: 22, to: 24, title: '还没睡呀', sub: '小声点单，别吵醒做饭人' }
+]
 
-const greetingSub = computed(() => {
-  const hour = new Date().getHours()
-  if (hour >= 5 && hour < 11) return '新的一天，从喜欢的味道开始'
-  if (hour >= 11 && hour < 14) return '看看家里今天能做点什么'
-  if (hour >= 14 && hour < 18) return '想喝咖啡，还是提前点个菜？'
-  if (hour >= 18 && hour < 22) return '家里的饭，总有一点不一样'
-  return '小声点单，别把做饭人吵醒啦'
-})
+// 当前小时，onShow 时刷新一次，避免页面停留跨时段后文案仍是旧的
+const currentHour = ref(new Date().getHours())
+
+const currentScene = computed(
+  () =>
+    SCENES.find((s) => currentHour.value >= s.from && currentHour.value < s.to) ||
+    SCENES[SCENES.length - 1]
+)
+
+const sceneTitle = computed(() => currentScene.value.title)
+const sceneSub = computed(() => currentScene.value.sub)
+
+/* === 顶部场景插画（位置已预留，素材待补）===
+ * 留空时自动回退到内置的 CSS 太阳涂鸦，不影响当前视觉
+ * 素材到位后把云存储地址填进 SCENE_ART_SOURCE 对应项即可，会自动走
+ * imgUrl 的 960px + WebP 处理，无需改动其他代码
+ * 建议题材：morning 吐司 / noon 饭碗筷子 / afternoon 咖啡杯 / evening 小锅 / night 月牙小碗
+ */
+const SCENE_ART_SOURCE = {
+  morning: '',
+  noon: '',
+  afternoon: '',
+  evening: '',
+  night: ''
+}
+
+const sceneArt = Object.fromEntries(
+  Object.entries(SCENE_ART_SOURCE).map(([key, url]) => [
+    key,
+    url ? imgUrl(url, { w: ENTRY_ART_WIDTH }) : ''
+  ])
+)
+
+const sceneArtSrc = computed(() => sceneArt[currentScene.value.key] || '')
 
 const displayOrders = computed(() => orders.value.slice(0, 3))
 
@@ -248,7 +299,11 @@ watch(
   }
 )
 
-onShow(loadOrders)
+onShow(() => {
+  // 刷新当前小时：页面停留跨时段后重新进入时，场景文案需要跟着变
+  currentHour.value = new Date().getHours()
+  loadOrders()
+})
 
 onPullDownRefresh(async () => {
   await loadOrders()
@@ -335,6 +390,21 @@ onPullDownRefresh(async () => {
   font-size: 24rpx;
   line-height: 1.6;
   color: $p2-ink-soft;
+}
+
+/* 场景插画位：尺寸固定，素材未到位时内部是回退的太阳涂鸦，不影响布局 */
+.scene-art {
+  flex: 0 0 auto;
+  width: 132rpx;
+  height: 132rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.scene-art-image {
+  width: 100%;
+  height: 100%;
 }
 
 .sun-doodle {

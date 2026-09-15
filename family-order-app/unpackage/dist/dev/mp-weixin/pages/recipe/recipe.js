@@ -15,8 +15,13 @@ if (!Math) {
 const _sfc_main = {
   __name: "recipe",
   setup(__props) {
-    const { statusBarHeight } = composables_useSafeArea.useSafeArea();
+    const { statusBarHeight, menuButton } = composables_useSafeArea.useSafeArea();
     const userStore = store_user.useUserStore();
+    const headerTop = common_vendor.computed(() => {
+      var _a;
+      const bottom = (_a = menuButton.value) == null ? void 0 : _a.bottom;
+      return bottom ? Math.round(bottom + 6) : statusBarHeight.value + 42;
+    });
     const showPreviewTip = () => {
       common_vendor.index.showToast({ title: "菜谱配置将在下一步接入", icon: "none" });
     };
@@ -29,9 +34,9 @@ const _sfc_main = {
           size: 18,
           ["stroke-width"]: 2.2
         }),
-        c: common_vendor.o(showPreviewTip, "a7")
+        c: common_vendor.o(showPreviewTip, "6c")
       } : {}, {
-        d: common_vendor.unref(statusBarHeight) + 28 + "px"
+        d: headerTop.value + "px"
       });
     };
   }

@@ -18,11 +18,16 @@ const ENTRY_ART_WIDTH = 960;
 const _sfc_main = {
   __name: "home",
   setup(__props) {
-    const { statusBarHeight } = composables_useSafeArea.useSafeArea();
+    const { statusBarHeight, menuButton } = composables_useSafeArea.useSafeArea();
     const userStore = store_user.useUserStore();
     const cartStore = store_cart.useCartStore();
     const orders = common_vendor.ref([]);
     const loading = common_vendor.ref(false);
+    const headerTop = common_vendor.computed(() => {
+      var _a;
+      const bottom = (_a = menuButton.value) == null ? void 0 : _a.bottom;
+      return bottom ? Math.round(bottom + 6) : statusBarHeight.value + 42;
+    });
     const entryArt = {
       food: utils_image.imgUrl("https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E7%95%8C%E9%9D%A2/exec-6356c060-78ee-47d4-a481-a3b61fdf2c3e.png", { w: ENTRY_ART_WIDTH }),
       coffee: utils_image.imgUrl("https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E7%95%8C%E9%9D%A2/exec-a8278d19-e4a0-4e8d-9a1c-83483951710b.png", { w: ENTRY_ART_WIDTH })
@@ -31,30 +36,33 @@ const _sfc_main = {
       food: utils_image.imgUrl("https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E7%95%8C%E9%9D%A2/title-%E6%88%91%E8%A6%81%E5%B9%B2%E9%A5%AD-standardized.png", { w: ENTRY_ART_WIDTH }),
       coffee: utils_image.imgUrl("https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E7%95%8C%E9%9D%A2/title-%E6%9D%A5%E6%9D%AF%E5%92%96%E5%95%A1-standardized.png", { w: ENTRY_ART_WIDTH })
     };
-    const greeting = common_vendor.computed(() => {
-      const hour = (/* @__PURE__ */ new Date()).getHours();
-      if (hour >= 5 && hour < 11)
-        return "早安，开饭啦";
-      if (hour >= 11 && hour < 14)
-        return "午饭时间到";
-      if (hour >= 14 && hour < 18)
-        return "下午好呀";
-      if (hour >= 18 && hour < 22)
-        return "晚饭吃什么";
-      return "夜宵也可以";
-    });
-    const greetingSub = common_vendor.computed(() => {
-      const hour = (/* @__PURE__ */ new Date()).getHours();
-      if (hour >= 5 && hour < 11)
-        return "新的一天，从喜欢的味道开始";
-      if (hour >= 11 && hour < 14)
-        return "看看家里今天能做点什么";
-      if (hour >= 14 && hour < 18)
-        return "想喝咖啡，还是提前点个菜？";
-      if (hour >= 18 && hour < 22)
-        return "家里的饭，总有一点不一样";
-      return "小声点单，别把做饭人吵醒啦";
-    });
+    const SCENES = [
+      { key: "morning", from: 5, to: 11, title: "早呀，饿了吗", sub: "今天第一口，想吃点什么" },
+      { key: "noon", from: 11, to: 14, title: "到饭点啦", sub: "看看家里能做点什么" },
+      { key: "afternoon", from: 14, to: 18, title: "下午茶时间", sub: "来杯咖啡，还是先点个菜" },
+      { key: "evening", from: 18, to: 22, title: "今晚吃什么", sub: "家里的饭，总有点不一样" },
+      { key: "night", from: 22, to: 24, title: "还没睡呀", sub: "小声点单，别吵醒做饭人" }
+    ];
+    const currentHour = common_vendor.ref((/* @__PURE__ */ new Date()).getHours());
+    const currentScene = common_vendor.computed(
+      () => SCENES.find((s) => currentHour.value >= s.from && currentHour.value < s.to) || SCENES[SCENES.length - 1]
+    );
+    const sceneTitle = common_vendor.computed(() => currentScene.value.title);
+    const sceneSub = common_vendor.computed(() => currentScene.value.sub);
+    const SCENE_ART_SOURCE = {
+      morning: "",
+      noon: "",
+      afternoon: "",
+      evening: "",
+      night: ""
+    };
+    const sceneArt = Object.fromEntries(
+      Object.entries(SCENE_ART_SOURCE).map(([key, url]) => [
+        key,
+        url ? utils_image.imgUrl(url, { w: ENTRY_ART_WIDTH }) : ""
+      ])
+    );
+    const sceneArtSrc = common_vendor.computed(() => sceneArt[currentScene.value.key] || "");
     const displayOrders = common_vendor.computed(() => orders.value.slice(0, 3));
     const loadOrders = async () => {
       var _a;
@@ -73,7 +81,7 @@ const _sfc_main = {
         if (((_a = res.result) == null ? void 0 : _a.code) === 0)
           orders.value = res.result.list || [];
       } catch (e) {
-        common_vendor.index.__f__("warn", "at pages/home/home.vue:190", "[home] recent orders unavailable during phase2 shell preview", e);
+        common_vendor.index.__f__("warn", "at pages/home/home.vue:241", "[home] recent orders unavailable during phase2 shell preview", e);
       } finally {
         loading.value = false;
       }
@@ -130,37 +138,44 @@ const _sfc_main = {
           loadOrders();
       }
     );
-    common_vendor.onShow(loadOrders);
+    common_vendor.onShow(() => {
+      currentHour.value = (/* @__PURE__ */ new Date()).getHours();
+      loadOrders();
+    });
     common_vendor.onPullDownRefresh(async () => {
       await loadOrders();
       common_vendor.index.stopPullDownRefresh();
     });
     return (_ctx, _cache) => {
       return common_vendor.e({
-        a: common_vendor.t(greeting.value),
-        b: common_vendor.t(greetingSub.value),
-        c: common_vendor.unref(statusBarHeight) + 28 + "px",
-        d: entryTitleArt.food,
-        e: entryArt.food,
-        f: common_vendor.o(($event) => goOrder("food"), "15"),
-        g: entryTitleArt.coffee,
-        h: entryArt.coffee,
-        i: common_vendor.o(($event) => goOrder("coffee"), "2b"),
-        j: common_vendor.p({
+        a: common_vendor.t(sceneTitle.value),
+        b: common_vendor.t(sceneSub.value),
+        c: sceneArtSrc.value
+      }, sceneArtSrc.value ? {
+        d: sceneArtSrc.value
+      } : {}, {
+        e: headerTop.value + "px",
+        f: entryTitleArt.food,
+        g: entryArt.food,
+        h: common_vendor.o(($event) => goOrder("food"), "d2"),
+        i: entryTitleArt.coffee,
+        j: entryArt.coffee,
+        k: common_vendor.o(($event) => goOrder("coffee"), "a9"),
+        l: common_vendor.p({
           name: "chevron-right",
           size: 14,
           ["stroke-width"]: 2.3
         }),
-        k: common_vendor.o(goMy, "d8"),
-        l: loading.value && orders.value.length === 0
+        m: common_vendor.o(goMy, "e7"),
+        n: loading.value && orders.value.length === 0
       }, loading.value && orders.value.length === 0 ? {
-        m: common_vendor.f(2, (n, k0, i0) => {
+        o: common_vendor.f(2, (n, k0, i0) => {
           return {
             a: n
           };
         })
       } : displayOrders.value.length === 0 ? {} : {
-        o: common_vendor.f(displayOrders.value, (order, index, i0) => {
+        q: common_vendor.f(displayOrders.value, (order, index, i0) => {
           return {
             a: common_vendor.t(orderEmoji(order)),
             b: common_vendor.n(orderKind(order)),
@@ -175,13 +190,13 @@ const _sfc_main = {
             k: common_vendor.o(($event) => goOrderDetail(order), order._id)
           };
         }),
-        p: common_vendor.p({
+        r: common_vendor.p({
           name: "chevron-right",
           size: 14,
           ["stroke-width"]: 2.4
         })
       }, {
-        n: displayOrders.value.length === 0
+        p: displayOrders.value.length === 0
       });
     };
   }
