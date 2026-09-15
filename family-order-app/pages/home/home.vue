@@ -6,9 +6,16 @@
 
     <view class="home-header" :style="{ paddingTop: headerTop + 'px' }">
       <view class="greeting-row">
-        <view>
+        <view class="greeting-text">
           <text class="greeting">{{ sceneTitle }}</text>
           <text class="greeting-sub">{{ sceneSub }}</text>
+
+          <!-- 手绘笔触：紧跟副标题，让左侧形成「标题 + 副标题 + 笔触」的紧凑组，
+               避免笔触被插画撑开的行高甩到远处、显得与标题分离 -->
+          <view class="header-scribble">
+            <view class="scribble-line scribble-line-main"></view>
+            <view class="scribble-line scribble-line-sub"></view>
+          </view>
         </view>
 
         <!-- 场景插画位：素材未到位时回退为内置的 CSS 太阳涂鸦 -->
@@ -32,8 +39,6 @@
           </view>
         </view>
       </view>
-
-      <view class="header-scribble"></view>
     </view>
 
     <view class="entry-section">
@@ -371,7 +376,9 @@ onPullDownRefresh(async () => {
 }
 
 .home-header {
-  padding: 38rpx 34rpx 22rpx;
+  /* 底部留白较大：插画 236rpx 比行高 190rpx 高出 46rpx，这部分需由这里兜住，
+     再保留约 22rpx 与下方入口卡的呼吸间距 */
+  padding: 38rpx 34rpx 68rpx;
 }
 
 .greeting-row {
@@ -387,7 +394,7 @@ onPullDownRefresh(async () => {
   display: block;
   /* 猫啃什锦黑：单字重手绘体，固定 normal 以避免合成加粗破坏手绘笔触 */
   font-family: $p2-font-hand, $p2-font-fallback;
-  font-size: 52rpx;
+  font-size: 66rpx;
   line-height: 1.18;
   font-weight: normal;
   letter-spacing: 1rpx;
@@ -396,8 +403,11 @@ onPullDownRefresh(async () => {
 
 .greeting-sub {
   display: block;
-  margin-top: 10rpx;
+  margin-top: 8rpx;
+  /* 与主标题统一为猫啃什锦黑；同为单字重，固定 normal 避免合成加粗 */
+  font-family: $p2-font-hand, $p2-font-fallback;
   font-size: 24rpx;
+  font-weight: normal;
   line-height: 1.6;
   color: $p2-ink-soft;
 }
@@ -406,9 +416,11 @@ onPullDownRefresh(async () => {
  * 素材未到位时内部是回退的太阳涂鸦 */
 .scene-art {
   flex: 0 0 auto;
-  width: 200rpx;
-  height: 200rpx;
-  margin-bottom: -30rpx;
+  width: 236rpx;
+  height: 236rpx;
+  /* 负 margin 让插画实际渲染 236rpx、但只占 190rpx 布局高度，
+   * 多出的部分向下伸进头部下方的留白，避免整体撑高首屏 */
+  margin-bottom: -46rpx;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -476,14 +488,33 @@ onPullDownRefresh(async () => {
 .ray-b { top: 50rpx; right: 1rpx; transform: rotate(6deg); }
 .ray-c { bottom: 5rpx; left: 7rpx; transform: rotate(-43deg); }
 
+/* 手绘笔触：沿用项目既有的「不规则 border-radius + 轻微旋转」制造笔迹歪斜感，
+ * 不用规整弧线（视觉规范 §4 要求线条有摇摆与压力变化，不能像矢量描边） */
+/* 宽度用百分比：跟随标题块宽度（由文案长度决定）自适应，短文案时笔触同步收短 */
 .header-scribble {
-  width: 130rpx;
+  width: 85%;
+  margin-top: 16rpx;
+}
+
+.scribble-line {
   height: 10rpx;
-  margin-top: 20rpx;
   border-top: 4rpx solid $p2-coral;
   border-radius: 50%;
-  transform: rotate(-2deg);
+}
+
+.scribble-line-main {
+  width: 100%;
+  transform: rotate(-1.6deg);
   opacity: 0.78;
+}
+
+/* 第二笔更短更淡，形成手绘排线的节奏，而不是单根规整的下划线 */
+.scribble-line-sub {
+  width: 52%;
+  margin-top: 8rpx;
+  border-top-width: 3rpx;
+  transform: rotate(-0.6deg);
+  opacity: 0.45;
 }
 
 .entry-section {

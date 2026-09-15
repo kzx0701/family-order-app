@@ -140,7 +140,9 @@
   z-index: 1;
 }
 .home-header.data-v-07e72d3c {
-  padding: 38rpx 34rpx 22rpx;
+  /* 底部留白较大：插画 236rpx 比行高 190rpx 高出 46rpx，这部分需由这里兜住，
+     再保留约 22rpx 与下方入口卡的呼吸间距 */
+  padding: 38rpx 34rpx 68rpx;
 }
 .greeting-row.data-v-07e72d3c {
   display: flex;
@@ -154,7 +156,7 @@
   display: block;
   /* 猫啃什锦黑：单字重手绘体，固定 normal 以避免合成加粗破坏手绘笔触 */
   font-family: "MaokenAssortedSans", -apple-system, "PingFang SC", "Helvetica Neue", sans-serif;
-  font-size: 52rpx;
+  font-size: 66rpx;
   line-height: 1.18;
   font-weight: normal;
   letter-spacing: 1rpx;
@@ -162,8 +164,11 @@
 }
 .greeting-sub.data-v-07e72d3c {
   display: block;
-  margin-top: 10rpx;
+  margin-top: 8rpx;
+  /* 与主标题统一为猫啃什锦黑；同为单字重，固定 normal 避免合成加粗 */
+  font-family: "MaokenAssortedSans", -apple-system, "PingFang SC", "Helvetica Neue", sans-serif;
   font-size: 24rpx;
+  font-weight: normal;
   line-height: 1.6;
   color: #8c725e;
 }
@@ -171,9 +176,11 @@
  * 素材未到位时内部是回退的太阳涂鸦 */
 .scene-art.data-v-07e72d3c {
   flex: 0 0 auto;
-  width: 200rpx;
-  height: 200rpx;
-  margin-bottom: -30rpx;
+  width: 236rpx;
+  height: 236rpx;
+  /* 负 margin 让插画实际渲染 236rpx、但只占 190rpx 布局高度，
+   * 多出的部分向下伸进头部下方的留白，避免整体撑高首屏 */
+  margin-bottom: -46rpx;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -248,14 +255,30 @@
   left: 7rpx;
   transform: rotate(-43deg);
 }
+/* 手绘笔触：沿用项目既有的「不规则 border-radius + 轻微旋转」制造笔迹歪斜感，
+ * 不用规整弧线（视觉规范 §4 要求线条有摇摆与压力变化，不能像矢量描边） */
+/* 宽度用百分比：跟随标题块宽度（由文案长度决定）自适应，短文案时笔触同步收短 */
 .header-scribble.data-v-07e72d3c {
-  width: 130rpx;
+  width: 85%;
+  margin-top: 16rpx;
+}
+.scribble-line.data-v-07e72d3c {
   height: 10rpx;
-  margin-top: 20rpx;
   border-top: 4rpx solid #e97a69;
   border-radius: 50%;
-  transform: rotate(-2deg);
+}
+.scribble-line-main.data-v-07e72d3c {
+  width: 100%;
+  transform: rotate(-1.6deg);
   opacity: 0.78;
+}
+/* 第二笔更短更淡，形成手绘排线的节奏，而不是单根规整的下划线 */
+.scribble-line-sub.data-v-07e72d3c {
+  width: 52%;
+  margin-top: 8rpx;
+  border-top-width: 3rpx;
+  transform: rotate(-0.6deg);
+  opacity: 0.45;
 }
 .entry-section.data-v-07e72d3c {
   display: grid;

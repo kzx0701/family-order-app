@@ -82,7 +82,7 @@ const _sfc_main = {
         if (((_a = res.result) == null ? void 0 : _a.code) === 0)
           orders.value = res.result.list || [];
       } catch (e) {
-        common_vendor.index.__f__("warn", "at pages/home/home.vue:245", "[home] recent orders unavailable during phase2 shell preview", e);
+        common_vendor.index.__f__("warn", "at pages/home/home.vue:250", "[home] recent orders unavailable during phase2 shell preview", e);
       } finally {
         loading.value = false;
       }
@@ -158,16 +158,16 @@ const _sfc_main = {
         e: headerTop.value + "px",
         f: entryTitleArt.food,
         g: entryArt.food,
-        h: common_vendor.o(($event) => goOrder("food"), "d2"),
+        h: common_vendor.o(($event) => goOrder("food"), "d0"),
         i: entryTitleArt.coffee,
         j: entryArt.coffee,
-        k: common_vendor.o(($event) => goOrder("coffee"), "a9"),
+        k: common_vendor.o(($event) => goOrder("coffee"), "7f"),
         l: common_vendor.p({
           name: "chevron-right",
           size: 14,
           ["stroke-width"]: 2.3
         }),
-        m: common_vendor.o(goMy, "e7"),
+        m: common_vendor.o(goMy, "4a"),
         n: loading.value && orders.value.length === 0
       }, loading.value && orders.value.length === 0 ? {
         o: common_vendor.f(2, (n, k0, i0) => {
