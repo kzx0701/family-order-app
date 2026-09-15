@@ -109,52 +109,12 @@
 .home-header.data-v-07e72d3c {
   padding: 38rpx 34rpx 22rpx;
 }
-.family-chip.data-v-07e72d3c {
-  display: inline-flex;
-  align-items: center;
-  gap: 10rpx;
-  padding: 9rpx 16rpx 8rpx 12rpx;
-  background: rgba(255, 254, 249, 0.82);
-  border: 2rpx solid rgba(118, 85, 64, 0.45);
-  border-radius: 16rpx 20rpx 17rpx 22rpx;
-  box-shadow: 3rpx 4rpx 0 rgba(98, 71, 53, 0.08);
-  color: #8c725e;
-  font-size: 22rpx;
-  font-weight: 600;
-  transform: rotate(-1deg);
-}
-.house-mark.data-v-07e72d3c {
-  position: relative;
-  width: 28rpx;
-  height: 28rpx;
-}
-.house-roof.data-v-07e72d3c {
-  position: absolute;
-  top: 2rpx;
-  left: 4rpx;
-  width: 18rpx;
-  height: 18rpx;
-  border-left: 3rpx solid #e97a69;
-  border-top: 3rpx solid #e97a69;
-  transform: rotate(45deg);
-  border-radius: 3rpx;
-}
-.house-body.data-v-07e72d3c {
-  position: absolute;
-  left: 6rpx;
-  bottom: 1rpx;
-  width: 18rpx;
-  height: 16rpx;
-  border: 3rpx solid #e97a69;
-  border-top: 0;
-  border-radius: 2rpx 2rpx 5rpx 5rpx;
-}
 .greeting-row.data-v-07e72d3c {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 24rpx;
-  margin-top: 24rpx;
+  margin-top: 0;
 }
 .greeting.data-v-07e72d3c {
   display: block;
@@ -174,8 +134,8 @@
 .sun-doodle.data-v-07e72d3c {
   position: relative;
   flex: 0 0 auto;
-  width: 100rpx;
-  height: 100rpx;
+  width: 108rpx;
+  height: 104rpx;
   transform: rotate(5deg);
   animation: sunFloat-07e72d3c 4s ease-in-out infinite;
 }

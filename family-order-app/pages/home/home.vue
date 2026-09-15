@@ -5,14 +5,6 @@
     <view class="paper-dot dot-c"></view>
 
     <view class="home-header" :style="{ paddingTop: statusBarHeight + 28 + 'px' }">
-      <view class="family-chip">
-        <view class="house-mark">
-          <view class="house-roof"></view>
-          <view class="house-body"></view>
-        </view>
-        <text>{{ familyName }}</text>
-      </view>
-
       <view class="greeting-row">
         <view>
           <text class="greeting">{{ greeting }}</text>
@@ -36,23 +28,23 @@
     <view class="entry-section">
       <view class="entry-card entry-food" @tap="goOrder('food')">
         <view class="entry-copy">
-          <image class="entry-title-image" :src="entryTitleArt.food" mode="aspectFit" />
+          <image class="entry-title-image" :src="entryTitleArt.food" mode="aspectFit" :webp="true" />
         </view>
 
         <view class="entry-art food-art">
           <view class="entry-art-spot"></view>
-          <image class="entry-art-image" :src="entryArt.food" mode="aspectFill" />
+          <image class="entry-art-image" :src="entryArt.food" mode="aspectFill" :webp="true" />
         </view>
       </view>
 
       <view class="entry-card entry-coffee" @tap="goOrder('coffee')">
         <view class="entry-copy">
-          <image class="entry-title-image" :src="entryTitleArt.coffee" mode="aspectFit" />
+          <image class="entry-title-image" :src="entryTitleArt.coffee" mode="aspectFit" :webp="true" />
         </view>
 
         <view class="entry-art coffee-art">
           <view class="entry-art-spot"></view>
-          <image class="entry-art-image" :src="entryArt.coffee" mode="aspectFill" />
+          <image class="entry-art-image" :src="entryArt.coffee" mode="aspectFill" :webp="true" />
         </view>
       </view>
     </view>
@@ -135,6 +127,7 @@ import { onPullDownRefresh, onShow } from '@dcloudio/uni-app'
 import { useCartStore } from '@/store/cart.js'
 import { useUserStore } from '@/store/user.js'
 import { useSafeArea } from '@/composables/useSafeArea.js'
+import { imgUrl } from '@/utils/image.js'
 
 const { statusBarHeight } = useSafeArea()
 const userStore = useUserStore()
@@ -143,17 +136,22 @@ const cartStore = useCartStore()
 const orders = ref([])
 const loading = ref(false)
 
+/* === 入口素材 ===
+ * 云存储原图合计约 5.4MB，经 imgUrl 按 960px + WebP 输出后约 0.43MB
+ * 960px 对最大机型（430pt 屏、DPR 3，约需 516 物理像素）仍有约 1.9 倍余量
+ * 原始素材未做改动，调整尺寸或回退只需改此参数
+ */
+const ENTRY_ART_WIDTH = 960
+
 const entryArt = {
-  food: 'https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E7%95%8C%E9%9D%A2/exec-6356c060-78ee-47d4-a481-a3b61fdf2c3e.png',
-  coffee: 'https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E7%95%8C%E9%9D%A2/exec-a8278d19-e4a0-4e8d-9a1c-83483951710b.png'
+  food: imgUrl('https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E7%95%8C%E9%9D%A2/exec-6356c060-78ee-47d4-a481-a3b61fdf2c3e.png', { w: ENTRY_ART_WIDTH }),
+  coffee: imgUrl('https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E7%95%8C%E9%9D%A2/exec-a8278d19-e4a0-4e8d-9a1c-83483951710b.png', { w: ENTRY_ART_WIDTH })
 }
 
 const entryTitleArt = {
-  food: 'https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E7%95%8C%E9%9D%A2/title-%E6%88%91%E8%A6%81%E5%B9%B2%E9%A5%AD-standardized.png',
-  coffee: 'https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E7%95%8C%E9%9D%A2/title-%E6%9D%A5%E6%9D%AF%E5%92%96%E5%95%A1-standardized.png'
+  food: imgUrl('https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E7%95%8C%E9%9D%A2/title-%E6%88%91%E8%A6%81%E5%B9%B2%E9%A5%AD-standardized.png', { w: ENTRY_ART_WIDTH }),
+  coffee: imgUrl('https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E7%95%8C%E9%9D%A2/title-%E6%9D%A5%E6%9D%AF%E5%92%96%E5%95%A1-standardized.png', { w: ENTRY_ART_WIDTH })
 }
-
-const familyName = computed(() => userStore.userInfo?.familyName || '我的家庭')
 
 const greeting = computed(() => {
   const hour = new Date().getHours()
@@ -314,56 +312,12 @@ onPullDownRefresh(async () => {
   padding: 38rpx 34rpx 22rpx;
 }
 
-.family-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 10rpx;
-  padding: 9rpx 16rpx 8rpx 12rpx;
-  background: rgba(255, 254, 249, 0.82);
-  border: 2rpx solid rgba(118, 85, 64, 0.45);
-  border-radius: 16rpx 20rpx 17rpx 22rpx;
-  box-shadow: 3rpx 4rpx 0 rgba(98, 71, 53, 0.08);
-  color: $p2-ink-soft;
-  font-size: 22rpx;
-  font-weight: 600;
-  transform: rotate(-1deg);
-}
-
-.house-mark {
-  position: relative;
-  width: 28rpx;
-  height: 28rpx;
-}
-
-.house-roof {
-  position: absolute;
-  top: 2rpx;
-  left: 4rpx;
-  width: 18rpx;
-  height: 18rpx;
-  border-left: 3rpx solid $p2-coral;
-  border-top: 3rpx solid $p2-coral;
-  transform: rotate(45deg);
-  border-radius: 3rpx;
-}
-
-.house-body {
-  position: absolute;
-  left: 6rpx;
-  bottom: 1rpx;
-  width: 18rpx;
-  height: 16rpx;
-  border: 3rpx solid $p2-coral;
-  border-top: 0;
-  border-radius: 2rpx 2rpx 5rpx 5rpx;
-}
-
 .greeting-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 24rpx;
-  margin-top: 24rpx;
+  margin-top: 0;
 }
 
 .greeting {
@@ -386,8 +340,8 @@ onPullDownRefresh(async () => {
 .sun-doodle {
   position: relative;
   flex: 0 0 auto;
-  width: 100rpx;
-  height: 100rpx;
+  width: 108rpx;
+  height: 104rpx;
   transform: rotate(5deg);
   animation: sunFloat 4s ease-in-out infinite;
 }

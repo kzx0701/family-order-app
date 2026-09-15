@@ -3,6 +3,7 @@ const common_vendor = require("../../common/vendor.js");
 const store_cart = require("../../store/cart.js");
 const store_user = require("../../store/user.js");
 const composables_useSafeArea = require("../../composables/useSafeArea.js");
+const utils_image = require("../../utils/image.js");
 if (!Array) {
   const _easycom_Icon2 = common_vendor.resolveComponent("Icon");
   const _easycom_custom_tabbar2 = common_vendor.resolveComponent("custom-tabbar");
@@ -13,6 +14,7 @@ const _easycom_custom_tabbar = () => "../../components/custom-tabbar/custom-tabb
 if (!Math) {
   (_easycom_Icon + _easycom_custom_tabbar)();
 }
+const ENTRY_ART_WIDTH = 960;
 const _sfc_main = {
   __name: "home",
   setup(__props) {
@@ -22,17 +24,13 @@ const _sfc_main = {
     const orders = common_vendor.ref([]);
     const loading = common_vendor.ref(false);
     const entryArt = {
-      food: "https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E7%95%8C%E9%9D%A2/exec-6356c060-78ee-47d4-a481-a3b61fdf2c3e.png",
-      coffee: "https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E7%95%8C%E9%9D%A2/exec-a8278d19-e4a0-4e8d-9a1c-83483951710b.png"
+      food: utils_image.imgUrl("https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E7%95%8C%E9%9D%A2/exec-6356c060-78ee-47d4-a481-a3b61fdf2c3e.png", { w: ENTRY_ART_WIDTH }),
+      coffee: utils_image.imgUrl("https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E7%95%8C%E9%9D%A2/exec-a8278d19-e4a0-4e8d-9a1c-83483951710b.png", { w: ENTRY_ART_WIDTH })
     };
     const entryTitleArt = {
-      food: "https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E7%95%8C%E9%9D%A2/title-%E6%88%91%E8%A6%81%E5%B9%B2%E9%A5%AD-standardized.png",
-      coffee: "https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E7%95%8C%E9%9D%A2/title-%E6%9D%A5%E6%9D%AF%E5%92%96%E5%95%A1-standardized.png"
+      food: utils_image.imgUrl("https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E7%95%8C%E9%9D%A2/title-%E6%88%91%E8%A6%81%E5%B9%B2%E9%A5%AD-standardized.png", { w: ENTRY_ART_WIDTH }),
+      coffee: utils_image.imgUrl("https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E7%95%8C%E9%9D%A2/title-%E6%9D%A5%E6%9D%AF%E5%92%96%E5%95%A1-standardized.png", { w: ENTRY_ART_WIDTH })
     };
-    const familyName = common_vendor.computed(() => {
-      var _a;
-      return ((_a = userStore.userInfo) == null ? void 0 : _a.familyName) || "我的家庭";
-    });
     const greeting = common_vendor.computed(() => {
       const hour = (/* @__PURE__ */ new Date()).getHours();
       if (hour >= 5 && hour < 11)
@@ -75,7 +73,7 @@ const _sfc_main = {
         if (((_a = res.result) == null ? void 0 : _a.code) === 0)
           orders.value = res.result.list || [];
       } catch (e) {
-        common_vendor.index.__f__("warn", "at pages/home/home.vue:192", "[home] recent orders unavailable during phase2 shell preview", e);
+        common_vendor.index.__f__("warn", "at pages/home/home.vue:190", "[home] recent orders unavailable during phase2 shell preview", e);
       } finally {
         loading.value = false;
       }
@@ -139,31 +137,30 @@ const _sfc_main = {
     });
     return (_ctx, _cache) => {
       return common_vendor.e({
-        a: common_vendor.t(familyName.value),
-        b: common_vendor.t(greeting.value),
-        c: common_vendor.t(greetingSub.value),
-        d: common_vendor.unref(statusBarHeight) + 28 + "px",
-        e: entryTitleArt.food,
-        f: entryArt.food,
-        g: common_vendor.o(($event) => goOrder("food"), "3e"),
-        h: entryTitleArt.coffee,
-        i: entryArt.coffee,
-        j: common_vendor.o(($event) => goOrder("coffee"), "fe"),
-        k: common_vendor.p({
+        a: common_vendor.t(greeting.value),
+        b: common_vendor.t(greetingSub.value),
+        c: common_vendor.unref(statusBarHeight) + 28 + "px",
+        d: entryTitleArt.food,
+        e: entryArt.food,
+        f: common_vendor.o(($event) => goOrder("food"), "15"),
+        g: entryTitleArt.coffee,
+        h: entryArt.coffee,
+        i: common_vendor.o(($event) => goOrder("coffee"), "2b"),
+        j: common_vendor.p({
           name: "chevron-right",
           size: 14,
           ["stroke-width"]: 2.3
         }),
-        l: common_vendor.o(goMy, "54"),
-        m: loading.value && orders.value.length === 0
+        k: common_vendor.o(goMy, "d8"),
+        l: loading.value && orders.value.length === 0
       }, loading.value && orders.value.length === 0 ? {
-        n: common_vendor.f(2, (n, k0, i0) => {
+        m: common_vendor.f(2, (n, k0, i0) => {
           return {
             a: n
           };
         })
       } : displayOrders.value.length === 0 ? {} : {
-        p: common_vendor.f(displayOrders.value, (order, index, i0) => {
+        o: common_vendor.f(displayOrders.value, (order, index, i0) => {
           return {
             a: common_vendor.t(orderEmoji(order)),
             b: common_vendor.n(orderKind(order)),
@@ -178,13 +175,13 @@ const _sfc_main = {
             k: common_vendor.o(($event) => goOrderDetail(order), order._id)
           };
         }),
-        q: common_vendor.p({
+        p: common_vendor.p({
           name: "chevron-right",
           size: 14,
           ["stroke-width"]: 2.4
         })
       }, {
-        o: displayOrders.value.length === 0
+        n: displayOrders.value.length === 0
       });
     };
   }
