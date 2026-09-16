@@ -8,8 +8,15 @@
 
     <!-- 顶部：步骤指示 + 标题组 -->
     <view class="hero" :style="{ paddingTop: headerTop + 'px' }">
+      <!-- 步骤条同时充当「返回上一步」的入口：第二步时第一个点已完成，点它回到第一步。
+           （早前试过在标题左侧放一个「← 上一步」文字按钮，它紧贴居中标题、两者互相打架，
+           已废弃 —— 返回入口应该长在已有的导航元素上，而不是再塞一个控件进来。）
+           第一个点外包一层 .dot-hit 撑开点击热区：点本身只有 46×10rpx，
+           远小于 44pt 最小触摸尺寸，直接绑 tap 会很难点中。 -->
       <view class="step-dots">
-        <view class="dot" :class="{ active: step === 1, done: step > 1 }"></view>
+        <view class="dot-hit" :class="{ clickable: step > 1 }" @tap="goStep(1)">
+          <view class="dot" :class="{ active: step === 1, done: step > 1 }"></view>
+        </view>
         <view class="dot" :class="{ active: step === 2 }"></view>
       </view>
 
@@ -37,9 +44,9 @@
       <view
         class="pick-card card-female"
         :class="{ selected: pickedGender === 'female', dimmed: isDimmed(pickedGender, 'female') }"
-        :style="{ backgroundImage: CARD_BG.female }"
         @tap="pickedGender = 'female'"
       >
+        <image class="pick-bg" :src="CARD_BG.female" mode="scaleToFill" :webp="true" />
         <view class="pick-frame">
           <image class="pick-art" :src="genderArt.female" mode="aspectFill" :webp="true" />
         </view>
@@ -54,9 +61,9 @@
       <view
         class="pick-card card-male"
         :class="{ selected: pickedGender === 'male', dimmed: isDimmed(pickedGender, 'male') }"
-        :style="{ backgroundImage: CARD_BG.male }"
         @tap="pickedGender = 'male'"
       >
+        <image class="pick-bg" :src="CARD_BG.male" mode="scaleToFill" :webp="true" />
         <view class="pick-frame">
           <image class="pick-art" :src="genderArt.male" mode="aspectFill" :webp="true" />
         </view>
@@ -78,9 +85,9 @@
       <view
         class="pick-card card-diner"
         :class="{ selected: pickedMode === 'diner', dimmed: isDimmed(pickedMode, 'diner') }"
-        :style="{ backgroundImage: CARD_BG.diner }"
         @tap="pickedMode = 'diner'"
       >
+        <image class="pick-bg" :src="CARD_BG.diner" mode="scaleToFill" :webp="true" />
         <view class="pick-frame">
           <image class="pick-art" :src="roleArt.diner" mode="aspectFill" :webp="true" />
         </view>
@@ -95,9 +102,9 @@
       <view
         class="pick-card card-cook"
         :class="{ selected: pickedMode === 'cook', dimmed: isDimmed(pickedMode, 'cook') }"
-        :style="{ backgroundImage: CARD_BG.cook }"
         @tap="pickedMode = 'cook'"
       >
+        <image class="pick-bg" :src="CARD_BG.cook" mode="scaleToFill" :webp="true" />
         <view class="pick-frame">
           <image class="pick-art" :src="roleArt.cook" mode="aspectFill" :webp="true" />
         </view>
@@ -112,15 +119,12 @@
       <view class="spacer spacer-bottom"></view>
     </view>
 
-    <!-- 底部操作 -->
+    <!-- 底部操作：只保留主操作与「跳过」次入口。
+         「上一步」不在这里 —— 它挂在顶部的步骤条上（第二步时点第一个点返回），
+         底部因此只有「一个主操作 + 一行跳过文字」，不会出现两个并列按钮 -->
     <view class="footer-actions">
-      <view class="action-row">
-        <view v-if="step === 2" class="btn-ghost" :class="{ disabled: submitting }" @tap="goStep(1)">
-          <text>上一步</text>
-        </view>
-        <view class="btn-primary" :class="{ disabled: !canGoNext || submitting }" @tap="onPrimary">
-          <text>{{ submitting ? '保存中…' : step === 1 ? '下一步' : '进入小程序' }}</text>
-        </view>
+      <view class="btn-primary" :class="{ disabled: !canGoNext || submitting }" @tap="onPrimary">
+        <text>{{ submitting ? '保存中…' : step === 1 ? '下一步' : '进入小程序' }}</text>
       </view>
 
       <view class="skip-link" @tap="onSkip">
@@ -146,8 +150,7 @@ import { ref, computed } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { useUserStore } from '@/store/user.js'
 import { useSafeArea } from '@/composables/useSafeArea.js'
-import { imgUrl } from '@/utils/image.js'
-import { AVATAR_ART } from '@/utils/artwork.js'
+import { ONBOARDING_ART } from '@/utils/artwork.js'
 import { HOME_PATH } from '@/utils/auth-guard.js'
 
 const { statusBarHeight } = useSafeArea()
@@ -162,60 +165,15 @@ const pickedMode = ref('')
 const submitting = ref(false)
 
 /**
- * 性别卡人物素材的输出宽度
+ * 引导页素材（人物插画 + 卡片背景）
  *
- * 脱框后人物按 240rpx 显示：最大机型（414px 屏宽）约 132.5 逻辑像素，DPR3 需约 398 物理像素，取 400。
- * 不复用 utils/artwork.js 的 AVATAR_ART_WIDTH（240，是按 146rpx 内径算的）：
- * 那个值还被通用头像组件引用，为引导页改大只会让那边白下载流量。
+ * 统一声明在 utils/artwork.js，而不是像早前那样就近写在本页 ——
+ * 因为登录页要用**完全同一份地址**提前预热缓存，两处若各写一份，
+ * 任何一侧改了宽度或质量，预加载就会静默失效。
+ * 这里解构成页面内短名，模板里的读法与素材原有叫法保持一致。
  */
-const GENDER_ART_WIDTH = 400
+const { gender: genderArt, role: roleArt, bg: CARD_BG } = ONBOARDING_ART
 
-/**
- * 身份卡人物素材的输出宽度
- *
- * 身份卡容器按 268rpx 显示（比性别卡的 240rpx 大，理由见下方 ROLE_ART 的说明）：
- * 最大机型约 147.6 逻辑像素，DPR3 需约 443 物理像素，取 480。
- */
-const ROLE_ART_WIDTH = 480
-
-/** 性别卡：复用默认头像素材（与「我的」页面的默认头像同一套图） */
-const genderArt = {
-  male: imgUrl(AVATAR_ART.male, { w: GENDER_ART_WIDTH }),
-  female: imgUrl(AVATAR_ART.female, { w: GENDER_ART_WIDTH })
-}
-
-/**
- * 身份卡：干饭人 / 饲养员的角色插画
- *
- * 与性别卡不同，这两张素材只在本页使用 —— 按项目约定（仅单处使用的素材就近声明，
- * 不塞进 utils/artwork.js）就地声明。
- */
-const ROLE_ART = {
-  diner: 'https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E5%A4%B4%E5%83%8F/exec-2ded22a0-aa85-4c5b-998d-7698c43421a4.png',
-  cook: 'https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E5%A4%B4%E5%83%8F/exec-c8b750dd-f6ae-412a-9a27-27e1e489818c.png'
-}
-
-const roleArt = {
-  diner: imgUrl(ROLE_ART.diner, { w: ROLE_ART_WIDTH }),
-  cook: imgUrl(ROLE_ART.cook, { w: ROLE_ART_WIDTH })
-}
-
-/**
- * 选择卡的蜡笔涂鸦背景图（四张卡各一张）
- *
- * 涂鸦元素分布在画面左右两端、中间留大片留白，正好给人物与文案让位；
- * 左侧那段涂鸦在人物贴左后会被人物盖住，露出的只有轮廓外的装饰。
- *
- * 卡片显示比例约 2.87（654:228）与原图 2.99（2170:725）接近但不等：
- * 用 100% 100% 拉伸而不是 cover 裁切 —— 涂鸦都在边缘，裁切会切掉一部分图案，
- * 而几个百分点的形变落在手绘涂鸦上几乎看不出来。
- */
-const CARD_BG = {
-  female: `url(${imgUrl('https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E7%95%8C%E9%9D%A2/exec-79fd56c8-73b1-4f33-8fb9-6224f06d3e48.png', { w: 1080 })})`,
-  male: `url(${imgUrl('https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E7%95%8C%E9%9D%A2/exec-0ef5a4be-7dd3-46e6-a638-8d939f9c8aba.png', { w: 1080 })})`,
-  diner: `url(${imgUrl('https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E7%95%8C%E9%9D%A2/exec-4e70c4a6-75e9-4619-ae25-316ccf8e2368.png', { w: 1080 })})`,
-  cook: `url(${imgUrl('https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E7%95%8C%E9%9D%A2/exec-df221cce-3e89-49a0-9d41-2eb9163488de.png', { w: 1080 })})`
-}
 
 const canGoNext = computed(() => (step.value === 1 ? !!pickedGender.value : !!pickedMode.value))
 
@@ -268,11 +226,12 @@ const submit = async (payload) => {
   submitting.value = true
   try {
     await userStore.completeOnboarding(payload)
-    uni.showToast({ title: '设置好啦', icon: 'none' })
-    // 延迟跳转，让 toast 完整呈现
-    setTimeout(() => {
-      uni.reLaunch({ url: HOME_PATH })
-    }, 500)
+    // 直接进首页，不做成功提示。
+    // 这一步在用户心里是「进入应用」，不是「提交表单」—— 弹 toast 会把一次界面切换
+    // 降格成一次操作反馈，凭空多出一次打断。原先是「toast + 延迟 500ms 等它显示完」，
+    // 那 500ms 纯粹是为提示服务的，去掉提示后一并去掉。
+    // 此时云端已写入、本地 state 与缓存也已更新，直接跳转是安全的。
+    uni.reLaunch({ url: HOME_PATH })
   } catch (e) {
     console.error('[onboarding] submit error', e)
     uni.showToast({ title: e.message || '保存失败，请重试', icon: 'none' })
@@ -354,6 +313,24 @@ const submit = async (payload) => {
     gap: 14rpx;
     margin-bottom: 28rpx;
 
+    /* 第一个点的点击热区。点本身只有 46×10rpx，远低于 44pt 的最小触摸尺寸，
+     * 所以用一层 padding 把它撑开：
+     *   垂直方向给足 39rpx 上下 → 热区高 88rpx
+     *   水平方向右侧只能扩 7rpx（再多就压到第二个点的热区，会误触发返回），
+     *   左侧是空白可以多扩，合计约 83rpx 宽。
+     * 负 margin 抵消 padding，布局位置与原来完全一致。 */
+    .dot-hit {
+      flex: 0 0 auto;
+      padding: 39rpx 7rpx 39rpx 30rpx;
+      margin: -39rpx -7rpx -39rpx -30rpx;
+
+      /* 已完成（即第二步）时第一个点才可点：按下变珊瑚色，给出明确反馈。
+       * 第一步时它是当前步，不响应按下，避免「点了没反应」的困惑。 */
+      &.clickable:active .dot {
+        background-color: $p2-coral;
+      }
+    }
+
     .dot {
       width: 46rpx;
       height: 10rpx;
@@ -366,8 +343,9 @@ const submit = async (payload) => {
         background-color: $p2-coral;
       }
 
+      /* 已完成：比未激活略深，同时暗示「这里可以点着返回」 */
       &.done {
-        background-color: rgba(118, 85, 64, 0.42);
+        background-color: rgba(118, 85, 64, 0.45);
       }
     }
   }
@@ -494,12 +472,12 @@ const submit = async (payload) => {
   height: 228rpx;
   overflow: hidden;
 
-  /* 性别卡用云存储背景图，身份卡暂无图、沿用底色：
-   * 底色保留在图片之下，图片加载期间先显示底色，不会白屏。 */
+  /* 卡片背景图改用 <image> 元素（模板里的 .pick-bg），不再走 CSS background-image：
+   * 两者读的不是同一份缓存 —— image 组件用小程序客户端的图片缓存，
+   * CSS background 用渲染层的网络缓存。登录页的预热只对前者有效，
+   * 统一到 image 后，背景图才能和人物图一样「一进页面就渲染出来」。
+   * 底色保留在图片之下，图片未解码完成时先显示底色，不会白屏。 */
   background-color: var(--bg);
-  background-size: 100% 100%;
-  background-repeat: no-repeat;
-  background-position: center;
   border: 4rpx solid var(--bd);
   box-shadow: var(--lift), var(--ring);
   transform: translateY(var(--shift)) rotate(var(--tilt)) scale(var(--scale));
@@ -529,9 +507,11 @@ const submit = async (payload) => {
   /* 按下时的唯一反馈：一层极淡的遮罩，**纯色彩、零位移**。
    * 留它是为了按下到抬起之间不至于完全没有响应；
    * 因为它不产生任何位移，也就不会带来「压扁再弹回」的往复感。
-   * 放在 ::before 而非 ::after：伪元素是卡片的第一个子元素，位于背景之上、
-   * 内容之下，遮罩不会压住头像与文字。 */
+   * 用 ::before 而非 ::after，遮罩不会压住头像与文字。
+   * 卡片内的层级由 z-index 显式排定（背景图 0 < 遮罩 1 < 内容 2）：
+   * ::before 与 .pick-bg 同为定位元素，只靠源码先后顺序会被背景图盖住。 */
   &::before {
+    z-index: 1;
     content: '';
     position: absolute;
     top: 0;
@@ -690,6 +670,27 @@ const submit = async (payload) => {
   --bg: #e7f0da;
 }
 
+/* === 卡片背景图 ===
+ *
+ * 用 <image> 元素而不是 CSS background-image（原先的写法）。
+ * 两者读的不是同一份缓存 —— image 组件走小程序客户端的图片缓存，
+ * CSS background 走渲染层的网络缓存；登录页的预热只对前者有效。
+ * 统一到 image 后，背景图才能和人物图一样「一进页面就渲染出来」。
+ *
+ * mode="scaleToFill" 对应原先 background-size: 100% 100% 的拉伸：
+ * 涂鸦都在画面边缘，用 cover 裁切会切掉图案，而几个百分点的形变
+ * 落在手绘涂鸦上几乎看不出来。
+ * 卡片自身有 border-radius + overflow: hidden，四角会被正确裁切。
+ */
+.pick-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+}
+
 /* === 四张卡的脱框人物 ===
  *
  * 原为 148rpx 的白底圆框（性别卡是头像素材，身份卡是 CSS 手绘人物），现在统一改成
@@ -708,7 +709,7 @@ const submit = async (payload) => {
   position: absolute;
   left: var(--frame-left, 0);
   bottom: var(--frame-bottom);
-  z-index: 1; /* 抬到按下/退后遮罩之上 */
+  z-index: 2; /* 抬到卡片背景图与按下遮罩之上 */
   width: var(--frame-size);
   height: var(--frame-size);
   transition: opacity 220ms $p2-ease;
@@ -733,7 +734,7 @@ const submit = async (payload) => {
 /* === 卡片文字区 === */
 .pick-body {
   position: relative;
-  z-index: 1; /* 抬到按下/退后遮罩之上 */
+  z-index: 2; /* 抬到卡片背景图与按下遮罩之上 */
   flex: 1;
   @include flex-column;
   align-items: flex-start;
@@ -825,37 +826,12 @@ const submit = async (payload) => {
   align-items: center;
   padding: 56rpx 48rpx 0;
 
-  .action-row {
-    display: flex;
-    align-items: center;
-    gap: 20rpx;
-    width: 100%;
-  }
 
-  .btn-ghost {
-    flex: 0 0 auto;
-    padding: 0 36rpx;
-    height: 96rpx;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 4rpx solid rgba(118, 85, 64, 0.35);
-    border-radius: 48rpx 44rpx 48rpx 46rpx;
-    font-size: 28rpx;
-    color: $p2-ink-soft;
-    transition: transform $p2-dur-fast $p2-ease;
 
-    &:active {
-      transform: scale(0.97);
-    }
-
-    &.disabled {
-      opacity: 0.5;
-    }
-  }
-
+  /* 主操作通栏。原先是「左小按钮 + 右大按钮」并排 —— 回退与主操作被摆成了并列关系；
+   * 现在回退已上移到标题栏，底部只留这一个主操作 + 下方的跳过文字链。 */
   .btn-primary {
-    flex: 1;
+    width: 100%;
     height: 96rpx;
     display: flex;
     align-items: center;

@@ -167,6 +167,22 @@
   align-items: center;
   gap: 14rpx;
   margin-bottom: 28rpx;
+  /* 第一个点的点击热区。点本身只有 46×10rpx，远低于 44pt 的最小触摸尺寸，
+   * 所以用一层 padding 把它撑开：
+   *   垂直方向给足 39rpx 上下 → 热区高 88rpx
+   *   水平方向右侧只能扩 7rpx（再多就压到第二个点的热区，会误触发返回），
+   *   左侧是空白可以多扩，合计约 83rpx 宽。
+   * 负 margin 抵消 padding，布局位置与原来完全一致。 */
+}
+.hero .step-dots .dot-hit.data-v-739199e6 {
+  flex: 0 0 auto;
+  padding: 39rpx 7rpx 39rpx 30rpx;
+  margin: -39rpx -7rpx -39rpx -30rpx;
+  /* 已完成（即第二步）时第一个点才可点：按下变珊瑚色，给出明确反馈。
+   * 第一步时它是当前步，不响应按下，避免「点了没反应」的困惑。 */
+}
+.hero .step-dots .dot-hit.clickable:active .dot.data-v-739199e6 {
+  background-color: #e97a69;
 }
 .hero .step-dots .dot.data-v-739199e6 {
   width: 46rpx;
@@ -174,13 +190,14 @@
   border-radius: 999rpx;
   background-color: rgba(118, 85, 64, 0.2);
   transition: background-color 260ms cubic-bezier(0.22, 0.75, 0.24, 1), width 260ms cubic-bezier(0.22, 0.75, 0.24, 1);
+  /* 已完成：比未激活略深，同时暗示「这里可以点着返回」 */
 }
 .hero .step-dots .dot.active.data-v-739199e6 {
   width: 68rpx;
   background-color: #e97a69;
 }
 .hero .step-dots .dot.done.data-v-739199e6 {
-  background-color: rgba(118, 85, 64, 0.42);
+  background-color: rgba(118, 85, 64, 0.45);
 }
 .hero .hero-title-group.data-v-739199e6 {
   display: flex;
@@ -287,12 +304,12 @@
    * 没有圆框弧线可收，只能靠卡片下边缘裁掉。 */
   height: 228rpx;
   overflow: hidden;
-  /* 性别卡用云存储背景图，身份卡暂无图、沿用底色：
-   * 底色保留在图片之下，图片加载期间先显示底色，不会白屏。 */
+  /* 卡片背景图改用 <image> 元素（模板里的 .pick-bg），不再走 CSS background-image：
+   * 两者读的不是同一份缓存 —— image 组件用小程序客户端的图片缓存，
+   * CSS background 用渲染层的网络缓存。登录页的预热只对前者有效，
+   * 统一到 image 后，背景图才能和人物图一样「一进页面就渲染出来」。
+   * 底色保留在图片之下，图片未解码完成时先显示底色，不会白屏。 */
   background-color: var(--bg);
-  background-size: 100% 100%;
-  background-repeat: no-repeat;
-  background-position: center;
   border: 4rpx solid var(--bd);
   box-shadow: var(--lift), var(--ring);
   transform: translateY(var(--shift)) rotate(var(--tilt)) scale(var(--scale));
@@ -317,8 +334,9 @@
   /* 按下时的唯一反馈：一层极淡的遮罩，**纯色彩、零位移**。
    * 留它是为了按下到抬起之间不至于完全没有响应；
    * 因为它不产生任何位移，也就不会带来「压扁再弹回」的往复感。
-   * 放在 ::before 而非 ::after：伪元素是卡片的第一个子元素，位于背景之上、
-   * 内容之下，遮罩不会压住头像与文字。 */
+   * 用 ::before 而非 ::after，遮罩不会压住头像与文字。
+   * 卡片内的层级由 z-index 显式排定（背景图 0 < 遮罩 1 < 内容 2）：
+   * ::before 与 .pick-bg 同为定位元素，只靠源码先后顺序会被背景图盖住。 */
   /* === 退后态的淡化遮罩 ===
    * 底色时代靠改 --bg 变淡，现在下层是固定图片，改用「叠加一层页面底色」来淡化：
    * 用 $p2-paper 而不是灰色 —— 让未选中的卡「褪向背景」，而不是「落到阴影里」。
@@ -326,6 +344,7 @@
    */
 }
 .pick-card.data-v-739199e6::before {
+  z-index: 1;
   content: "";
   position: absolute;
   top: 0;
@@ -457,6 +476,26 @@
 .dimmed.card-cook.data-v-739199e6 {
   --bg: #e7f0da;
 }
+/* === 卡片背景图 ===
+ *
+ * 用 <image> 元素而不是 CSS background-image（原先的写法）。
+ * 两者读的不是同一份缓存 —— image 组件走小程序客户端的图片缓存，
+ * CSS background 走渲染层的网络缓存；登录页的预热只对前者有效。
+ * 统一到 image 后，背景图才能和人物图一样「一进页面就渲染出来」。
+ *
+ * mode="scaleToFill" 对应原先 background-size: 100% 100% 的拉伸：
+ * 涂鸦都在画面边缘，用 cover 裁切会切掉图案，而几个百分点的形变
+ * 落在手绘涂鸦上几乎看不出来。
+ * 卡片自身有 border-radius + overflow: hidden，四角会被正确裁切。
+ */
+.pick-bg.data-v-739199e6 {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+}
 /* === 四张卡的脱框人物 ===
  *
  * 原为 148rpx 的白底圆框（性别卡是头像素材，身份卡是 CSS 手绘人物），现在统一改成
@@ -475,8 +514,8 @@
   position: absolute;
   left: var(--frame-left, 0);
   bottom: var(--frame-bottom);
-  z-index: 1;
-  /* 抬到按下/退后遮罩之上 */
+  z-index: 2;
+  /* 抬到卡片背景图与按下遮罩之上 */
   width: var(--frame-size);
   height: var(--frame-size);
   transition: opacity 220ms cubic-bezier(0.22, 0.75, 0.24, 1);
@@ -498,8 +537,8 @@
 /* === 卡片文字区 === */
 .pick-body.data-v-739199e6 {
   position: relative;
-  z-index: 1;
-  /* 抬到按下/退后遮罩之上 */
+  z-index: 2;
+  /* 抬到卡片背景图与按下遮罩之上 */
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -585,34 +624,11 @@
   flex-direction: column;
   align-items: center;
   padding: 56rpx 48rpx 0;
-}
-.footer-actions .action-row.data-v-739199e6 {
-  display: flex;
-  align-items: center;
-  gap: 20rpx;
-  width: 100%;
-}
-.footer-actions .btn-ghost.data-v-739199e6 {
-  flex: 0 0 auto;
-  padding: 0 36rpx;
-  height: 96rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 4rpx solid rgba(118, 85, 64, 0.35);
-  border-radius: 48rpx 44rpx 48rpx 46rpx;
-  font-size: 28rpx;
-  color: #8c725e;
-  transition: transform 140ms cubic-bezier(0.22, 0.75, 0.24, 1);
-}
-.footer-actions .btn-ghost.data-v-739199e6:active {
-  transform: scale(0.97);
-}
-.footer-actions .btn-ghost.disabled.data-v-739199e6 {
-  opacity: 0.5;
+  /* 主操作通栏。原先是「左小按钮 + 右大按钮」并排 —— 回退与主操作被摆成了并列关系；
+   * 现在回退已上移到标题栏，底部只留这一个主操作 + 下方的跳过文字链。 */
 }
 .footer-actions .btn-primary.data-v-739199e6 {
-  flex: 1;
+  width: 100%;
   height: 96rpx;
   display: flex;
   align-items: center;

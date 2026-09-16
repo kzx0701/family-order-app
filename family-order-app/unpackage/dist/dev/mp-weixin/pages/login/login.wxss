@@ -104,6 +104,24 @@
   background-color: #f9e8aa;
 }
 
+/* === 引导页素材预加载层 ===
+ * 承担预热的 <image> 必须真实存在于渲染树中（不能用 getImageInfo 之类的 XHR 调用替代），
+ * 所以让它们渲染出来、但完全不可见：1px 见方、全透明、不接收事件、不参与布局。
+ * 不用 display: none —— 不渲染的元素在部分基础库下不会发起图片请求，预热会失效。 */
+.preload-layer.data-v-e4e4508d {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+.preload-img.data-v-e4e4508d {
+  width: 1px;
+  height: 1px;
+}
+
 /* === 中部主体 === */
 .login-body.data-v-e4e4508d {
   position: relative;

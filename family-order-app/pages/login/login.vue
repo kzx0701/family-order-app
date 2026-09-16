@@ -7,6 +7,22 @@
     </view>
 
     <block v-if="ready">
+      <!-- 引导页素材预加载：用户停留在本页的这段时间里先把 8 张图拉下来，
+           进入引导页时图片已在缓存中，可直接渲染、不再有可见的等待。
+           必须用真实的 <image> 组件 —— uni.getImageInfo / downloadFile 走的是 XHR 通道，
+           与 image 组件的图片缓存不是同一套，预取了也命中不到。
+           放在 v-if="ready" 内：已登录用户会被直接送去下一页、看不到本页，
+           这时预热没有意义，不必发起。 -->
+      <view class="preload-layer">
+        <image
+          v-for="src in ONBOARDING_IMAGE_LIST"
+          :key="src"
+          class="preload-img"
+          :src="src"
+          :webp="true"
+        />
+      </view>
+
       <view class="login-body">
         <!-- 插画位：CSS 手绘占位（冒热气的小碗），后续替换为手绘插画素材 -->
         <view class="login-art">
@@ -52,6 +68,7 @@ import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { useUserStore } from '@/store/user.js'
 import { ONBOARDING_PATH, HOME_PATH } from '@/utils/auth-guard.js'
+import { ONBOARDING_IMAGE_LIST } from '@/utils/artwork.js'
 
 const userStore = useUserStore()
 
@@ -127,6 +144,25 @@ const onLogin = async () => {
     height: 380rpx;
     background-color: $p2-butter-soft;
   }
+}
+
+/* === 引导页素材预加载层 ===
+ * 承担预热的 <image> 必须真实存在于渲染树中（不能用 getImageInfo 之类的 XHR 调用替代），
+ * 所以让它们渲染出来、但完全不可见：1px 见方、全透明、不接收事件、不参与布局。
+ * 不用 display: none —— 不渲染的元素在部分基础库下不会发起图片请求，预热会失效。 */
+.preload-layer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.preload-img {
+  width: 1px;
+  height: 1px;
 }
 
 /* === 中部主体 === */
