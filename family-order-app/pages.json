@@ -1,6 +1,21 @@
 {
     "pages": [
         {
+            "path": "pages/login/login",
+            "style": {
+                "navigationStyle": "custom",
+                "navigationBarTitleText": "登录",
+                "disableScroll": true
+            }
+        },
+        {
+            "path": "pages/onboarding/onboarding",
+            "style": {
+                "navigationStyle": "custom",
+                "navigationBarTitleText": "完善信息"
+            }
+        },
+        {
             "path": "pages/home/home",
             "style": {
                 "navigationStyle": "custom",
@@ -72,14 +87,6 @@
             "style": {
                 "navigationStyle": "custom",
                 "navigationBarTitleText": "下单成功"
-            }
-        },
-        {
-            "path": "pages/role-select/role-select",
-            "style": {
-                "navigationStyle": "custom",
-                "navigationBarTitleText": "选择角色",
-                "disableScroll": true
             }
         }
     ],

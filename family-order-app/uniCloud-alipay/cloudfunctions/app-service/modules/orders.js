@@ -7,10 +7,10 @@
  *   - create       创建订单（任意登录用户）
  *   - list         查询订单列表（登录用户，单家庭共享所有订单）
  *   - get          查询单个订单
- *   - updateStatus 更新订单状态（admin 推进 / owner 或 admin 取消）
+ *   - updateStatus 更新订单状态（饲养员推进 / 下单人本人或饲养员取消）
  *   - cancel       取消订单（便捷方法，等价于 updateStatus cancelled）
- *   - pickup       管理员提醒取餐，触发 sendPickupNotify 推送给下单人
- *   - delete       管理员删除订单记录（物理删除，任意状态可删）
+ *   - pickup       饲养员提醒取餐，触发 sendPickupNotify 推送给下单人
+ *   - delete       饲养员删除订单记录（物理删除，任意状态可删）
  *
  * 鉴权方式：
  *   前端传入 token（user-login 返回的 openid），云函数查询 users 集合获取用户信息与角色。
@@ -20,9 +20,9 @@
  *   pending → preparing → completed
  *      ↓
  *   cancelled
- *   - pending → preparing    仅 admin
- *   - pending → cancelled    下单人本人 或 admin
- *   - preparing → completed  仅 admin
+ *   - pending → preparing    仅饲养员
+ *   - pending → cancelled    下单人本人 或饲养员
+ *   - preparing → completed  仅饲养员
  *   - preparing → cancelled  不允许（已开始制作）
  *   - completed → 任意       不允许（终态）
  *   - cancelled → 任意       不允许（终态）
@@ -89,13 +89,14 @@ async function getCallerUser(token, db) {
 }
 
 /**
- * 校验是否为管理员
+ * 校验当前是否为饲养员模式（以服务端 lastMode 为准）
  * @param {Object} user - 调用者用户记录
  * @returns {Object} { ok: boolean, message?: string }
  */
-function requireAdmin(user) {
+function requireCook(user) {
   if (!user) return { ok: false, message: '未授权：请先登录' }
-  if (user.role !== 'admin') return { ok: false, message: '无权限：仅饲养员可操作' }
+  // 以服务端记录的 lastMode 为准，身份可随时切换
+  if (user.lastMode !== 'cook') return { ok: false, message: '无权限：请先切换到饲养员身份' }
   return { ok: true }
 }
 
@@ -105,11 +106,11 @@ function requireAdmin(user) {
  * @param {Object} order - 订单记录
  * @returns {Object} { ok: boolean, message?: string }
  */
-function requireOwnerOrAdmin(user, order) {
+function requireOwnerOrCook(user, order) {
   if (!user) return { ok: false, message: '未授权：请先登录' }
-  if (user.role === 'admin') return { ok: true }
+  if (user.lastMode === 'cook') return { ok: true }
   if (order.userId === user._id) return { ok: true }
-  return { ok: false, message: '无权限：仅下单人或管理员可操作' }
+  return { ok: false, message: '无权限：仅下单人或饲养员可操作' }
 }
 
 /* ============ 业务 action 实现 ============ */
@@ -256,8 +257,8 @@ async function getOrder({ _id } = {}, orderCol) {
  * 更新订单状态
  * 入参：_id、status
  * 鉴权：
- *   - 状态推进（pending→preparing、preparing→completed）：仅 admin
- *   - 取消（pending→cancelled）：下单人本人 或 admin
+ *   - 状态推进（pending→preparing、preparing→completed）：仅饲养员
+ *   - 取消（pending→cancelled）：下单人本人 或饲养员
  * 状态变为 completed 时触发订阅消息推送给下单人（subscribe-message 云函数 sendCompleteNotify）
  */
 async function updateOrderStatus({ _id, status } = {}, caller, orderCol) {
@@ -281,12 +282,12 @@ async function updateOrderStatus({ _id, status } = {}, caller, orderCol) {
     return { code: 400, message: `状态不允许从 ${order.status} 变更为 ${status}` }
   }
 
-  // 鉴权：取消需 owner 或 admin；状态推进需 admin
+  // 鉴权：取消需下单人本人或饲养员；状态推进需饲养员
   if (status === 'cancelled') {
-    const authRes = requireOwnerOrAdmin(caller, order)
+    const authRes = requireOwnerOrCook(caller, order)
     if (!authRes.ok) return { code: 403, message: authRes.message }
   } else {
-    const authRes = requireAdmin(caller)
+    const authRes = requireCook(caller)
     if (!authRes.ok) return { code: 403, message: authRes.message }
   }
 
@@ -319,7 +320,7 @@ async function updateOrderStatus({ _id, status } = {}, caller, orderCol) {
 /**
  * 取消订单（便捷方法，等价于 updateStatus cancelled）
  * 入参：_id
- * 鉴权：下单人可取消自己 pending 订单，admin 可取消任何 pending 订单
+ * 鉴权：下单人可取消自己 pending 订单，饲养员可取消任何 pending 订单
  * 仅 pending 状态可取消
  */
 async function cancelOrder({ _id } = {}, caller, orderCol) {
@@ -339,8 +340,8 @@ async function cancelOrder({ _id } = {}, caller, orderCol) {
     return { code: 400, message: `当前状态 ${order.status} 不可取消，仅待制作订单可取消` }
   }
 
-  // 鉴权：下单人本人 或 admin
-  const authRes = requireOwnerOrAdmin(caller, order)
+  // 鉴权：下单人本人 或饲养员
+  const authRes = requireOwnerOrCook(caller, order)
   if (!authRes.ok) return { code: 403, message: authRes.message }
 
   const updateRes = await orderCol.doc(_id).update({
@@ -371,8 +372,8 @@ async function pickupOrder({ _id, pickupMethod, pickupTip } = {}, caller, orderC
   }
   const order = originRes.data[0]
 
-  // 鉴权：仅管理员可操作
-  const authRes = requireAdmin(caller)
+  // 鉴权：仅饲养员可操作
+  const authRes = requireCook(caller)
   if (!authRes.ok) return { code: 403, message: authRes.message }
 
   // 状态校验：仅 completed 可提醒取餐
@@ -398,9 +399,9 @@ async function pickupOrder({ _id, pickupMethod, pickupTip } = {}, caller, orderC
 }
 
 /**
- * 删除订单记录（管理员）
+ * 删除订单记录（饲养员）
  * 入参：_id
- * 鉴权：下单人本人 或 admin 可操作，任意状态均可删除
+ * 鉴权：下单人本人 或饲养员可操作，任意状态均可删除
  * 物理删除订单文档，不可恢复
  */
 async function deleteOrder({ _id } = {}, caller, orderCol) {
@@ -414,7 +415,7 @@ async function deleteOrder({ _id } = {}, caller, orderCol) {
     return { code: 404, message: '订单不存在' }
   }
   const order = originRes.data[0]
-  const authRes = requireOwnerOrAdmin(caller, order)
+  const authRes = requireOwnerOrCook(caller, order)
   if (!authRes.ok) return { code: 403, message: authRes.message }
 
   // 物理删除

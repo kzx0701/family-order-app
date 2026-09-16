@@ -5,7 +5,8 @@
  *
  * 接收参数：
  *   - nickname: 昵称（可选）
- *   - avatar: 头像 URL（可选，预留扩展）
+ *   - avatar: 头像 URL（可选）
+ *   - gender: 性别 male / female（可选，决定默认头像）
  *   - token: 用户登录凭证（user-login 返回的 openid）
  *
  * 鉴权：
@@ -15,7 +16,7 @@
  * 返回：{ code: 0, userInfo }
  */
 exports.main = async (event, context) => {
-  const { nickname, avatar, token } = event
+  const { nickname, avatar, gender, token } = event
 
   // 鉴权：token 即 openid（由 user-login 返回）
   const openid = token
@@ -24,7 +25,7 @@ exports.main = async (event, context) => {
   }
 
   // 至少传一个待更新字段
-  if (nickname === undefined && avatar === undefined) {
+  if (nickname === undefined && avatar === undefined && gender === undefined) {
     return { code: 400, message: '缺少待更新字段' }
   }
 
@@ -43,6 +44,14 @@ exports.main = async (event, context) => {
   if (avatar !== undefined) {
     updateData.avatar = String(avatar || '')
   }
+  if (gender !== undefined) {
+    if (!['male', 'female'].includes(gender)) {
+      return { code: 400, message: '性别参数无效' }
+    }
+    updateData.gender = gender
+  }
+  // 统一刷新更新时间
+  updateData.updateTime = Date.now()
 
   try {
     const db = uniCloud.database()

@@ -73,7 +73,7 @@ const _sfc_main = {
       if (actionLoading.value)
         return null;
       const s = order.value.status;
-      if (userStore.isAdmin) {
+      if (userStore.isCook) {
         if (s === "pending") {
           return { text: "开始制作", class: "btn-prep", type: "advance", target: "preparing" };
         }
@@ -330,25 +330,25 @@ const _sfc_main = {
         C: common_vendor.t(bottomButton.value.text),
         D: common_vendor.n(bottomButton.value.class),
         E: common_vendor.o(onBottomAction, "fb")
-      }) : !loading.value && !loadError.value && (order.value.status === "cancelled" || order.value.status === "completed" && !common_vendor.unref(userStore).isAdmin) ? {
+      }) : !loading.value && !loadError.value && (order.value.status === "cancelled" || order.value.status === "completed" && !common_vendor.unref(userStore).isCook) ? {
         G: common_vendor.t(order.value.status === "completed" ? "✓ 订单已完成" : "订单已取消"),
         H: common_vendor.n(order.value.status)
       } : {}, {
-        F: !loading.value && !loadError.value && (order.value.status === "cancelled" || order.value.status === "completed" && !common_vendor.unref(userStore).isAdmin),
+        F: !loading.value && !loadError.value && (order.value.status === "cancelled" || order.value.status === "completed" && !common_vendor.unref(userStore).isCook),
         I: showPickupModal.value
       }, showPickupModal.value ? {
         J: pickupMethod.value,
         K: showPickupModal.value,
-        L: common_vendor.o(onPickupMethodInput, "c8"),
+        L: common_vendor.o(onPickupMethodInput, "e1"),
         M: pickupTip.value,
-        N: common_vendor.o(onPickupTipInput, "7c"),
-        O: common_vendor.o(closePickupModal, "2c"),
+        N: common_vendor.o(onPickupTipInput, "ae"),
+        O: common_vendor.o(closePickupModal, "a4"),
         P: common_vendor.t(pickupSending.value ? "发送中..." : "确认发送"),
         Q: pickupSending.value ? 1 : "",
-        R: common_vendor.o(onPickupConfirm, "26"),
+        R: common_vendor.o(onPickupConfirm, "ce"),
         S: common_vendor.o(() => {
-        }, "4f"),
-        T: common_vendor.o(closePickupModal, "4c")
+        }, "84"),
+        T: common_vendor.o(closePickupModal, "36")
       } : {}, {
         U: common_vendor.n(themeClass.value)
       });

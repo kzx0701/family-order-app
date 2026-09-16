@@ -64,7 +64,7 @@
  * 用于首页今日订单区域、管理页订单列表展示
  *
  * 用法（首页今日订单，可点击进入详情）：
- *   <order-card :order="order" :show-user="isAdmin" @tap="onTap" />
+ *   <order-card :order="order" :show-user="isCook" @tap="onTap" />
  *
  * 用法（管理页订单管理，支持取消 + 展开）：
  *   <order-card :order="order" show-user cancelable expandable

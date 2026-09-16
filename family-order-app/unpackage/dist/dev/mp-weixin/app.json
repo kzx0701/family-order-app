@@ -1,5 +1,7 @@
 {
   "pages": [
+    "pages/login/login",
+    "pages/onboarding/onboarding",
     "pages/home/home",
     "pages/order/order",
     "pages/recipe/recipe",
@@ -9,8 +11,7 @@
     "pages/dish-detail/dish-detail",
     "pages/order-detail/order-detail",
     "pages/submit/submit",
-    "pages/order-success/order-success",
-    "pages/role-select/role-select"
+    "pages/order-success/order-success"
   ],
   "window": {
     "navigationBarTextStyle": "black",

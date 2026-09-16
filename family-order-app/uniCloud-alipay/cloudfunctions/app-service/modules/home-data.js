@@ -5,13 +5,13 @@
  *
  * 入参：
  *   - token  用户登录凭证（user-login 返回的 openid），用于鉴权
- *   - role   当前用户角色：orderer / admin（仅作视图切换，最终以查表得到的 caller.role 为准）
  *
- * 鉴权：
+ * 鉴权与视图：
  *   通过 token(=openid) 查询 users 集合获取调用者信息。
- *   - 管理员视图：强制 caller.role === 'admin'，查询今日所有 pending/preparing 订单
- *   - 下单人视图：强制 where.userId = caller._id，无法查询他人订单
- *   前端传入的 role 仅用于选择视图，最终权限以服务端查到的 caller.role 为准
+ *   视图由服务端记录的 lastMode 决定，**不接受前端传入的身份参数**：
+ *   身份切换时会立即写库更新 lastMode，因此 lastMode 即当前工作模式，客户端无法伪造。
+ *   - 饲养员视图（lastMode = 'cook'）：查询今日所有 pending/preparing 订单
+ *   - 干饭人视图（lastMode = 'diner'）：强制 where.userId = caller._id，无法查询他人订单
  *
  * "今日"定义：Asia/Shanghai 当天 00:00:00 ~ 23:59:59
  * uniCloud 部署在 UTC 时区，需手动加 8 小时偏移计算
@@ -22,7 +22,7 @@
  */
 
 exports.main = async (event, context) => {
-  const { token, role } = event
+  const { token } = event
 
   // 1. 鉴权：token 即 openid，查询 users 集合获取调用者信息
   if (!token) {
@@ -37,15 +37,8 @@ exports.main = async (event, context) => {
   }
   const caller = userRes.data[0]
 
-  // 2. 视图选择：前端 role 决定视图，但 admin 视图需校验服务端角色
-  const viewRole = role || caller.role
-  if (!['orderer', 'admin'].includes(viewRole)) {
-    return { code: 400, message: 'role 参数无效' }
-  }
-  if (viewRole === 'admin' && caller.role !== 'admin') {
-    // 非管理员试图访问管理员视图，拒绝
-    return { code: 403, message: '无权限：仅管理员可查看全部订单' }
-  }
+  // 2. 视图选择：以服务端记录的 lastMode 为准，不接受前端传入的身份参数
+  const viewMode = caller.lastMode === 'cook' ? 'cook' : 'diner'
 
   const orderCol = db.collection('orders')
 
@@ -55,11 +48,11 @@ exports.main = async (event, context) => {
   const where = {
     createTime: cmd.gte(start).and(cmd.lte(end))
   }
-  if (viewRole === 'admin') {
-    // 管理员：今日待制作 + 制作中（所有用户）
+  if (viewMode === 'cook') {
+    // 饲养员：今日待制作 + 制作中（所有用户）
     where.status = cmd.in(['pending', 'preparing'])
   } else {
-    // 下单人：仅自己的订单（强制使用 caller._id，忽略前端传入的 userId）
+    // 干饭人：仅自己的订单（强制使用 caller._id，忽略前端传入的 userId）
     where.userId = caller._id
   }
 

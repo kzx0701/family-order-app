@@ -13,9 +13,10 @@
  *   })
  *
  * module 与业务模块对应关系：
- *   - user-login          微信登录（code 换 openid）
- *   - user-update-profile 更新昵称/头像
- *   - user-update-role    设置角色
+ *   - user-login          微信一键登录（code 换 openid）
+ *   - user-update-profile 更新昵称 / 头像 / 性别
+ *   - user-identity       身份与引导状态（getState / completeOnboarding / switchMode）
+ *   - family-data         家庭信息（get / updateName）
  *   - categories-crud     分类 CRUD
  *   - dishes-crud         菜品 CRUD
  *   - menu-list           菜单/分类查询（点单页）
@@ -26,8 +27,9 @@
 
 const handlers = {
   'user-login': require('./modules/user-login.js'),
+  'family-data': require('./modules/family-data.js'),
   'user-update-profile': require('./modules/user-update-profile.js'),
-  'user-update-role': require('./modules/user-update-role.js'),
+  'user-identity': require('./modules/user-identity.js'),
   'categories-crud': require('./modules/categories.js'),
   'dishes-crud': require('./modules/dishes.js'),
   'menu-list': require('./modules/menu-list.js'),

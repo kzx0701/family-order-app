@@ -1,15 +1,24 @@
 "use strict";
 const common_vendor = require("../../common/vendor.js");
+const utils_image = require("../../utils/image.js");
+const utils_artwork = require("../../utils/artwork.js");
 const _sfc_main = {
   __name: "default-avatar",
   props: {
-    role: { type: String, default: "admin" }
+    // 'male' | 'female'
+    gender: { type: String, default: "male" }
   },
   setup(__props) {
+    const props = __props;
+    const isMale = common_vendor.computed(() => props.gender !== "female");
+    const artSrc = common_vendor.computed(
+      () => utils_image.imgUrl(isMale.value ? utils_artwork.AVATAR_ART.male : utils_artwork.AVATAR_ART.female, { w: utils_artwork.AVATAR_ART_WIDTH })
+    );
     return (_ctx, _cache) => {
-      return common_vendor.e({
-        a: __props.role === "admin"
-      }, __props.role === "admin" ? {} : {});
+      return {
+        a: isMale.value ? 1 : "",
+        b: artSrc.value
+      };
     };
   }
 };

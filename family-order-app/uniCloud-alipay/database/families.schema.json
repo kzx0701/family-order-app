@@ -1,0 +1,40 @@
+{
+    "bsonType": "object",
+    "required": ["name"],
+    "permission": {
+        "read": false,
+        "create": false,
+        "update": false,
+        "delete": false
+    },
+    "properties": {
+        "_id": {
+            "description": "ID"
+        },
+        "name": {
+            "bsonType": "string",
+            "description": "家庭名称。首次创建时为「我的家庭」；入口在「我的」页面，由 ownerId 对应用户修改",
+            "trim": "both",
+            "defaultValue": "我的家庭"
+        },
+        "ownerId": {
+            "bsonType": "string",
+            "description": "最初创建该家庭的用户 _id，仅该用户可以修改家庭名称",
+            "defaultValue": ""
+        },
+        "createTime": {
+            "bsonType": "timestamp",
+            "description": "创建时间",
+            "forceDefaultValue": {
+                "$env": "now"
+            }
+        },
+        "updateTime": {
+            "bsonType": "timestamp",
+            "description": "最后更新时间",
+            "forceDefaultValue": {
+                "$env": "now"
+            }
+        }
+    }
+}

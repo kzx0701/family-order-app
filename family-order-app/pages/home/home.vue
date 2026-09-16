@@ -241,8 +241,7 @@ const loadOrders = async () => {
       name: 'app-service',
       data: {
         module: 'home-data',
-        token: userStore.token,
-        role: userStore.role
+        token: userStore.token
       }
     })
     if (res.result?.code === 0) orders.value = res.result.list || []

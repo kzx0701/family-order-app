@@ -1,29 +1,31 @@
 "use strict";
 const common_vendor = require("../common/vendor.js");
-const VALID_ROLES = ["orderer", "admin"];
-const sanitizeRole = (role) => {
-  if (role && VALID_ROLES.includes(role))
-    return role;
-  if (role && role !== "") {
-    common_vendor.index.__f__("warn", "at store/user.js:17", "[user] 检测到异常角色值，已重置为 null:", role);
-  }
-  return null;
-};
+const VALID_MODES = ["diner", "cook"];
+const VALID_GENDERS = ["male", "female"];
+const DEFAULT_MODE = "diner";
+const DEFAULT_GENDER = "male";
+const sanitizeMode = (mode) => VALID_MODES.includes(mode) ? mode : DEFAULT_MODE;
+const sanitizeGender = (gender) => VALID_GENDERS.includes(gender) ? gender : DEFAULT_GENDER;
+const STORAGE_KEY = "fo_user_state";
 const useUserStore = common_vendor.defineStore("user", {
   state: () => ({
     // 用户信息（来自 users 集合）
     userInfo: null,
-    // 角色：orderer | admin | null（未选择）
-    role: null,
     // 登录 token（user-login 云函数返回，简化为 openid）
     token: null,
-    // 家庭 ID（单家庭场景下所有用户相同）
-    familyId: null
+    // 性别：male 男 / female 女，决定默认头像
+    gender: DEFAULT_GENDER,
+    // 当前工作模式：diner 干饭人 / cook 饲养员
+    currentMode: DEFAULT_MODE,
+    // 信息配置引导是否已处理完毕
+    onboardingCompleted: false,
+    // 当前家庭 { _id, name, ownerId }
+    family: null
   }),
   getters: {
     isLoggedIn: (state) => !!state.token,
-    isAdmin: (state) => state.role === "admin",
-    isOrderer: (state) => state.role === "orderer",
+    isCook: (state) => state.currentMode === "cook",
+    isDiner: (state) => state.currentMode === "diner",
     nickname: (state) => {
       var _a;
       return ((_a = state.userInfo) == null ? void 0 : _a.nickname) || "";
@@ -35,15 +37,25 @@ const useUserStore = common_vendor.defineStore("user", {
     openid: (state) => {
       var _a;
       return ((_a = state.userInfo) == null ? void 0 : _a.openid) || "";
+    },
+    /** 家庭名称，未加载时为兜底文案 */
+    familyName: (state) => {
+      var _a;
+      return ((_a = state.family) == null ? void 0 : _a.name) || "我的家庭";
+    },
+    /** 当前用户是否为家庭创建者（仅创建者可改家庭名称） */
+    isFamilyOwner: (state) => {
+      var _a;
+      return !!state.family && state.family.ownerId === ((_a = state.userInfo) == null ? void 0 : _a._id);
     }
   },
   actions: {
     /**
-     * 微信一键登录
-     * 1. 调用 uni.login 获取微信 code
-     * 2. 调用 user-login 云函数换取 openid / token / userInfo
-     * 3. 新用户 role 为空（待选择），老用户 role 已存在
-     * 4. 持久化 token 与 userInfo 到本地存储
+     * 微信一键登录（由登录页按钮触发）
+     * 1. uni.login 取 code
+     * 2. 调 user-login 云函数换 openid / token / userInfo
+     * 3. 写入 state 并持久化
+     * @returns {Promise<Object>} userInfo
      */
     async login() {
       try {
@@ -55,14 +67,10 @@ const useUserStore = common_vendor.defineStore("user", {
         if (res.result.code !== 0) {
           throw new Error(res.result.message || "登录失败");
         }
-        const { userInfo, token, isNewUser } = res.result;
+        const { userInfo, token } = res.result;
         this.userInfo = userInfo;
         this.token = token;
-        this.role = isNewUser ? null : sanitizeRole(userInfo.role);
-        this.familyId = userInfo.familyId || null;
-        if (isNewUser) {
-          common_vendor.index.__f__("log", "at store/user.js:81", "[user] 新用户登录，role 已置为 null，待选择身份");
-        }
+        this.applyUserInfo(userInfo);
         this.persist();
         return userInfo;
       } catch (e) {
@@ -94,91 +102,156 @@ const useUserStore = common_vendor.defineStore("user", {
       });
     },
     /**
-     * 设置角色（仅角色选择页首次选择时调用）
-     * 调用 user-update-role 云函数写入 users 集合的 role 字段，同步本地 state
-     * 角色一经选择不可更改：服务端校验已有非空 role 且不同时返回 403
-     * @param {string} role - 'orderer' | 'admin'
+     * 用云端返回的 userInfo 同步本地 state
+     * 集中处理字段归一化，避免各处重复
      */
-    async setRole(role) {
-      if (!["orderer", "admin"].includes(role)) {
-        throw new Error("无效的角色");
-      }
-      let res = await common_vendor.Vs.callFunction({
-        name: "app-service",
-        data: {
-          module: "user-update-role",
-          role,
-          token: this.token
-        }
-      });
-      if (res.result.code === 401) {
-        common_vendor.index.__f__("warn", "at store/user.js:144", "[user] setRole 缺少登录凭证，尝试重新登录");
-        await this.login();
-        res = await common_vendor.Vs.callFunction({
-          name: "app-service",
-          data: {
-            module: "user-update-role",
-            role,
-            token: this.token
-          }
-        });
-      }
-      if (res.result.code === 404) {
-        await this.login();
-        res = await common_vendor.Vs.callFunction({
-          name: "app-service",
-          data: {
-            module: "user-update-role",
-            role,
-            token: this.token
-          }
-        });
-      }
-      if (res.result.code !== 0) {
-        throw new Error(res.result.message || "角色设置失败");
-      }
-      this.role = role;
-      this.userInfo = res.result.userInfo || { ...this.userInfo, role };
-      this.persist();
-    },
-    /**
-     * 设置完整用户信息
-     */
-    setUserInfo(info) {
+    applyUserInfo(info) {
+      if (!info)
+        return;
       this.userInfo = info;
-      this.role = sanitizeRole(info == null ? void 0 : info.role);
-      this.familyId = (info == null ? void 0 : info.familyId) || null;
-      this.persist();
+      this.gender = sanitizeGender(info.gender);
+      this.currentMode = sanitizeMode(info.lastMode);
+      this.onboardingCompleted = !!info.onboardingCompleted;
     },
     /**
-     * 更新昵称（首页头像点击弹窗调用）
-     * 调用 user-update-profile 云函数更新 users 集合的 nickname 字段
-     * @param {string} nickname - 新昵称
+     * 提交信息配置引导结果（两步：性别 → 身份）
+     * 整页跳过时两个参数都不传，云端会落为默认值（male + diner）
+     * @param {Object} [payload]
+     * @param {string} [payload.gender] - 'male' | 'female'
+     * @param {string} [payload.mode] - 'diner' | 'cook'
      */
-    async updateNickname(nickname) {
-      const name = String(nickname || "").trim();
-      if (!name) {
-        throw new Error("昵称不能为空");
-      }
-      const res = await common_vendor.Vs.callFunction({
-        name: "app-service",
-        data: {
-          module: "user-update-profile",
-          nickname: name,
-          token: this.token
-        }
+    async completeOnboarding({ gender, mode } = {}) {
+      const res = await this.callWithAuthRetry("user-identity", {
+        action: "completeOnboarding",
+        gender: VALID_GENDERS.includes(gender) ? gender : DEFAULT_GENDER,
+        mode: VALID_MODES.includes(mode) ? mode : DEFAULT_MODE
       });
       if (res.result.code !== 0) {
-        throw new Error(res.result.message || "昵称更新失败");
+        throw new Error(res.result.message || "引导信息保存失败");
       }
-      this.userInfo = res.result.userInfo || { ...this.userInfo, nickname: name };
+      this.gender = sanitizeGender(res.result.gender);
+      this.currentMode = sanitizeMode(res.result.lastMode);
+      this.onboardingCompleted = true;
+      if (this.userInfo) {
+        this.userInfo = {
+          ...this.userInfo,
+          gender: this.gender,
+          lastMode: this.currentMode,
+          onboardingCompleted: true
+        };
+      }
+      this.persist();
+      return res.result;
+    },
+    /**
+     * 切换工作模式（干饭人 / 饲养员），可反复切换
+     * 切换后服务端 lastMode 立即更新，饲养员权限随之生效
+     * @param {string} mode - 'diner' | 'cook'
+     */
+    async switchMode(mode) {
+      if (!VALID_MODES.includes(mode)) {
+        throw new Error("无效的身份");
+      }
+      const res = await this.callWithAuthRetry("user-identity", {
+        action: "switchMode",
+        mode
+      });
+      if (res.result.code !== 0) {
+        throw new Error(res.result.message || "身份切换失败");
+      }
+      this.currentMode = sanitizeMode(res.result.lastMode);
+      if (this.userInfo) {
+        this.userInfo = { ...this.userInfo, lastMode: this.currentMode };
+      }
+      this.persist();
+      return this.currentMode;
+    },
+    /**
+     * 读取服务端最新的身份与引导状态（「我的」页面刷新用）
+     * 身份可随时切换，以服务端记录为准，避免本地缓存过期
+     */
+    async refreshIdentity() {
+      const res = await this.callWithAuthRetry("user-identity", { action: "getState" });
+      if (res.result.code !== 0) {
+        common_vendor.index.__f__("warn", "at store/user.js:201", "[user] refreshIdentity 失败：", res.result.message);
+        return;
+      }
+      this.gender = sanitizeGender(res.result.gender);
+      this.currentMode = sanitizeMode(res.result.lastMode);
+      this.onboardingCompleted = !!res.result.onboardingCompleted;
       this.persist();
     },
     /**
-     * 更新头像（首页 chooseAvatar 选择后调用）
-     * 上传到 uniCloud 云存储，再调 user-update-profile 保存 URL
-     * @param {string} cloudPath - 云存储路径
-     * @param {File} filePath - 本地临时文件路径
+     * 刷新「我的」页面所需的全部服务端状态（家庭信息 + 身份状态）
+     */
+    async refreshProfile() {
+      await Promise.all([this.loadFamily(), this.refreshIdentity()]);
+    },
+    /**
+     * 加载当前家庭信息（「我的」页面调用）
+     */
+    async loadFamily() {
+      const res = await this.callWithAuthRetry("family-data", { action: "get" });
+      if (res.result.code !== 0) {
+        common_vendor.index.__f__("warn", "at store/user.js:224", "[user] loadFamily 失败：", res.result.message);
+        this.family = null;
+        this.persist();
+        return null;
+      }
+      this.family = res.result.family || null;
+      this.persist();
+      return this.family;
+    },
+    /**
+     * 修改家庭名称（仅家庭创建者可用，服务端二次校验）
+     * @param {string} name - 新家庭名称
+     */
+    async updateFamilyName(name) {
+      const newName = String(name || "").trim();
+      if (!newName) {
+        throw new Error("家庭名称不能为空");
+      }
+      const res = await this.callWithAuthRetry("family-data", { action: "updateName", name: newName });
+      if (res.result.code !== 0) {
+        throw new Error(res.result.message || "家庭名称修改失败");
+      }
+      this.family = this.family ? { ...this.family, name: res.result.name } : null;
+      this.persist();
+      return res.result.name;
+    },
+    /**
+     * 更新资料字段（昵称 / 性别）
+     * @param {Object} payload
+     * @param {string} [payload.nickname]
+     * @param {string} [payload.gender] - 'male' | 'female'
+     */
+    async updateProfile({ nickname, gender } = {}) {
+      const data = {};
+      if (nickname !== void 0) {
+        const name = String(nickname || "").trim();
+        if (!name)
+          throw new Error("昵称不能为空");
+        data.nickname = name;
+      }
+      if (gender !== void 0) {
+        if (!VALID_GENDERS.includes(gender))
+          throw new Error("性别参数无效");
+        data.gender = gender;
+      }
+      if (Object.keys(data).length === 0) {
+        return;
+      }
+      const res = await this.callWithAuthRetry("user-update-profile", data);
+      if (res.result.code !== 0) {
+        throw new Error(res.result.message || "资料更新失败");
+      }
+      this.applyUserInfo(res.result.userInfo);
+      this.persist();
+    },
+    /**
+     * 更新头像
+     * 先上传到云存储，再调 user-update-profile 保存 URL
+     * @param {string} filePath - 本地临时文件路径
      */
     async updateAvatar(filePath) {
       if (!filePath) {
@@ -186,39 +259,50 @@ const useUserStore = common_vendor.defineStore("user", {
       }
       const ext = filePath.split(".").pop() || "png";
       const cloudPath = `avatars/${this.token || "anonymous"}_${Date.now()}.${ext}`;
-      const uploadRes = await common_vendor.Vs.uploadFile({
-        filePath,
-        cloudPath
-      });
+      const uploadRes = await common_vendor.Vs.uploadFile({ filePath, cloudPath });
       if (!uploadRes.fileID) {
         throw new Error("头像上传失败");
       }
-      const res = await common_vendor.Vs.callFunction({
-        name: "app-service",
-        data: {
-          module: "user-update-profile",
-          avatar: uploadRes.fileID,
-          token: this.token
-        }
-      });
+      const res = await this.callWithAuthRetry("user-update-profile", { avatar: uploadRes.fileID });
       if (res.result.code !== 0) {
         throw new Error(res.result.message || "头像更新失败");
       }
-      this.userInfo = res.result.userInfo || { ...this.userInfo, avatar: uploadRes.fileID };
+      this.applyUserInfo(res.result.userInfo);
       this.persist();
+    },
+    /**
+     * 带登录态自愈的云函数调用
+     * 401（缺凭证）/ 404（用户记录不存在，本地 token 与库不匹配）
+     * 时自动重新登录一次并重试，避免开发期换库或数据库重置后卡死
+     * 注意：token 在每次 call 时读取，因此重登后新 token 会被带上
+     */
+    async callWithAuthRetry(moduleName, payload = {}) {
+      const call = () => common_vendor.Vs.callFunction({
+        name: "app-service",
+        data: { module: moduleName, token: this.token, ...payload }
+      });
+      let res = await call();
+      if (res.result.code === 401 || res.result.code === 404) {
+        common_vendor.index.__f__("warn", "at store/user.js:326", `[user] ${moduleName} 登录态失效（${res.result.message}），重新登录后重试`);
+        await this.login();
+        res = await call();
+      }
+      return res;
     },
     /**
      * 退出登录：清空本地存储与 state
      */
     logout() {
       this.userInfo = null;
-      this.role = null;
       this.token = null;
-      this.familyId = null;
+      this.gender = DEFAULT_GENDER;
+      this.currentMode = DEFAULT_MODE;
+      this.onboardingCompleted = false;
+      this.family = null;
       try {
-        common_vendor.index.removeStorageSync("fo_user_state");
+        common_vendor.index.removeStorageSync(STORAGE_KEY);
       } catch (e) {
-        common_vendor.index.__f__("error", "at store/user.js:272", "[user] logout clear storage error", e);
+        common_vendor.index.__f__("error", "at store/user.js:346", "[user] logout clear storage error", e);
       }
     },
     /**
@@ -226,14 +310,16 @@ const useUserStore = common_vendor.defineStore("user", {
      */
     persist() {
       try {
-        common_vendor.index.setStorageSync("fo_user_state", {
+        common_vendor.index.setStorageSync(STORAGE_KEY, {
           userInfo: this.userInfo,
-          role: this.role,
           token: this.token,
-          familyId: this.familyId
+          gender: this.gender,
+          currentMode: this.currentMode,
+          onboardingCompleted: this.onboardingCompleted,
+          family: this.family
         });
       } catch (e) {
-        common_vendor.index.__f__("error", "at store/user.js:288", "[user] persist error", e);
+        common_vendor.index.__f__("error", "at store/user.js:364", "[user] persist error", e);
       }
     },
     /**
@@ -241,15 +327,19 @@ const useUserStore = common_vendor.defineStore("user", {
      */
     async restore() {
       try {
-        const data = common_vendor.index.getStorageSync("fo_user_state");
-        if (data) {
-          this.userInfo = data.userInfo || null;
-          this.role = sanitizeRole(data.role);
-          this.token = data.token || null;
-          this.familyId = data.familyId || null;
-        }
+        const data = common_vendor.index.getStorageSync(STORAGE_KEY);
+        if (!data)
+          return;
+        this.token = data.token || null;
+        this.applyUserInfo(data.userInfo);
+        if (data.gender)
+          this.gender = sanitizeGender(data.gender);
+        if (data.currentMode)
+          this.currentMode = sanitizeMode(data.currentMode);
+        this.onboardingCompleted = !!data.onboardingCompleted;
+        this.family = data.family || null;
       } catch (e) {
-        common_vendor.index.__f__("error", "at store/user.js:305", "[user] restore error", e);
+        common_vendor.index.__f__("error", "at store/user.js:383", "[user] restore error", e);
       }
     }
   }

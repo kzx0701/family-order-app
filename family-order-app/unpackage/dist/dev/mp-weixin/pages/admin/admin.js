@@ -512,7 +512,7 @@ const _sfc_main = {
       });
     };
     common_vendor.onMounted(() => {
-      if (!userStore.isAdmin) {
+      if (!userStore.isCook) {
         common_vendor.index.showToast({ title: "仅管理员可访问", icon: "none" });
         return;
       }

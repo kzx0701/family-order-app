@@ -75,14 +75,13 @@ const _sfc_main = {
           name: "app-service",
           data: {
             module: "home-data",
-            token: userStore.token,
-            role: userStore.role
+            token: userStore.token
           }
         });
         if (((_a = res.result) == null ? void 0 : _a.code) === 0)
           orders.value = res.result.list || [];
       } catch (e) {
-        common_vendor.index.__f__("warn", "at pages/home/home.vue:250", "[home] recent orders unavailable during phase2 shell preview", e);
+        common_vendor.index.__f__("warn", "at pages/home/home.vue:249", "[home] recent orders unavailable during phase2 shell preview", e);
       } finally {
         loading.value = false;
       }

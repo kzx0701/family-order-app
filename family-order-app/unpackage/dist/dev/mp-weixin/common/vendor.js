@@ -7265,7 +7265,7 @@ const UNI_CONSOLE_RUNTIME_PROMISE = "__uni_console_runtime_promise__";
 function initRuntimeSocketService() {
   const hosts = "127.0.0.1,192.168.0.204,10.10.20.180,198.18.0.1";
   const port = "8090";
-  const id = "mp-weixin_LaBl8j";
+  const id = "mp-weixin_rN1z8F";
   const runtimeGlobal = getRuntimeGlobal();
   const existingPromise = runtimeGlobal === null || runtimeGlobal === void 0 ? void 0 : runtimeGlobal[UNI_CONSOLE_RUNTIME_PROMISE];
   if (existingPromise) {
@@ -8919,6 +8919,21 @@ This will fail in production.`);
 }
 const pages = [
   {
+    path: "pages/login/login",
+    style: {
+      navigationStyle: "custom",
+      navigationBarTitleText: "登录",
+      disableScroll: true
+    }
+  },
+  {
+    path: "pages/onboarding/onboarding",
+    style: {
+      navigationStyle: "custom",
+      navigationBarTitleText: "完善信息"
+    }
+  },
+  {
     path: "pages/home/home",
     style: {
       navigationStyle: "custom",
@@ -8990,14 +9005,6 @@ const pages = [
     style: {
       navigationStyle: "custom",
       navigationBarTitleText: "下单成功"
-    }
-  },
-  {
-    path: "pages/role-select/role-select",
-    style: {
-      navigationStyle: "custom",
-      navigationBarTitleText: "选择角色",
-      disableScroll: true
     }
   }
 ];

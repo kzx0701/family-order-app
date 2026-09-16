@@ -65,7 +65,8 @@
 
 ```text
 pages/
-├── onboarding/          首次登录家庭与身份引导
+├── login/               微信一键登录
+├── onboarding/          信息配置引导（性别 → 身份，可跳过）
 ├── home/                首页
 ├── menu/                统一点餐页面
 ├── recipe/              菜谱列表和详情
@@ -81,51 +82,66 @@ pages/
 
 `menu-config` 和 `recipe-config` 不进入底部导航，只能从饲养员模式下的菜单页或菜谱页进入。
 
-## 4. 登录、家庭和身份流程
+## 4. 登录、引导和身份流程
 
-### 4.1 首次登录
+### 4.1 登录页
 
 ```text
-微信登录
-→ 判断是否存在完整家庭与身份信息
-→ 不完整：进入两步引导
-→ 填写家庭名称
-→ 选择干饭人/饲养员
-→ 保存完成状态
+进入小程序
+→ 恢复本地登录态
+→ 有有效登录态：跳过登录页，直接判断引导状态
+→ 无登录态：reLaunch 到 /pages/login/login
+→ 用户点击“微信一键登录”
+→ uni.login 取 code → 云函数 user-login
+→ 登录成功：进入引导状态判断
+```
+
+要点：
+
+- 登录页只提供微信一键登录，是进入小程序的唯一入口。
+- 不调用 `getUserProfile`，不申请昵称、头像授权，只完成 openid 识别，避免多余的授权弹窗。
+- 登录失败在页面内提示并提供重试，不用弹窗打断。
+- 未登录时，所有页面跳转由守卫统一拦截回登录页。
+
+### 4.2 信息配置引导
+
+```text
+登录成功
+→ 判断 onboardingCompleted
+→ 已完成：按 lastMode 恢复身份，进入首页
+→ 未完成：进入 /pages/onboarding/onboarding
+   步骤一 选择性别（男 / 女）
+   步骤二 选择身份（干饭人 / 饲养员）
+   → 完成：写入 gender + lastMode，onboardingCompleted = true
+   → 跳过：gender = 'male'，lastMode = 'diner'，onboardingCompleted = true
 → 进入首页
 ```
 
-家庭名称步骤：
+要点：
 
-- 输入框非必填。
-- 支持跳过或稍后设置。
-- 空值统一保存为“我的家庭”。
+- 两步放在同一个 onboarding 页面中，通过步骤状态切换，避免用户停在中间状态进入其他业务页面。
+- 引导页整页可跳过；跳过后不再重复弹出。
+- 跳过时按默认值落库（性别 `male`、身份 `diner`），因此 `gender` 与 `lastMode` 都不会出现空值，界面无需处理“未设置”分支。
+- 性别与身份的补填入口保留在“我的”页面。
 
-身份步骤：
-
-- 必须选择。
-- 只能选择干饭人或饲养员之一。
-
-建议把两步放在同一个 onboarding 页面中，通过步骤状态切换完成，避免用户在中间状态下进入首页或其他业务页面。
-
-### 4.2 自动登录和重新登录
+### 4.3 自动登录和重新登录
 
 ```text
 自动登录/恢复登录态
-→ 已有家庭信息 + 上次身份
-→ 恢复上次身份
+→ 有 token 且 onboardingCompleted
+→ 恢复 lastMode
 → 直接进入首页
 ```
 
 ```text
 重新登录
-→ 已有完整家庭与身份信息：直接恢复进入
-→ 信息不完整：进入家庭名称与身份引导
+→ 已有完整引导信息：按 lastMode 恢复进入
+→ 引导信息不完整：进入信息配置引导
 ```
 
 “我的”页面中的身份切换更新 `lastMode`，供下一次自动登录恢复。
 
-### 4.3 建议的用户字段
+### 4.4 建议的用户字段
 
 ```js
 {
@@ -133,13 +149,18 @@ pages/
   openid,
   nickname,
   avatar,
+  gender: 'male' | 'female',         // 引导步骤一，跳过时为 'male'
   familyId,
-  lastMode: 'diner' | 'cook',
-  onboardingCompleted: true,
+  lastMode: 'diner' | 'cook',        // 引导步骤二，跳过时为 'diner'
+  onboardingCompleted: true,         // 引导完成或已跳过，均置为 true
   createTime,
   updateTime
 }
 ```
+
+`gender` 的用途：决定默认头像，`male` 取男生素材、`female` 取女生素材。可在“我的”页面修改。由于跳过时为 `male`，该字段不会出现空值。
+
+`onboardingCompleted` 的语义是“引导流程已处理完毕”，包含完成与跳过两种结果；守卫只判断这一个字段，不判断 `gender` 或 `lastMode` 是否为空。
 
 产品文案统一使用“干饭人/饲养员”，代码内部建议使用稳定的 `diner/cook` 枚举。旧的 `orderer/admin` 只作为迁移兼容值，不再作为新功能的产品语义。
 
@@ -160,6 +181,10 @@ pages/
 ```
 
 `ownerId` 记录最初创建家庭名称的用户。家庭名称后续只能由该用户修改。
+
+家庭名称不在登录引导流程中，入口位于“我的”页面的家庭信息卡。
+
+单家庭场景下的创建时机：用户首次登录并创建 `users` 记录时，若 `familyId` 尚未指向任何家庭，则自动创建一条默认家庭记录（`name = '我的家庭'`，`ownerId = 该用户`），并把 `users.familyId` 指向它。因此单家庭场景下，首个登录的用户即家庭创建者。
 
 二期第一阶段可以继续兼容当前单家庭场景，但所有新数据和接口都保留 `familyId` 边界，为后续家庭邀请、加入家庭或多家庭扩展留出空间。家庭加入/邀请流程不在当前已确认范围内。
 
@@ -317,6 +342,8 @@ pages/
 
 后端接口必须同步校验当前用户身份和 `familyId`，不能只依赖前端是否显示按钮。由于身份允许随时切换，这里是“当前工作模式权限”；如果未来需要限制为某一个固定家庭成员，再新增独立的 `canConfigure` 能力字段。
 
+身份校验以服务端用户记录的 `lastMode` 为准，**不接受前端传入的身份参数**。切换身份时立即写库更新 `lastMode`，因此 `lastMode` 就代表当前工作模式；这样客户端无法通过伪造参数越过饲养员权限校验。现有 `home-data` 中“前端传 role、服务端仅做一致性校验”的写法需要按此调整。
+
 ### 6.3 身份实现建议
 
 当前 `token=openid` 的实现可以在二期先保持兼容，但所有新接口应统一封装鉴权和家庭校验，避免每个模块重复解析 token。后续如升级为正式 session/token，不应影响页面业务接口。
@@ -326,13 +353,17 @@ pages/
 继续使用 `app-service` 统一入口，新增或调整以下 module：
 
 ```text
-family-data
-├── get
-└── updateName（仅家庭创建者）
+user-login
+└── login                  点击一键登录后调用，返回用户记录与引导状态
 
 user-identity
-├── getState
-└── switchMode
+├── getState               读取 gender / lastMode / onboardingCompleted
+├── completeOnboarding     提交引导结果（性别 + 身份），支持跳过
+└── switchMode             切换身份并更新 lastMode，允许反复切换
+
+family-data
+├── get                    读取当前家庭信息
+└── updateName             修改家庭名称（仅家庭创建者）
 
 recipes-crud
 ├── list
@@ -359,6 +390,12 @@ orders-crud
 └── delete
 ```
 
+模块调整说明：
+
+- 原 `user-update-role` 由 `user-identity` 取代。原实现“角色一经选择不可更改”（已有非空身份则返回 403）与二期的可切换身份直接冲突，需一并移除该限制。
+- `user-login` 在返回 `userInfo` / `token` 时一并带回 `gender`、`lastMode`、`onboardingCompleted`，让前端在登录响应里即可决定去向，避免首屏多一次请求。
+- 身份与权限校验统一在 `app-service` 入口封装：解析 token 得到用户与 `familyId`，各业务模块只消费结果，不再各自解析 token。
+
 现有 `menu-list` 可以在过渡期保留，但最终应从“查询 dishes”调整为“查询已上架 menu_items 并关联 recipes”。
 
 订单创建接口必须由服务端校验：
@@ -377,19 +414,23 @@ orders-crud
 {
   userInfo,
   token,
-  family,
-  currentMode: 'diner' | 'cook',
+  family,                          // { _id, name, ownerId } 或 null
+  gender: 'male' | 'female',      // 默认头像依据，跳过时为 'male'
+  currentMode: 'diner' | 'cook',   // 跳过后默认 'diner'，不会为空
   onboardingCompleted
 }
 ```
 
 负责：
 
-- 恢复登录态
-- 保存家庭信息
-- 保存当前身份模式
+- 恢复登录态；未登录时把用户引向登录页
+- 调用登录、提交引导结果、切换身份
+- 保存家庭信息与家庭名称
+- 保存性别，供默认头像使用
 - 处理首次登录引导状态
 - 提供 `isCook`、`isDiner` 等 getter
+
+主要 action：`login` / `logout` / `restore` / `persist` / `completeOnboarding` / `switchMode` / `updateProfile`（含 `gender`） / `loadFamily` / `updateFamilyName`。
 
 ### 8.2 cart Store
 
@@ -516,7 +557,9 @@ recipe + selectedOptions
 
 - 菜谱口味必须同步进入订单。
 - 首页最近订单显示当前家庭的全部订单。
-- 家庭名称只能由最初创建家庭名称的用户修改。
+- 家庭名称只能由最初创建家庭名称的用户修改，入口在“我的”页面。
+- 登录使用独立登录页，只提供微信一键登录。
+- 信息配置引导固定两步：先选性别，再选身份；整页可跳过，跳过时性别默认男、身份默认干饭人。
 - 现有数据不迁移，二期重新初始化。
 
 ### 阶段 1：视觉与应用壳
@@ -531,20 +574,21 @@ recipe + selectedOptions
 
 验收：新旧页面不混用旧主题变量，四个 Tab 结构稳定。
 
-### 阶段 2：家庭、登录和我的
+### 阶段 2：登录、引导和我的
 
 完成：
 
-- 家庭名称两步引导
-- 默认家庭名
-- 身份必选
+- 独立登录页（微信一键登录）
+- 信息配置引导页：性别 → 身份，整页可跳过
+- 引导状态落库与恢复（`onboardingCompleted` / `gender` / `lastMode`）
 - 自动恢复上次身份
-- 缺失信息时重新进入引导
-- 干饭人/饲养员切换
-- “我的”页面
+- 引导信息不完整时重新进入引导
+- 干饭人/饲养员随时切换
+- 性别与默认头像联动
+- “我的”页面：性别、身份切换、家庭名称维护
 - 移除首页头像
 
-验收：首次登录、自动登录、重新登录和身份切换路径均可重复验证。
+验收：登录页、首次引导、跳过引导、自动登录、重新登录和身份切换六条路径均可重复验证。
 
 ### 阶段 3：菜谱数据和管理
 

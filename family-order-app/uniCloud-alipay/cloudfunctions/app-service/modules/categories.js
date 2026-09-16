@@ -1,16 +1,17 @@
 'use strict'
+const { requireCook } = require('../utils/auth.js')
 
 /**
  * 分类 CRUD 云函数
  *
  * 支持的 action：
  *   - list    查询分类（支持 type 筛选），返回列表（按 sortOrder 升序）
- *   - create  新增分类（仅 admin）
- *   - update  编辑分类（仅 admin）
- *   - delete  删除分类（仅 admin，"推荐"分类为系统内置不可删除）
- *   - sort    批量更新排序（仅 admin）
+ *   - create  新增分类（仅饲养员）
+ *   - update  编辑分类（仅饲养员）
+ *   - delete  删除分类（仅饲养员，"推荐"分类为系统内置不可删除）
+ *   - sort    批量更新排序（仅饲养员）
  *
- * 鉴权方式：前端传入 token（openid），查询 users 集合确认 role == 'admin'
+ * 鉴权方式：前端传入 token（openid），查询 users 集合确认 lastMode == 'cook'
  */
 
 // 系统内置分类名，受保护不可删除
@@ -26,8 +27,8 @@ exports.main = async (event, context) => {
     return await listCategories(payload, catCol)
   }
 
-  // 其余操作需管理员鉴权
-  const authRes = await requireAdmin(token, db)
+  // 其余操作需饲养员鉴权
+  const authRes = await requireCook(token)
   if (!authRes.ok) {
     return { code: 401, message: authRes.message }
   }
@@ -46,23 +47,6 @@ exports.main = async (event, context) => {
   }
 }
 
-/**
- * 鉴权：token 即 openid，查询 users 集合确认 role == 'admin'
- */
-async function requireAdmin(token, db) {
-  if (!token) {
-    return { ok: false, message: '未授权：缺少登录凭证' }
-  }
-  const userCol = db.collection('users')
-  const res = await userCol.where({ openid: token }).get()
-  if (res.data.length === 0) {
-    return { ok: false, message: '用户不存在' }
-  }
-  if (res.data[0].role !== 'admin') {
-    return { ok: false, message: '无权限：仅管理员可操作' }
-  }
-  return { ok: true }
-}
 
 /**
  * 查询分类列表

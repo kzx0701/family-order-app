@@ -5,7 +5,7 @@
         <text class="page-kicker">家里会做的，都记在这里</text>
         <text class="page-title">家庭菜谱</text>
       </view>
-      <view v-if="userStore.isAdmin" class="config-button" @tap="showPreviewTip">
+      <view v-if="userStore.isCook" class="config-button" @tap="showPreviewTip">
         <Icon name="settings" :size="18" :stroke-width="2.2" />
         <text>配置</text>
       </view>

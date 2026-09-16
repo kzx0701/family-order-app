@@ -1069,7 +1069,7 @@ const onSubscribeOrderNotify = () => {
 // === 生命周期 ===
 onMounted(() => {
   // 权限校验：非管理员不拉取数据
-  if (!userStore.isAdmin) {
+  if (!userStore.isCook) {
     uni.showToast({ title: '仅管理员可访问', icon: 'none' })
     return
   }

@@ -86,7 +86,9 @@
   position: relative;
   width: 146rpx;
   height: 146rpx;
-  padding: 7rpx;
+  /* 不设 padding：头像直接贴到描边内侧，去掉原先 7rpx 的白色间隙
+     （该间隙与页面底色几乎同色，读不出「白边」的设计意图，只显得图片离边框远） */
+  padding: 0;
   border: 3rpx solid #765540;
   border-radius: 47% 53% 49% 51%;
   background: #fffef9;
@@ -96,7 +98,7 @@
 .avatar-image.data-v-2f1ef635 {
   width: 100%;
   height: 100%;
-  border-radius: 50%;
+  border-radius: inherit;
 }
 .profile-main.data-v-2f1ef635 {
   margin-top: 22rpx;
@@ -201,8 +203,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.record-arrow.data-v-2f1ef635,
-.owner-tag.data-v-2f1ef635 {
+.record-arrow.data-v-2f1ef635 {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -214,153 +215,9 @@
   background: #fffef9;
   color: #8c725e;
 }
-.owner-tag.data-v-2f1ef635 {
-  font-size: 23rpx;
-}
-.menu-doodle.data-v-2f1ef635 {
-  position: relative;
+.menu-art.data-v-2f1ef635 {
+  display: block;
   width: 96rpx;
   height: 106rpx;
   flex: 0 0 96rpx;
-}
-.paper-sheet.data-v-2f1ef635 {
-  position: absolute;
-  left: 13rpx;
-  top: 8rpx;
-  width: 69rpx;
-  height: 88rpx;
-  background: #fffef9;
-  border: 3rpx solid #765540;
-  border-radius: 11rpx 15rpx 10rpx 17rpx;
-  transform: rotate(-4deg);
-}
-.paper-line.data-v-2f1ef635 {
-  position: absolute;
-  z-index: 2;
-  left: 29rpx;
-  width: 42rpx;
-  height: 4rpx;
-  border-radius: 999rpx;
-  background: #e97a69;
-}
-.line-one.data-v-2f1ef635 {
-  top: 42rpx;
-  transform: rotate(-6deg);
-}
-.line-two.data-v-2f1ef635 {
-  top: 60rpx;
-  width: 31rpx;
-  background: #9dc6d1;
-  transform: rotate(-4deg);
-}
-.paper-pin.data-v-2f1ef635 {
-  position: absolute;
-  z-index: 3;
-  left: 42rpx;
-  top: 0;
-  width: 22rpx;
-  height: 16rpx;
-  background: #f2c65d;
-  border: 3rpx solid #765540;
-  border-radius: 8rpx;
-  transform: rotate(4deg);
-}
-.home-wall.data-v-2f1ef635 {
-  position: absolute;
-  left: 17rpx;
-  top: 39rpx;
-  width: 64rpx;
-  height: 56rpx;
-  background: #fffef9;
-  border: 3rpx solid #765540;
-  border-radius: 4rpx 5rpx 12rpx 8rpx;
-  transform: rotate(-3deg);
-}
-.home-roof.data-v-2f1ef635 {
-  position: absolute;
-  left: 18rpx;
-  top: 17rpx;
-  width: 61rpx;
-  height: 61rpx;
-  background: #f8c1b4;
-  border-top: 3rpx solid #765540;
-  border-left: 3rpx solid #765540;
-  border-radius: 7rpx 0 0 0;
-  transform: rotate(42deg) scale(0.76);
-  -webkit-clip-path: polygon(0 0, 100% 0, 0 100%);
-          clip-path: polygon(0 0, 100% 0, 0 100%);
-}
-.home-window.data-v-2f1ef635 {
-  position: absolute;
-  left: 29rpx;
-  top: 57rpx;
-  width: 14rpx;
-  height: 14rpx;
-  border: 2rpx solid #765540;
-  border-radius: 3rpx;
-  background: #f2c65d;
-}
-.home-door.data-v-2f1ef635 {
-  position: absolute;
-  right: 26rpx;
-  bottom: 12rpx;
-  width: 17rpx;
-  height: 29rpx;
-  border: 2rpx solid #765540;
-  border-bottom: 0;
-  border-radius: 8rpx 7rpx 0 0;
-  background: #dbe8c8;
-}
-.identity-sheet.data-v-2f1ef635 {
-  position: absolute;
-  left: 10rpx;
-  top: 19rpx;
-  width: 78rpx;
-  height: 72rpx;
-  border: 3rpx solid #765540;
-  border-radius: 13rpx 10rpx 15rpx 11rpx;
-  background: #fffef9;
-  transform: rotate(4deg);
-}
-.identity-pin.data-v-2f1ef635 {
-  position: absolute;
-  left: 39rpx;
-  top: 10rpx;
-  width: 25rpx;
-  height: 18rpx;
-  border: 3rpx solid #765540;
-  border-radius: 7rpx;
-  background: #f2c65d;
-  transform: rotate(4deg);
-}
-.identity-head.data-v-2f1ef635 {
-  position: absolute;
-  left: 27rpx;
-  top: 40rpx;
-  width: 17rpx;
-  height: 17rpx;
-  border: 2rpx solid #765540;
-  border-radius: 50%;
-  background: #f8c1b4;
-}
-.identity-body.data-v-2f1ef635 {
-  position: absolute;
-  left: 21rpx;
-  top: 60rpx;
-  width: 29rpx;
-  height: 17rpx;
-  border: 2rpx solid #765540;
-  border-radius: 14rpx 14rpx 5rpx 5rpx;
-  background: #dbe8c8;
-}
-.identity-line.data-v-2f1ef635 {
-  position: absolute;
-  left: 59rpx;
-  top: 50rpx;
-  width: 17rpx;
-  height: 4rpx;
-  border-radius: 4rpx;
-  background: #9dc6d1;
-  box-shadow: 0 13rpx 0 #f8c1b4;
-  transform: rotate(4deg);
 }

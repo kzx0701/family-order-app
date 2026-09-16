@@ -1,18 +1,19 @@
 'use strict'
+const { requireCook } = require('../utils/auth.js')
 
 /**
  * 菜品 CRUD 云函数
  *
  * 支持的 action：
  *   - list       查询菜品（支持 type、categoryId、isOnSale 筛选），返回列表（含分类名 join）
- *   - create     新增菜品（仅 admin）
- *   - update     编辑菜品（仅 admin）
- *   - delete     删除菜品（仅 admin）
- *   - toggleSale 切换上下架（仅 admin）
- *   - sort       批量更新排序（仅 admin，长按拖拽排序后调用）
+ *   - create     新增菜品（仅饲养员）
+ *   - update     编辑菜品（仅饲养员）
+ *   - delete     删除菜品（仅饲养员）
+ *   - toggleSale 切换上下架（仅饲养员）
+ *   - sort       批量更新排序（仅饲养员，长按拖拽排序后调用）
  *
  * 鉴权方式：
- *   前端传入 token（user-login 返回的 openid），云函数查询 users 集合确认 role == 'admin'。
+ *   前端传入 token（user-login 返回的 openid），云函数查询 users 集合确认 lastMode == 'cook'。
  *   list 接口无需鉴权（所有人可读，点单页也需查询菜品）。
  */
 
@@ -32,8 +33,8 @@ exports.main = async (event, context) => {
     return await getDishDetail(payload, dishCol, catCol)
   }
 
-  // 其余操作需管理员鉴权
-  const authRes = await requireAdmin(token, db)
+  // 其余操作需饲养员鉴权
+  const authRes = await requireCook(token)
   if (!authRes.ok) {
     return { code: 401, message: authRes.message }
   }
@@ -54,23 +55,6 @@ exports.main = async (event, context) => {
   }
 }
 
-/**
- * 鉴权：token 即 openid，查询 users 集合确认 role == 'admin'
- */
-async function requireAdmin(token, db) {
-  if (!token) {
-    return { ok: false, message: '未授权：缺少登录凭证' }
-  }
-  const userCol = db.collection('users')
-  const res = await userCol.where({ openid: token }).get()
-  if (res.data.length === 0) {
-    return { ok: false, message: '用户不存在' }
-  }
-  if (res.data[0].role !== 'admin') {
-    return { ok: false, message: '无权限：仅管理员可操作' }
-  }
-  return { ok: true }
-}
 
 /**
  * 查询单个菜品详情

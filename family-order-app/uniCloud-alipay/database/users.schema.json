@@ -24,23 +24,41 @@
         },
         "avatar": {
             "bsonType": "string",
-            "description": "头像 URL",
+            "description": "用户上传的头像 URL；为空时按 gender 显示默认头像",
             "defaultValue": ""
         },
-        "role": {
+        "gender": {
             "bsonType": "string",
-            "description": "角色：orderer 下单人 / admin 管理员；新用户为空字符串待选择",
-            "enum": ["", "orderer", "admin"],
-            "defaultValue": ""
+            "description": "性别：male 男 / female 女。决定默认头像；引导被跳过时为 male",
+            "enum": ["male", "female"],
+            "defaultValue": "male"
+        },
+        "lastMode": {
+            "bsonType": "string",
+            "description": "上次选择的工作模式：diner 干饭人 / cook 饲养员。身份可随时切换，切换时更新；后端饲养员权限校验以此字段为准，不接受前端传参",
+            "enum": ["diner", "cook"],
+            "defaultValue": "diner"
+        },
+        "onboardingCompleted": {
+            "bsonType": "bool",
+            "description": "信息配置引导是否已处理完毕（完成或主动跳过均置为 true）",
+            "defaultValue": false
         },
         "familyId": {
             "bsonType": "string",
-            "description": "所属家庭 ID（单家庭场景下所有用户共享同一值）",
-            "defaultValue": "default"
+            "description": "所属家庭 ID，指向 families 集合的 _id",
+            "defaultValue": ""
         },
         "createTime": {
             "bsonType": "timestamp",
             "description": "创建时间",
+            "forceDefaultValue": {
+                "$env": "now"
+            }
+        },
+        "updateTime": {
+            "bsonType": "timestamp",
+            "description": "最后更新时间",
             "forceDefaultValue": {
                 "$env": "now"
             }

@@ -115,7 +115,7 @@
     </view>
 
     <!-- 已完成(非管理员)/已取消状态：底部显示状态提示 -->
-    <view v-else-if="!loading && !loadError && (order.status === 'cancelled' || (order.status === 'completed' && !userStore.isAdmin))" class="bottom-bar">
+    <view v-else-if="!loading && !loadError && (order.status === 'cancelled' || (order.status === 'completed' && !userStore.isCook))" class="bottom-bar">
       <view class="status-hint" :class="order.status">
         <text>{{ order.status === 'completed' ? '✓ 订单已完成' : '订单已取消' }}</text>
       </view>
@@ -245,7 +245,7 @@ const bottomButton = computed(() => {
   if (actionLoading.value) return null
   const s = order.value.status
 
-  if (userStore.isAdmin) {
+  if (userStore.isCook) {
     // 管理员：推进状态 + 完成后提醒取餐
     if (s === 'pending') {
       return { text: '开始制作', class: 'btn-prep', type: 'advance', target: 'preparing' }

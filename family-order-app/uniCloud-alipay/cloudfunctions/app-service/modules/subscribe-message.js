@@ -22,7 +22,7 @@ const https = require('https')
  *
  * 错误处理：
  *   - 推送失败不抛错，记录日志后返回，确保不阻塞订单主流程
- *   - 单个管理员 openid 发送失败不影响其他管理员
+ *   - 单个饲养员 openid 发送失败不影响其他饲养员
  */
 
 /* ============ 配置读取 ============ */
@@ -177,9 +177,9 @@ async function sendSubscribeMessage(openid, templateId, data, page) {
 /* ============ action: sendOrderNotify ============ */
 
 /**
- * 下单后通知管理员
+ * 下单后通知饲养员
  * 入参：orderId、userId、userName、items、note
- * 查询所有 role=admin 的用户 openid 并逐个发送
+ * 查询所有饲养员模式（lastMode='cook'）的用户 openid 并逐个发送
  * 模板参数：商品名称(thing6)、订单数量(number11)、操作备注(thing5)、提交人(name3)
  * 返回：{ code: 0, sent: N }
  */
@@ -194,12 +194,12 @@ async function sendOrderNotify({
     return { code: 400, message: '缺少 orderId 或 items' }
   }
 
-  // 查询所有管理员用户（兼容多管理员场景）
+  // 查询当前处于饲养员模式的用户（身份可随时切换，故以 lastMode 为准）
   const db = uniCloud.database()
-  const adminRes = await db.collection('users').where({ role: 'admin' }).get()
-  const admins = adminRes.data.filter((u) => u.openid)
-  if (admins.length === 0) {
-    console.warn('[subscribe-message] 无管理员用户或管理员无 openid，跳过 sendOrderNotify')
+  const cookRes = await db.collection('users').where({ lastMode: 'cook' }).get()
+  const cooks = cookRes.data.filter((u) => u.openid)
+  if (cooks.length === 0) {
+    console.warn('[subscribe-message] 无饲养员模式用户或无 openid，跳过 sendOrderNotify')
     return { code: 0, sent: 0 }
   }
 
@@ -217,19 +217,19 @@ async function sendOrderNotify({
 
   const page = `pages/order-detail/order-detail?id=${orderId}`
 
-  // 逐个管理员发送，单个失败不影响其他
+  // 逐个饲养员发送，单个失败不影响其他
   let sent = 0
-  for (const admin of admins) {
+  for (const cook of cooks) {
     try {
       const ok = await sendSubscribeMessage(
-        admin.openid,
+        cook.openid,
         CFG.templates.orderNotify,
         templateData,
         page
       )
       if (ok) sent += 1
     } catch (e) {
-      console.error('[subscribe-message] 发送给管理员失败', { openid: admin.openid, error: e })
+      console.error('[subscribe-message] 发送给饲养员失败', { openid: cook.openid, error: e })
     }
   }
 
@@ -275,8 +275,8 @@ async function sendCompleteNotify({ orderId, userId, items } = {}) {
     console.warn('[subscribe-message] 下单人用户不存在', orderUserId)
     return { code: 0, sent: 0 }
   }
-  const orderer = userRes.data[0]
-  if (!orderer.openid) {
+  const diner = userRes.data[0]
+  if (!diner.openid) {
     console.warn('[subscribe-message] 下单人无 openid', orderUserId)
     return { code: 0, sent: 0 }
   }
@@ -295,14 +295,14 @@ async function sendCompleteNotify({ orderId, userId, items } = {}) {
   let sent = 0
   try {
     const ok = await sendSubscribeMessage(
-      orderer.openid,
+      diner.openid,
       CFG.templates.completeNotify,
       templateData,
       page
     )
     if (ok) sent = 1
   } catch (e) {
-    console.error('[subscribe-message] 发送给下单人失败', { openid: orderer.openid, error: e })
+    console.error('[subscribe-message] 发送给干饭人失败', { openid: diner.openid, error: e })
   }
 
   return { code: 0, sent }
@@ -347,8 +347,8 @@ async function sendPickupNotify({ orderId, userId, items, pickupMethod, pickupTi
     console.warn('[subscribe-message] 下单人用户不存在', orderUserId)
     return { code: 0, sent: 0 }
   }
-  const orderer = userRes.data[0]
-  if (!orderer.openid) {
+  const diner = userRes.data[0]
+  if (!diner.openid) {
     console.warn('[subscribe-message] 下单人无 openid', orderUserId)
     return { code: 0, sent: 0 }
   }
@@ -367,14 +367,14 @@ async function sendPickupNotify({ orderId, userId, items, pickupMethod, pickupTi
   let sent = 0
   try {
     const ok = await sendSubscribeMessage(
-      orderer.openid,
+      diner.openid,
       CFG.templates.pickupNotify,
       templateData,
       page
     )
     if (ok) sent = 1
   } catch (e) {
-    console.error('[subscribe-message] 取餐提醒发送失败', { openid: orderer.openid, error: e })
+    console.error('[subscribe-message] 取餐提醒发送失败', { openid: diner.openid, error: e })
   }
 
   return { code: 0, sent }

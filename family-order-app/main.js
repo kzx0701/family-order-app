@@ -1,14 +1,14 @@
 import { createSSRApp } from 'vue'
 import { createPinia } from 'pinia'
 import App from './App.vue'
-import { setupRoleGuard } from '@/utils/role-guard.js'
+import { setupAuthGuard } from '@/utils/auth-guard.js'
 
 export function createApp() {
   const app = createSSRApp(App)
   const pinia = createPinia()
   app.use(pinia)
-  // 注册身份守卫：身份为空时拦截所有页面跳转，改跳身份选择页
-  setupRoleGuard()
+  // 注册登录与引导守卫：未登录跳登录页，引导未完成跳引导页
+  setupAuthGuard()
   return {
     app,
     pinia

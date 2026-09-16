@@ -1,29 +1,26 @@
 <script>
 import { useUserStore } from '@/store/user.js'
-import { ensureRoleSelected } from '@/utils/role-guard.js'
+import { ensureAuth } from '@/utils/auth-guard.js'
+
+// 启动恢复是否已完成
+// App.onShow 早于 bootstrap 里的 restore() 完成，此时 state.token 仍为空，
+// 若立即执行守卫会把已登录用户误判为未登录，因此首帧 onShow 跳过守卫
+let bootstrapped = false
 
 /**
- * 显示登录失败弹窗，并提供重试入口
- * @param {string} message
- * @param {Function} retry
+ * 应用启动逻辑
+ *
+ * 登录不再自动发起：改由登录页的「微信一键登录」按钮触发（用户显式操作）。
+ * 启动阶段只恢复本地登录态，并按守卫规则把用户送到该去的页面。
+ *
+ * 三段入口：登录页 → 信息配置引导（可跳过）→ 首页
  */
-function showLoginError(message, retry) {
-  uni.showModal({
-    title: '登录失败',
-    content: message || '请检查网络后重试',
-    showCancel: false,
-    confirmText: '重新登录',
-    success: () => retry()
-  })
-}
-
 export default {
   onLaunch(options) {
-    // 应用启动逻辑：恢复登录态 -> 微信登录 -> 角色未选则跳角色选择页
     console.log('[App] onLaunch', options)
 
     // 注：pages.json 已设置 tabBar.custom = true，原生 tabBar 不渲染，
-    // custom-tabbar 组件按角色差异化展示，无需调用 uni.hideTabBar（自定义模式下会报错）
+    // 无需调用 uni.hideTabBar（自定义模式下会报错）
 
     // 隐私合规：manifest.json 已开启 __usePrivacyCheck__: true
     // 不监听 onNeedPrivacyAuthorization，让微信自动弹出内置隐私授权弹窗
@@ -33,54 +30,34 @@ export default {
   },
   onShow() {
     console.log('[App] onShow')
-    // 前台守卫：从后台切回时身份为空（如数据库被重置），跳身份选择页
-    // 仅在已登录但无身份时触发；未登录的情况交给 bootstrap 登录后统一处理
-    const userStore = useUserStore()
-    if (userStore.isLoggedIn && !userStore.role) {
-      ensureRoleSelected()
-    }
+    // 启动尚未完成，交给 bootstrap 统一处理
+    if (!bootstrapped) return
+    // 前台守卫：从后台切回时登录态可能已失效（如数据库被重置），或引导尚未完成
+    // 登录页 / 引导页自身在守卫放行名单内，不会重复跳转
+    ensureAuth({ silent: true })
   },
   onHide() {
     console.log('[App] onHide')
   },
   methods: {
     async bootstrap() {
-      // 启动引导：恢复登录态 -> 未登录则微信登录 -> 无角色则跳角色选择页
-      uni.showLoading({ title: '正在登录...', mask: true })
-
       try {
         const userStore = useUserStore()
-
-        // 1. 从本地存储恢复登录态
+        // 恢复本地登录态
         await userStore.restore()
-
-        // 2. 未登录（无 token）则执行微信一键登录
-        if (!userStore.isLoggedIn) {
-          console.log('[App] 未检测到登录态，开始微信一键登录')
-          await userStore.login()
-          console.log('[App] 微信一键登录成功', userStore.openid)
-        } else {
-          console.log('[App] 已从本地恢复登录态', userStore.openid)
-        }
-
-        uni.hideLoading()
-
-        // 3. 登录后检查角色：为空表示首次登录，跳转角色选择页（守卫内部用 reLaunch 防止返回）
-        if (ensureRoleSelected({ silent: true })) {
-          return
-        }
-
-        // 4. 已有角色：正常进入首页（custom-tabbar 组件自动响应 role 变化）
-        // 注：自定义 tabBar 模式下，原生 hideTabBar/showTabBar 不可用，组件内部响应式渲染
+        console.log(
+          userStore.isLoggedIn
+            ? `[App] 已恢复本地登录态 ${userStore.openid}`
+            : '[App] 未检测到登录态，待用户手动登录'
+        )
       } catch (e) {
-        uni.hideLoading()
         console.error('[App] bootstrap error', e)
-        // 登录失败：弹窗提示具体原因，并提供重试按钮
-        showLoginError(e.message || '登录失败，请重试', () => this.bootstrap())
+      } finally {
+        bootstrapped = true
+        // 按守卫规则决定去处（未登录 → 登录页；引导未完成 → 引导页）
+        ensureAuth({ silent: true })
       }
     }
-    // applyTabBarByRole 已移除：自定义 tabBar 模式下原生 API 不可用，
-    // 由 custom-tabbar 组件根据 userStore.role 响应式渲染 tab 数量
   }
 }
 </script>

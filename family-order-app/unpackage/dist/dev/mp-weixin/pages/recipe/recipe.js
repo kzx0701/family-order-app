@@ -27,14 +27,14 @@ const _sfc_main = {
     };
     return (_ctx, _cache) => {
       return common_vendor.e({
-        a: common_vendor.unref(userStore).isAdmin
-      }, common_vendor.unref(userStore).isAdmin ? {
+        a: common_vendor.unref(userStore).isCook
+      }, common_vendor.unref(userStore).isCook ? {
         b: common_vendor.p({
           name: "settings",
           size: 18,
           ["stroke-width"]: 2.2
         }),
-        c: common_vendor.o(showPreviewTip, "6c")
+        c: common_vendor.o(showPreviewTip, "a4")
       } : {}, {
         d: headerTop.value + "px"
       });
