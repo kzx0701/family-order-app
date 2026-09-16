@@ -2,5 +2,7 @@
   "navigationStyle": "custom",
   "navigationBarTitleText": "登录",
   "disableScroll": true,
-  "usingComponents": {}
+  "usingComponents": {
+    "icon": "../../components/icons/Icon"
+  }
 }
