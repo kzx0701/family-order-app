@@ -5,7 +5,8 @@ const composables_useSafeArea = require("../../composables/useSafeArea.js");
 const utils_image = require("../../utils/image.js");
 const utils_artwork = require("../../utils/artwork.js");
 const utils_authGuard = require("../../utils/auth-guard.js");
-const CARD_ART_WIDTH = 400;
+const GENDER_ART_WIDTH = 400;
+const ROLE_ART_WIDTH = 480;
 const _sfc_main = {
   __name: "onboarding",
   setup(__props) {
@@ -17,12 +18,22 @@ const _sfc_main = {
     const pickedMode = common_vendor.ref("");
     const submitting = common_vendor.ref(false);
     const genderArt = {
-      male: utils_image.imgUrl(utils_artwork.AVATAR_ART.male, { w: CARD_ART_WIDTH }),
-      female: utils_image.imgUrl(utils_artwork.AVATAR_ART.female, { w: CARD_ART_WIDTH })
+      male: utils_image.imgUrl(utils_artwork.AVATAR_ART.male, { w: GENDER_ART_WIDTH }),
+      female: utils_image.imgUrl(utils_artwork.AVATAR_ART.female, { w: GENDER_ART_WIDTH })
+    };
+    const ROLE_ART = {
+      diner: "https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E5%A4%B4%E5%83%8F/exec-2ded22a0-aa85-4c5b-998d-7698c43421a4.png",
+      cook: "https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E5%A4%B4%E5%83%8F/exec-c8b750dd-f6ae-412a-9a27-27e1e489818c.png"
+    };
+    const roleArt = {
+      diner: utils_image.imgUrl(ROLE_ART.diner, { w: ROLE_ART_WIDTH }),
+      cook: utils_image.imgUrl(ROLE_ART.cook, { w: ROLE_ART_WIDTH })
     };
     const CARD_BG = {
       female: `url(${utils_image.imgUrl("https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E7%95%8C%E9%9D%A2/exec-79fd56c8-73b1-4f33-8fb9-6224f06d3e48.png", { w: 1080 })})`,
-      male: `url(${utils_image.imgUrl("https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E7%95%8C%E9%9D%A2/exec-0ef5a4be-7dd3-46e6-a638-8d939f9c8aba.png", { w: 1080 })})`
+      male: `url(${utils_image.imgUrl("https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E7%95%8C%E9%9D%A2/exec-0ef5a4be-7dd3-46e6-a638-8d939f9c8aba.png", { w: 1080 })})`,
+      diner: `url(${utils_image.imgUrl("https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E7%95%8C%E9%9D%A2/exec-4e70c4a6-75e9-4619-ae25-316ccf8e2368.png", { w: 1080 })})`,
+      cook: `url(${utils_image.imgUrl("https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E7%95%8C%E9%9D%A2/exec-df221cce-3e89-49a0-9d41-2eb9163488de.png", { w: 1080 })})`
     };
     const canGoNext = common_vendor.computed(() => step.value === 1 ? !!pickedGender.value : !!pickedMode.value);
     const isDimmed = (picked, key) => !!picked && picked !== key;
@@ -59,7 +70,7 @@ const _sfc_main = {
           common_vendor.index.reLaunch({ url: utils_authGuard.HOME_PATH });
         }, 500);
       } catch (e) {
-        common_vendor.index.__f__("error", "at pages/onboarding/onboarding.vue:256", "[onboarding] submit error", e);
+        common_vendor.index.__f__("error", "at pages/onboarding/onboarding.vue:277", "[onboarding] submit error", e);
         common_vendor.index.showToast({ title: e.message || "保存失败，请重试", icon: "none" });
         submitting.value = false;
       }
@@ -77,31 +88,33 @@ const _sfc_main = {
         h: pickedGender.value === "female" ? 1 : "",
         i: isDimmed(pickedGender.value, "female") ? 1 : "",
         j: CARD_BG.female,
-        k: common_vendor.o(($event) => pickedGender.value = "female", "53"),
+        k: common_vendor.o(($event) => pickedGender.value = "female", "0a"),
         l: genderArt.male,
         m: pickedGender.value === "male" ? 1 : "",
         n: isDimmed(pickedGender.value, "male") ? 1 : "",
         o: CARD_BG.male,
-        p: common_vendor.o(($event) => pickedGender.value = "male", "ed")
+        p: common_vendor.o(($event) => pickedGender.value = "male", "0b")
       } : {
-        q: pickedMode.value === "diner" ? 1 : "",
+        q: roleArt.diner,
         r: pickedMode.value === "diner" ? 1 : "",
         s: isDimmed(pickedMode.value, "diner") ? 1 : "",
-        t: common_vendor.o(($event) => pickedMode.value = "diner", "0a"),
-        v: pickedMode.value === "cook" ? 1 : "",
-        w: pickedMode.value === "cook" ? 1 : "",
-        x: isDimmed(pickedMode.value, "cook") ? 1 : "",
-        y: common_vendor.o(($event) => pickedMode.value = "cook", "5c")
+        t: CARD_BG.diner,
+        v: common_vendor.o(($event) => pickedMode.value = "diner", "19"),
+        w: roleArt.cook,
+        x: pickedMode.value === "cook" ? 1 : "",
+        y: isDimmed(pickedMode.value, "cook") ? 1 : "",
+        z: CARD_BG.cook,
+        A: common_vendor.o(($event) => pickedMode.value = "cook", "74")
       }, {
-        z: step.value === 2
+        B: step.value === 2
       }, step.value === 2 ? {
-        A: submitting.value ? 1 : "",
-        B: common_vendor.o(($event) => goStep(1), "ba")
+        C: submitting.value ? 1 : "",
+        D: common_vendor.o(($event) => goStep(1), "69")
       } : {}, {
-        C: common_vendor.t(submitting.value ? "保存中…" : step.value === 1 ? "下一步" : "进入小程序"),
-        D: !canGoNext.value || submitting.value ? 1 : "",
-        E: common_vendor.o(onPrimary, "9a"),
-        F: common_vendor.o(onSkip, "59")
+        E: common_vendor.t(submitting.value ? "保存中…" : step.value === 1 ? "下一步" : "进入小程序"),
+        F: !canGoNext.value || submitting.value ? 1 : "",
+        G: common_vendor.o(onPrimary, "45"),
+        H: common_vendor.o(onSkip, "f1")
       });
     };
   }

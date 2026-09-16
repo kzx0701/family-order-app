@@ -6,19 +6,31 @@
       <view class="blob blob-leaf"></view>
     </view>
 
-    <!-- 顶部：步骤指示 + 标题 -->
+    <!-- 顶部：步骤指示 + 标题组 -->
     <view class="hero" :style="{ paddingTop: headerTop + 'px' }">
       <view class="step-dots">
         <view class="dot" :class="{ active: step === 1, done: step > 1 }"></view>
         <view class="dot" :class="{ active: step === 2 }"></view>
       </view>
-      <text class="hero-title">{{ step === 1 ? '你是男生还是女生' : '平时谁做饭呢' }}</text>
+
+      <!-- 标题 + 手绘笔触。笔触与首页 header-scribble 同一套画法（两条带旋转的圆头短线），
+           宽度按标题块百分比自适应；它同时承担两个作用：
+             1. 补齐首页「标题 + 笔触」的层次，标题区不再只有一行字
+             2. 承接视线 —— 标题与卡片之间有约 100pt 留白，有这段笔触后空白成为节奏而不是空隙 -->
+      <view class="hero-title-group">
+        <text class="hero-title">{{ step === 1 ? '你是男生还是女生' : '平时谁做饭呢' }}</text>
+        <view class="title-scribble">
+          <view class="scribble-line scribble-line-main"></view>
+          <view class="scribble-line scribble-line-sub"></view>
+        </view>
+      </view>
     </view>
 
     <!-- 第一步：选择性别 -->
     <view v-if="step === 1" class="pick-list">
-      <!-- 上下两个弹性留白按 25:75 分配多余高度，让标题与卡片靠近、
-           多余空间落到按钮上方。没用 justify-content:center 是因为它会上下均分，
+      <!-- 上下两个弹性留白按 30:70 分配多余高度（原先 40:60 把标题与卡片拉得过远）：
+           卡片中心落在「标题底 ~ 底部按钮」的中点附近，同时把标题到卡片的距离收到约 92pt。
+           没用 justify-content:center 是因为它会上下均分，
            而上半是纯空白、下半有按钮作视觉锚点，同样距离在大片空白里会显得更远 -->
       <view class="spacer spacer-top"></view>
 
@@ -32,7 +44,10 @@
           <image class="pick-art" :src="genderArt.female" mode="aspectFill" :webp="true" />
         </view>
         <view class="pick-body">
-          <text class="pick-name">女生</text>
+          <view class="pick-name">
+            <text class="pick-prefix">我是</text>
+            <text class="pick-main">女生</text>
+          </view>
         </view>
       </view>
 
@@ -46,7 +61,10 @@
           <image class="pick-art" :src="genderArt.male" mode="aspectFill" :webp="true" />
         </view>
         <view class="pick-body">
-          <text class="pick-name">男生</text>
+          <view class="pick-name">
+            <text class="pick-prefix">我是</text>
+            <text class="pick-main">男生</text>
+          </view>
         </view>
       </view>
 
@@ -60,59 +78,34 @@
       <view
         class="pick-card card-diner"
         :class="{ selected: pickedMode === 'diner', dimmed: isDimmed(pickedMode, 'diner') }"
+        :style="{ backgroundImage: CARD_BG.diner }"
         @tap="pickedMode = 'diner'"
       >
-        <view class="mascot-frame">
-          <view class="mascot mascot-girl" :class="{ cheer: pickedMode === 'diner' }">
-            <view class="hair-back"></view>
-            <view class="bun bun-l"></view>
-            <view class="bun bun-r"></view>
-            <view class="face">
-              <view class="bangs"></view>
-              <view class="eye eye-l"><view class="spark"></view></view>
-              <view class="eye eye-r"><view class="spark"></view></view>
-              <view class="blush blush-l"></view>
-              <view class="blush blush-r"></view>
-              <view class="mouth"></view>
-            </view>
-            <view class="bow"><view class="bow-knot"></view></view>
-          </view>
-          <text class="floatie floatie-heart">♡</text>
-          <text class="floatie floatie-star">✦</text>
+        <view class="pick-frame">
+          <image class="pick-art" :src="roleArt.diner" mode="aspectFill" :webp="true" />
         </view>
         <view class="pick-body">
-          <text class="pick-name">干饭人</text>
+          <view class="pick-name">
+            <text class="pick-prefix">我是</text>
+            <text class="pick-main">干饭人</text>
+          </view>
         </view>
       </view>
 
       <view
         class="pick-card card-cook"
         :class="{ selected: pickedMode === 'cook', dimmed: isDimmed(pickedMode, 'cook') }"
+        :style="{ backgroundImage: CARD_BG.cook }"
         @tap="pickedMode = 'cook'"
       >
-        <view class="mascot-frame">
-          <view class="mascot mascot-chef" :class="{ cheer: pickedMode === 'cook' }">
-            <view class="face">
-              <view class="sidehair sidehair-l"></view>
-              <view class="sidehair sidehair-r"></view>
-              <view class="eye eye-l"><view class="spark"></view></view>
-              <view class="eye eye-r"><view class="spark"></view></view>
-              <view class="blush blush-l"></view>
-              <view class="blush blush-r"></view>
-              <view class="mouth"></view>
-            </view>
-            <view class="chef-hat">
-              <view class="hat-puff puff-l"></view>
-              <view class="hat-puff puff-m"></view>
-              <view class="hat-puff puff-r"></view>
-              <view class="hat-band"></view>
-            </view>
-          </view>
-          <text class="floatie floatie-star">✦</text>
-          <text class="floatie floatie-leaf">❀</text>
+        <view class="pick-frame">
+          <image class="pick-art" :src="roleArt.cook" mode="aspectFill" :webp="true" />
         </view>
         <view class="pick-body">
-          <text class="pick-name">饲养员</text>
+          <view class="pick-name">
+            <text class="pick-prefix">我是</text>
+            <text class="pick-main">饲养员</text>
+          </view>
         </view>
       </view>
 
@@ -175,25 +168,53 @@ const submitting = ref(false)
  * 不复用 utils/artwork.js 的 AVATAR_ART_WIDTH（240，是按 146rpx 内径算的）：
  * 那个值还被通用头像组件引用，为引导页改大只会让那边白下载流量。
  */
-const CARD_ART_WIDTH = 400
+const GENDER_ART_WIDTH = 400
 
-// 性别卡片复用默认头像素材
+/**
+ * 身份卡人物素材的输出宽度
+ *
+ * 身份卡容器按 268rpx 显示（比性别卡的 240rpx 大，理由见下方 ROLE_ART 的说明）：
+ * 最大机型约 147.6 逻辑像素，DPR3 需约 443 物理像素，取 480。
+ */
+const ROLE_ART_WIDTH = 480
+
+/** 性别卡：复用默认头像素材（与「我的」页面的默认头像同一套图） */
 const genderArt = {
-  male: imgUrl(AVATAR_ART.male, { w: CARD_ART_WIDTH }),
-  female: imgUrl(AVATAR_ART.female, { w: CARD_ART_WIDTH })
+  male: imgUrl(AVATAR_ART.male, { w: GENDER_ART_WIDTH }),
+  female: imgUrl(AVATAR_ART.female, { w: GENDER_ART_WIDTH })
 }
 
 /**
- * 性别卡的蜡笔涂鸦背景图
+ * 身份卡：干饭人 / 饲养员的角色插画
  *
- * 涂鸦元素分布在画面四周、中间留大片留白，正好给头像与文案让位。
- * 卡片显示比例 3.554（654:184）与原图 2.98（2164:727）不同：
+ * 与性别卡不同，这两张素材只在本页使用 —— 按项目约定（仅单处使用的素材就近声明，
+ * 不塞进 utils/artwork.js）就地声明。
+ */
+const ROLE_ART = {
+  diner: 'https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E5%A4%B4%E5%83%8F/exec-2ded22a0-aa85-4c5b-998d-7698c43421a4.png',
+  cook: 'https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E5%A4%B4%E5%83%8F/exec-c8b750dd-f6ae-412a-9a27-27e1e489818c.png'
+}
+
+const roleArt = {
+  diner: imgUrl(ROLE_ART.diner, { w: ROLE_ART_WIDTH }),
+  cook: imgUrl(ROLE_ART.cook, { w: ROLE_ART_WIDTH })
+}
+
+/**
+ * 选择卡的蜡笔涂鸦背景图（四张卡各一张）
+ *
+ * 涂鸦元素分布在画面左右两端、中间留大片留白，正好给人物与文案让位；
+ * 左侧那段涂鸦在人物贴左后会被人物盖住，露出的只有轮廓外的装饰。
+ *
+ * 卡片显示比例约 2.87（654:228）与原图 2.99（2170:725）接近但不等：
  * 用 100% 100% 拉伸而不是 cover 裁切 —— 涂鸦都在边缘，裁切会切掉一部分图案，
- * 而 19% 的横向形变落在手绘涂鸦上几乎看不出来。
+ * 而几个百分点的形变落在手绘涂鸦上几乎看不出来。
  */
 const CARD_BG = {
   female: `url(${imgUrl('https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E7%95%8C%E9%9D%A2/exec-79fd56c8-73b1-4f33-8fb9-6224f06d3e48.png', { w: 1080 })})`,
-  male: `url(${imgUrl('https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E7%95%8C%E9%9D%A2/exec-0ef5a4be-7dd3-46e6-a638-8d939f9c8aba.png', { w: 1080 })})`
+  male: `url(${imgUrl('https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E7%95%8C%E9%9D%A2/exec-0ef5a4be-7dd3-46e6-a638-8d939f9c8aba.png', { w: 1080 })})`,
+  diner: `url(${imgUrl('https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E7%95%8C%E9%9D%A2/exec-4e70c4a6-75e9-4619-ae25-316ccf8e2368.png', { w: 1080 })})`,
+  cook: `url(${imgUrl('https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E7%95%8C%E9%9D%A2/exec-df221cce-3e89-49a0-9d41-2eb9163488de.png', { w: 1080 })})`
 }
 
 const canGoNext = computed(() => (step.value === 1 ? !!pickedGender.value : !!pickedMode.value))
@@ -321,6 +342,11 @@ const submit = async (payload) => {
   padding-left: 60rpx;
   padding-right: 60rpx;
   padding-bottom: 32rpx;
+  /* 整体下移：「步骤条 + 标题 + 卡片」原本挤在屏幕偏上位置，标题组与卡片一起下沉，
+   * 让整屏视觉重心落到屏幕中部。
+   * 用 margin 而不是加大 padding-top —— padding-top 是由内联样式按状态栏与胶囊避让
+   * 动态给值的（headerTop），在这里写死会破坏避让逻辑 */
+  margin-top: 120rpx;
 
   .step-dots {
     display: flex;
@@ -346,11 +372,55 @@ const submit = async (payload) => {
     }
   }
 
+  /* 标题组：宽度收缩到标题本身，笔触才能按百分比跟随标题长短 */
+  .hero-title-group {
+    @include flex-column;
+    align-items: center;
+  }
+
   .hero-title {
-    font-size: 52rpx;
-    font-weight: 500;
+    /* 猫啃什锦黑：与首页标题、卡片文字统一为同一只手绘体（单字重，固定 normal 防合成加粗） */
+    font-family: $p2-font-hand, $p2-font-fallback;
+    /* 56rpx：手绘体的笔画比系统黑体细、字内留白多，同字号下视觉重量更轻，
+     * 比原来的 52rpx 上调一档做补偿。
+     * 实测：字面宽度是 1em（8 字在 56rpx 下 462rpx），hero 可用 630rpx，不会折行 */
+    font-size: 56rpx;
+    line-height: 1.2;
+    font-weight: normal;
     letter-spacing: 2rpx;
     color: $p2-ink;
+  }
+
+  /* 手绘笔触：与首页 .header-scribble 同一套画法（不规则圆角 + 轻微旋转制造笔迹歪斜，
+   * 不用规整弧线）。区别只在布局 —— 首页标题左对齐、笔触也左对齐；
+   * 这里标题居中，所以笔触整体居中、内部两笔左对齐，副笔靠左自然形成排线错落。 */
+  .title-scribble {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    width: 72%;
+    margin-top: 18rpx;
+  }
+
+  .scribble-line {
+    height: 10rpx;
+    border-top: 4rpx solid $p2-coral;
+    border-radius: 50%;
+  }
+
+  .scribble-line-main {
+    width: 100%;
+    transform: rotate(-1.6deg);
+    opacity: 0.78;
+  }
+
+  /* 第二笔更短更淡，形成手绘排线的节奏，而不是单根规整的下划线 */
+  .scribble-line-sub {
+    width: 52%;
+    margin-top: 8rpx;
+    border-top-width: 3rpx;
+    transform: rotate(-0.6deg);
+    opacity: 0.45;
   }
 }
 
@@ -367,18 +437,24 @@ const submit = async (payload) => {
 }
 
 /* 弹性留白：按 flex-grow 比例吸收剩余高度。
- * 用比例而非固定 padding 的好处是屏幕变矮时留白自动收窄，不会把卡片挤出屏幕 */
+ * 用比例而非固定 padding 的好处是屏幕变矮时留白自动收窄，不会把卡片挤出屏幕。
+ * 30:70 的依据：要同时满足两个目标 ——
+ *   1. 卡片中心落在「标题底 ~ 底部按钮」区间的中点附近（各机型都接近屏幕几何中心）
+ *   2. 标题到卡片的距离不能太远：40:60 时大屏上约 129pt，标题与卡片被拉成两段；
+ *      降到 30:70 后收到约 92pt，卡片中心仍只在屏幕中心上下 8pt 内浮动。
+ * 比例越小标题越靠近卡片，但卡片同时被推得越靠上 —— 这是同一个旋钮的两端。
+ * （配套：.hero 的 margin-top 决定标题自身下沉多少，两者共同决定最终观感） */
 .spacer {
   flex-grow: 0;
   flex-shrink: 0;
   flex-basis: 0;
 
   &.spacer-top {
-    flex-grow: 25;
+    flex-grow: 30;
   }
 
   &.spacer-bottom {
-    flex-grow: 75;
+    flex-grow: 70;
   }
 }
 
@@ -408,6 +484,15 @@ const submit = async (payload) => {
   --bd: #{$p2-line};
   --lift: 9rpx 11rpx 0 rgba(98, 71, 53, 0.16);
   --ring: 0 0 0 0 rgba(98, 71, 53, 0);
+  /* 退后态内容（人物 + 文字）的淡化程度：共用同一个值，保证两者同步 */
+  --dim-opacity: 0.7;
+
+  /* 四张卡的人物都是「脱框贴左满高」，卡片内不再有 flex 元素撑高，需要显式给高度：
+   * 228rpx = 原头像框 148 + 上下内边距 72 + 边框 8。
+   * overflow: hidden 用来收口人物底部 —— 四张素材的底边都接近画布边缘，
+   * 没有圆框弧线可收，只能靠卡片下边缘裁掉。 */
+  height: 228rpx;
+  overflow: hidden;
 
   /* 性别卡用云存储背景图，身份卡暂无图、沿用底色：
    * 底色保留在图片之下，图片加载期间先显示底色，不会白屏。 */
@@ -516,38 +601,55 @@ const submit = async (payload) => {
   --scale: 0.985;
 }
 
-/* === 卡片各自的底色与倾斜（分别为 0,1,0 特异性）=== */
-/* 性别卡人物脱框后不再有 flex 元素撑高卡片，需要显式给高度：
- * 228rpx = 原头像框 148 + 上下内边距 72 + 边框 8，与身份卡（仍用圆框）保持等高。
- * overflow: hidden 用来收口人物底部，详见 .pick-frame。 */
+/* === 卡片各自的底色、倾斜与人物容器尺寸（分别为 0,1,0 特异性）===
+ * 人物容器尺寸的差异来自素材自带留白不同：
+ *   性别卡头像：主体占画布 88.6% 宽 → 容器 240rpx 时主体约 213rpx
+ *   身份卡插画：主体只占 78.9%（干饭人）/ 80.2%（饲养员）宽，留白明显更大，
+ *               所以容器放大到 268rpx，主体才回到约 211rpx，与性别卡视觉等大。
+ * 四张卡的容器顶都落在距卡片顶 28rpx 处（= 228 − 容器 + 下沉量），两页人物节奏一致。
+ * --frame-left: -14rpx 是水平微调：身份卡素材左留白（10.6% / 12.9%）比性别卡的 5.7% 大，
+ * 左移一点才能让主体左缘（约 14rpx）与性别卡的 13.7rpx 对齐。
+ * --role-ink 是各自的身份色，供选项主体文字使用：取色逻辑是与卡片底色同色系加深
+ * （男生青蓝呼应蓝卡、饲养员草绿呼应绿卡），或取互补暖色从同色系里跳出来（女生玫瑰红、干饭人番茄红）。
+ * 四色在奶油白贴纸上对比度均 ≥ 4:1。 */
 .card-female {
   --bg: #f6c7b8;
+  --role-ink: #c2506a;
   --tilt: -1deg;
+  --frame-size: 240rpx;
+  --frame-bottom: -40rpx;
   border-radius: 32rpx 44rpx 29rpx 46rpx;
   animation-delay: 0.05s;
-  height: 228rpx;
-  overflow: hidden;
 }
 
 .card-male {
   --bg: #c9e3e7;
+  --role-ink: #2f6b80;
   --tilt: 1deg;
+  --frame-size: 240rpx;
+  --frame-bottom: -40rpx;
   border-radius: 44rpx 31rpx 47rpx 28rpx;
   animation-delay: 0.15s;
-  height: 228rpx;
-  overflow: hidden;
 }
 
 .card-diner {
   --bg: #{$p2-butter-soft};
+  --role-ink: #c9553e;
   --tilt: -1deg;
+  --frame-size: 268rpx;
+  --frame-bottom: -68rpx;
+  --frame-left: -14rpx;
   border-radius: 32rpx 44rpx 29rpx 46rpx;
   animation-delay: 0.05s;
 }
 
 .card-cook {
   --bg: #{$p2-leaf-soft};
+  --role-ink: #4a7a35;
   --tilt: 1deg;
+  --frame-size: 268rpx;
+  --frame-bottom: -68rpx;
+  --frame-left: -14rpx;
   border-radius: 44rpx 31rpx 47rpx 28rpx;
   animation-delay: 0.15s;
 }
@@ -588,370 +690,44 @@ const submit = async (payload) => {
   --bg: #e7f0da;
 }
 
-/* === 性别卡：脱框人物 ===
+/* === 四张卡的脱框人物 ===
  *
- * 原为 148rpx 的白底圆形描边框。去掉框的依据：素材本身是透明底半身像
- * （实测四角 alpha=0，透明像素占 32% / 44.6%），不需要白底去遮挡背景涂鸦；
- * 而圆形裁切会切掉肩、胸与衣服，损失素材大半信息。
+ * 原为 148rpx 的白底圆框（性别卡是头像素材，身份卡是 CSS 手绘人物），现在统一改成
+ * 「贴左满高」的脱框构图。依据：
+ *   四张素材都是透明底半身像（实测四角 alpha=0，透明像素 32%~53%），
+ *   不需要白底去遮挡背景涂鸦；而 148rpx 的圆框会把肩、胸、碗/锅一并切掉。
+ *   身份卡原先那套 CSS 手绘人物（脸 + 厨师帽 + 五官 + 漂浮装饰）已整体删除，
+ *   改用与性别卡同源的插画素材。
  *
- * 现在按「贴左满高」构图：
- *   尺寸 240rpx + bottom -40rpx → 卡片内可见 200rpx，比原来的 148rpx 放大约 35%；
- *   底部沉出卡片 40rpx，交给卡片的 overflow: hidden 收口 —— 素材底边是画布硬切边
- *   （女生下留白 2px、男生 0px），没有圆框弧线可收，只能靠卡片下边缘裁掉。
- *   贴左（left: 0）而不右移避让涂鸦：实测女生卡左上的花在 y≈45~98rpx、
- *   左中的小花在 y≈117~143rpx，都落在人物头发覆盖范围内，会被人物盖住；
- *   露出来的只有头顶与肩侧之外的装饰，正好当背景点缀。
+ * 尺寸与位置全部由卡片变量给出（--frame-size / --frame-bottom / --frame-left），
+ * 四张卡统一为：卡片内可见 200rpx、容器顶距卡片顶 28rpx，底部沉出卡片由 overflow 收口。
+ * 贴左而不右移避让涂鸦：实测两张背景图左侧的涂鸦（花 / 云 / 螺旋线 / 爱心）
+ * 都落在人物轮廓覆盖范围内，会被人物盖住，露出的只有轮廓外的装饰。
  */
 .pick-frame {
   position: absolute;
-  left: 0;
-  bottom: -40rpx;
+  left: var(--frame-left, 0);
+  bottom: var(--frame-bottom);
   z-index: 1; /* 抬到按下/退后遮罩之上 */
-  width: 240rpx;
-  height: 240rpx;
+  width: var(--frame-size);
+  height: var(--frame-size);
   transition: opacity 220ms $p2-ease;
 }
 
-/* 退后态：人物一并淡出。
- * 原来圆框只有 148rpx、不淡化影响有限；脱框放大后人物是卡片里权重最大的元素，
- * 不淡化就压不出「选中 / 未选中」的差别。
- * 这里用 opacity 是安全的 —— 作用对象是图像而非文字，不存在褪色后对比度不足的问题。 */
-.pick-card.dimmed .pick-frame {
-  opacity: 0.7;
+/* 退后态：人物与文字同步淡出。
+ * 原来圆框只有 148rpx、不淡化影响有限；脱框放大后人物与文字是卡片里权重最大的两个元素，
+ * 只淡化人物会看着「人退了、字还在」，压不出「选中 / 未选中」的差别。
+ * 文字用 opacity 也是安全的：48rpx 属大字号，深棕 #624735 叠在卡片底色上原对比度约 5.5:1，
+ * 淡化到 0.7 后约 3.9:1 —— 满足大字文本 AA 的 3:1 要求，且未选中项本就不需要强对比。
+ * 两者共用 --dim-opacity，避免以后调值只改到一半。 */
+.pick-card.dimmed .pick-frame,
+.pick-card.dimmed .pick-body {
+  opacity: var(--dim-opacity);
 }
 
 .pick-art {
   width: 100%;
   height: 100%;
-}
-
-/* === 身份卡：CSS 手绘人物相框（与首页/旧角色页同一套画法） === */
-.mascot-frame {
-  position: relative;
-  z-index: 1; /* 抬到按下/退后遮罩之上 */
-  position: relative;
-  flex-shrink: 0;
-  width: 148rpx;
-  height: 148rpx;
-  border-radius: 50%;
-  background-color: $p2-white;
-  border: 4rpx solid $p2-line;
-  @include flex-center;
-  overflow: hidden;
-}
-
-.mascot {
-  position: relative;
-  width: 120rpx;
-  height: 120rpx;
-  animation: mascotBob 3.2s ease-in-out infinite;
-
-  &.cheer {
-    animation: cheerJump 0.6s $ease-bounce;
-  }
-}
-
-@keyframes mascotBob {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-6rpx);
-  }
-}
-
-@keyframes cheerJump {
-  0% {
-    transform: translateY(0) scale(1) rotate(0deg);
-  }
-  40% {
-    transform: translateY(-18rpx) scale(1.1) rotate(-4deg);
-  }
-  70% {
-    transform: translateY(2rpx) scale(0.97) rotate(2deg);
-  }
-  100% {
-    transform: translateY(0) scale(1) rotate(0deg);
-  }
-}
-
-/* 通用五官 */
-.face {
-  position: absolute;
-  left: 50%;
-  bottom: 4rpx;
-  transform: translateX(-50%);
-  width: 92rpx;
-  height: 84rpx;
-  border-radius: 48% 48% 50% 50%;
-  background-color: #ffe3c2;
-}
-
-.eye {
-  position: absolute;
-  top: 40rpx;
-  width: 12rpx;
-  height: 14rpx;
-  border-radius: 50%;
-  background-color: #4a2c1a;
-  animation: blink 4.2s ease-in-out infinite;
-
-  &.eye-l {
-    left: 22rpx;
-  }
-
-  &.eye-r {
-    right: 22rpx;
-  }
-
-  .spark {
-    position: absolute;
-    top: 2rpx;
-    left: 2rpx;
-    width: 4rpx;
-    height: 4rpx;
-    border-radius: 50%;
-    background-color: $p2-white;
-  }
-}
-
-@keyframes blink {
-  0%,
-  91%,
-  100% {
-    transform: scaleY(1);
-  }
-  95% {
-    transform: scaleY(0.08);
-  }
-}
-
-.blush {
-  position: absolute;
-  top: 56rpx;
-  width: 16rpx;
-  height: 10rpx;
-  border-radius: 50%;
-  background-color: rgba(255, 139, 139, 0.65);
-
-  &.blush-l {
-    left: 12rpx;
-  }
-
-  &.blush-r {
-    right: 12rpx;
-  }
-}
-
-.mouth {
-  position: absolute;
-  left: 50%;
-  top: 52rpx;
-  transform: translateX(-50%);
-  width: 18rpx;
-  height: 12rpx;
-  border: 3rpx solid transparent;
-  border-bottom-color: #c9553e;
-  border-radius: 50%;
-}
-
-/* 女孩：咖啡棕双丸子头 + 蝴蝶结 */
-.mascot-girl {
-  .hair-back {
-    position: absolute;
-    left: 50%;
-    bottom: 14rpx;
-    transform: translateX(-50%);
-    width: 106rpx;
-    height: 96rpx;
-    border-radius: 50% 50% 46% 46%;
-    background-color: #7b5638;
-  }
-
-  .bangs {
-    position: absolute;
-    top: -8rpx;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 84rpx;
-    height: 34rpx;
-    border-radius: 50% 50% 46% 46%;
-    background-color: #7b5638;
-  }
-
-  .bun {
-    position: absolute;
-    top: 6rpx;
-    width: 32rpx;
-    height: 32rpx;
-    border-radius: 50%;
-    background-color: #7b5638;
-    box-shadow: inset -4rpx -4rpx 0 rgba(0, 0, 0, 0.08);
-
-    &.bun-l {
-      left: 2rpx;
-    }
-
-    &.bun-r {
-      right: 2rpx;
-    }
-  }
-
-  .bow {
-    position: absolute;
-    top: 4rpx;
-    right: -2rpx;
-    width: 26rpx;
-    height: 16rpx;
-
-    &::before,
-    &::after {
-      content: '';
-      position: absolute;
-      top: 0;
-      width: 12rpx;
-      height: 16rpx;
-      background-color: #ff8fab;
-    }
-
-    &::before {
-      left: 0;
-      border-radius: 8rpx 2rpx 2rpx 8rpx;
-      transform: rotate(-14deg);
-    }
-
-    &::after {
-      right: 0;
-      border-radius: 2rpx 8rpx 8rpx 2rpx;
-      transform: rotate(14deg);
-    }
-
-    .bow-knot {
-      position: absolute;
-      left: 50%;
-      top: 4rpx;
-      transform: translateX(-50%);
-      width: 8rpx;
-      height: 8rpx;
-      border-radius: 50%;
-      background-color: #f7608a;
-      z-index: 1;
-    }
-  }
-}
-
-/* 男孩：白色厨师帽 + 两侧头发 */
-.mascot-chef {
-  .sidehair {
-    position: absolute;
-    top: 26rpx;
-    width: 14rpx;
-    height: 26rpx;
-    background-color: #5c4033;
-
-    &.sidehair-l {
-      left: -4rpx;
-      border-radius: 8rpx 0 0 8rpx;
-    }
-
-    &.sidehair-r {
-      right: -4rpx;
-      border-radius: 0 8rpx 8rpx 0;
-    }
-  }
-
-  .chef-hat {
-    position: absolute;
-    left: 50%;
-    bottom: 66rpx;
-    transform: translateX(-50%);
-    width: 96rpx;
-    height: 56rpx;
-    z-index: 2;
-
-    .hat-band {
-      position: absolute;
-      left: 50%;
-      bottom: 0;
-      transform: translateX(-50%);
-      width: 88rpx;
-      height: 22rpx;
-      border-radius: 12rpx;
-      background-color: #ffffff;
-      box-shadow: 0 3rpx 6rpx rgba(44, 27, 20, 0.12);
-    }
-
-    .hat-puff {
-      position: absolute;
-      border-radius: 50%;
-      background-color: #ffffff;
-      box-shadow: inset -4rpx -4rpx 0 rgba(44, 27, 20, 0.05);
-
-      &.puff-l {
-        left: 8rpx;
-        bottom: 12rpx;
-        width: 34rpx;
-        height: 34rpx;
-      }
-
-      &.puff-m {
-        left: 50%;
-        bottom: 18rpx;
-        transform: translateX(-50%);
-        width: 40rpx;
-        height: 40rpx;
-      }
-
-      &.puff-r {
-        right: 8rpx;
-        bottom: 12rpx;
-        width: 34rpx;
-        height: 34rpx;
-      }
-    }
-  }
-}
-
-/* 相框周围的漂浮小装饰 */
-.floatie {
-  position: absolute;
-  font-size: 22rpx;
-  line-height: 1;
-  z-index: 3;
-  animation: floatieDrift 3.6s ease-in-out infinite;
-
-  &.floatie-heart {
-    top: 12rpx;
-    left: 14rpx;
-    color: #f7608a;
-  }
-
-  &.floatie-star {
-    bottom: 16rpx;
-    right: 12rpx;
-    color: #ffb020;
-    animation-delay: -1.8s;
-  }
-
-  &.floatie-leaf {
-    top: 14rpx;
-    right: 16rpx;
-    color: #4a9e5c;
-    animation-delay: -0.9s;
-  }
-}
-
-@keyframes floatieDrift {
-  0%,
-  100% {
-    transform: translateY(0) scale(1);
-    opacity: 0.75;
-  }
-  50% {
-    transform: translateY(-8rpx) scale(1.15);
-    opacity: 1;
-  }
 }
 
 /* === 卡片文字区 === */
@@ -962,24 +738,83 @@ const submit = async (payload) => {
   @include flex-column;
   align-items: flex-start;
   gap: 8rpx;
+  /* 与 .pick-frame 用同一条曲线与时长，退后态时人物与文字同步淡出，不各走各的 */
+  transition: opacity 220ms $p2-ease;
 
+  /* 选项文字：默认统一字号、统一深棕，谁都不抢戏；
+   * 「放大 + 身份色」只在**选中时**出现，作为选中反馈的一部分。
+   *
+   * 这比"一直突出"更合理：选项未定时四个选项是等价的，不该有谁先跳出来；
+   * 用户做出选择后，被选中的那一项才放大并染上自己的身份色 —— 反馈即确认。
+   * （早前试过给整块文字加奶油白贴纸，与卡片自身的涂鸦底叠在一起太重，已废弃。）
+   *
+   * 用 flex + 两个平级 text 而不是嵌套 <text>：小程序里嵌套 text 的样式继承行为
+   * 在不同基础库版本间有差异，平级元素更稳。baseline 让两段共用一条基线。 */
   .pick-name {
+    display: flex;
+    align-items: baseline;
+    font-size: 44rpx;
+    color: $p2-ink;
     /* 猫啃什锦黑：单字重手绘体（usWeightClass 500），固定 normal 以避免合成加粗破坏笔触。
      * 性别卡与身份卡共用本样式，两页文字因此统一为同一只手绘字体 */
     font-family: $p2-font-hand, $p2-font-fallback;
-    /* 48rpx：手绘体字面（em 框内字形占比）比系统字体小，同样字号看着更小，
-     * 所以比原来的 40rpx 上调一档，让它与放大后的人物配得上 */
-    font-size: 48rpx;
     font-weight: normal;
-    color: $p2-ink;
+  }
+
+  /* 主体前留 4rpx：选中放大后字形变大、字内留白变少，没这点间距会与「我是」贴在一起 */
+  .pick-prefix {
+    margin-right: 4rpx;
+  }
+
+  /* 主体的动效基础（选中态样式在下方顶层规则里）。
+   *
+   * 用 transform: scale 而不是改 font-size —— 这是"极其丝滑"的关键：
+   * font-size 过渡会触发文字逐帧重排（reflow），低端机上就是肉眼可见的顿感；
+   * transform 只走合成层、不触发布局，配合 will-change 能稳定在 60fps。 */
+  .pick-main {
+    transform-origin: left bottom;
+    will-change: transform;
+    transition: transform 320ms $p2-ease, color 320ms $p2-ease;
   }
 }
 
-/* 脱框后人物是绝对定位、不占 flex 位置，文字需要自己让出人物宽度：
- * 人物右缘 240rpx + 原有的 28rpx 间距 = 内容起点 268rpx，再减去卡片左内边距 32rpx */
+/* === 选中态：主体放大并染上身份色 ===
+ *
+ * 必须写在顶层 —— .pick-card 是 .pick-body 的父级，嵌进上面会生成
+ * 「.pick-body .pick-card.selected ...」这种永远匹配不到的后代选择器。
+ *
+ * 倍率 1.5：44rpx × 1.5 = 66rpx，比页面标题（56rpx）大一档 ——
+ * 选中项要明确成为画面焦点，此时"不能盖过标题"的约束让位于"突出用户的选择"。
+ * 取 1.5（= 3/2）而不是 1.4 / 1.45：简单整数分数倍的缩放像素对位更整齐，
+ * 非整数倍在静止时更容易看出栅格化发虚（这是 transform 缩放文字的已知代价）。
+ * transform-origin 取左下角：底边（基线一侧）固定、向上生长，读起来像"长高"，
+ * 而不是向四周膨胀；基线与不缩放的「我是」保持齐平 —— 换成 center 会让基线错位。
+ * 时长 320ms 比卡片自身的 220ms 略长，形成「卡片先到位 → 身份再突出」的先后节奏；
+ * 曲线沿用项目统一的 $p2-ease（平滑缓出，无回弹 —— 回弹会造成方向反转的顿挫感）。 */
+.pick-card.selected .pick-main {
+  transform: scale(1.5);
+  color: var(--role-ink, #{$p2-ink});
+}
+
+/* 脱框后人物是绝对定位、不占 flex 位置，文字需要自己让出人物宽度。
+ * 让出的是**主体**右缘而不是容器右缘 —— 素材自带左右留白，容器边缘落在透明区，
+ * 按容器算会让文字与人物之间空出一条看不见的缝。主体边界用脚本扫过（按 alpha 阈值统计每列）：
+ *   性别卡：主体右缘 226rpx
+ *   身份卡：主体右缘 235rpx（两张身份素材留白不对称，取较大者，保证都不压到人）
+ * 两者统一留 20rpx 视觉间隙 → 文字起点 246 / 255rpx，再各自减去卡片左内边距 32rpx。
+ *
+ * 本次把身份卡起点从 282rpx 收到 255rpx（左移 27rpx）：选中态主体放大 1.5 倍后，
+ * 文字右缘会伸进卡片右侧的涂鸦区（实测涂鸦从 410rpx 起，饭碗插画在 501rpx 之后），
+ * 左移后与饭碗的重叠由 71rpx 减到 40rpx —— 这已是不缩小人物的极限（再左移就压到人了）。
+ * 性别卡同步收紧，两页「人物 — 文字」的关系保持一致。 */
 .card-female .pick-body,
 .card-male .pick-body {
-  padding-left: 236rpx;
+  padding-left: 214rpx;
+}
+
+.card-diner .pick-body,
+.card-cook .pick-body {
+  padding-left: 223rpx;
 }
 
 /* === 底部操作 === */
