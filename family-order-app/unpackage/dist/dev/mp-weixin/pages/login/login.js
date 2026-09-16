@@ -17,15 +17,15 @@ const _sfc_main = {
   setup(__props) {
     const userStore = store_user.useUserStore();
     const LOGIN_HERO_ART = utils_image.imgUrl(
-      "https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E7%95%8C%E9%9D%A2/exec-42d08783-064c-4a45-91de-3518a7ec03e1.png",
-      { w: 1080, q: 90 }
+      "https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E7%95%8C%E9%9D%A2/exec-d335bb28-dba0-4127-a7a9-3c2c8ba609e1.png",
+      { w: 1200, q: 80 }
     );
     const ready = common_vendor.ref(false);
     const submitting = common_vendor.ref(false);
     common_vendor.onLoad(async () => {
       await userStore.restore();
       if (userStore.isLoggedIn) {
-        common_vendor.index.__f__("log", "at pages/login/login.vue:91", "[login] 已登录，跳过登录页");
+        common_vendor.index.__f__("log", "at pages/login/login.vue:108", "[login] 已登录，跳过登录页");
         common_vendor.index.reLaunch({ url: userStore.onboardingCompleted ? utils_authGuard.HOME_PATH : utils_authGuard.ONBOARDING_PATH });
         return;
       }
@@ -37,10 +37,10 @@ const _sfc_main = {
       submitting.value = true;
       try {
         await userStore.login();
-        common_vendor.index.__f__("log", "at pages/login/login.vue:106", "[login] 登录成功", userStore.openid);
+        common_vendor.index.__f__("log", "at pages/login/login.vue:123", "[login] 登录成功", userStore.openid);
         common_vendor.index.reLaunch({ url: userStore.onboardingCompleted ? utils_authGuard.HOME_PATH : utils_authGuard.ONBOARDING_PATH });
       } catch (e) {
-        common_vendor.index.__f__("error", "at pages/login/login.vue:109", "[login] login error", e);
+        common_vendor.index.__f__("error", "at pages/login/login.vue:126", "[login] login error", e);
         common_vendor.index.showToast({ title: e.message || "登录失败，请重试", icon: "none" });
       } finally {
         submitting.value = false;

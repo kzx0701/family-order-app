@@ -75,9 +75,26 @@ import { imgUrl } from '@/utils/image.js'
 
 const userStore = useUserStore()
 
+/**
+ * 主视觉插画：一家人围桌吃饭（含一只哈士奇与一只黑猫）
+ *
+ * 素材是**去背景版**：只有人物、餐桌与宠物，四周（上、左、右）透明、会露出页面底色 ——
+ * 所以它不像上一版那样是一块「圆角卡片」，而是浮在奶油白底上的主体，
+ * 观感更轻盈、人物也更聚焦。尺寸比例与上一版完全一致（1086×1448，0.75），容器无需调整。
+ *
+ * 输出宽度取到原图上限 —— 容器宽 660rpx，在 430pt / DPR3 下需约 1135 物理像素，
+ * 而素材原图只有 1086px：OSS 的 resize **不会放大**（实测 w_1200 与 w_1280 输出完全相同，
+ * 都是 1086），所以写 w_1200 让它取满原图即可 —— iPhone 14 Pro 及以下完全满足，
+ * 15 Pro Max 仅欠约 4%（远优于早前的 960，那会欠 23%）。
+ * 质量 80：w1086 下 q80 为 290KB、q85 为 329KB，取 q80
+ * （去掉背景后体积比上一版省约 35%）。
+ *
+ * ⚠️ 透明区占比达 31.6%（四角 alpha=0，主体轮廓之外全是透明），**必须走 webp 保留透明通道**，
+ *    不要为了省体积改成 JPEG —— 那会把透明区变成白块。
+ */
 const LOGIN_HERO_ART = imgUrl(
-  'https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E7%95%8C%E9%9D%A2/exec-42d08783-064c-4a45-91de-3518a7ec03e1.png',
-  { w: 1080, q: 90 }
+  'https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E7%95%8C%E9%9D%A2/exec-d335bb28-dba0-4127-a7a9-3c2c8ba609e1.png',
+  { w: 1200, q: 80 }
 )
 
 // 是否已完成启动检查：检查期间不渲染内容，避免已登录用户看到登录界面一闪而过
@@ -189,13 +206,25 @@ const onLogin = async () => {
   animation: slideUp 0.5s $p2-ease both;
 }
 
-/* 主视觉按登录页展示区域设计，不再受旧 CSS 小碗占位尺寸限制 */
+/* 主视觉容器：尺寸必须与素材比例一致，否则 aspectFit 会在容器里留出大片空白。
+ * 素材是 1086×1448（比例 0.75）的竖版，所以容器取 660×880rpx（同为 0.75）。
+ *
+ * 660rpx = 屏宽的 88%（左右各留 45rpx）。收窄的依据：当前素材是**去背景版**，
+ * 主体几乎铺满画布（列范围 x=3~1084、行 y=15~1438），同容器下人物本就是
+ * 上一版带背景素材的 1.3 倍以上，再维持 92% 会显得顶到屏幕、没有呼吸感。
+ * 高度 880rpx 是比例锁定的结果（宽 ÷ 0.75），不能单独调 —— 要改就两个一起改。
+ *
+ * 小屏余量：固定内容合计约 398rpx（内边距 34 + 品牌区 150 + 按钮区 194 + 底部 18 + 间隔 2），
+ * 加 880 共 1278rpx；SE（4.7"）可用约 1294rpx，余 16rpx —— 刚好放下，不再需要收缩。
+ * flex 仍保留 0 1 auto（而非 0 0 auto）作为兜底：万一文案变长、或遇到更极端的小屏，
+ * 插画会先收缩、由 image 按 aspectFit 等比缩小，而不是把品牌区与按钮挤出屏幕
+ * （.page-login 有 overflow: hidden，溢出会被直接裁掉且无法滚动）。 */
 .login-art {
   position: relative;
-  width: 680rpx;
-  height: 544rpx;
+  width: 660rpx;
+  height: 880rpx;
   margin-bottom: 2rpx;
-  flex: 0 0 auto;
+  flex: 0 1 auto;
 }
 
 .login-art-image {
@@ -216,7 +245,7 @@ const onLogin = async () => {
    * font-weight 必须固定 normal —— 原先是系统字体下的 750 加粗，
    * 沿用到单字重字体会触发合成加粗，把马克笔笔触压糊（首页/引导页同样处理）。 */
   font-family: $p2-font-hand, $p2-font-fallback;
-  /* 60rpx：比原 54rpx 上调一档，与 680rpx 宽的主视觉插画配得上 */
+  /* 60rpx：比原 54rpx 上调一档，与放大后的主视觉比例协调 */
   font-size: 60rpx;
   font-weight: normal;
   /* 手绘体字形本身饱满，字距收到 3rpx（原系统字体用 6rpx 撑呼吸感） */
