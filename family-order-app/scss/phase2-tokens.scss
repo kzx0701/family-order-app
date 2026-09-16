@@ -31,6 +31,10 @@ $p2-shadow-md: 7rpx 8rpx 0 rgba(98, 71, 53, 0.14);
 $p2-dur-fast: 140ms;
 $p2-dur-base: 260ms;
 $p2-ease: cubic-bezier(0.22, 0.75, 0.24, 1);
+// 按压类交互专用节奏：比 $p2-dur-* 更短 —— 手指抬起后动效若还在走，
+// 就会出现「按下 → 停住 → 再弹起来」的顿挫感，必须让回弹紧跟手势结束
+$p2-dur-tap: 110ms; // 按下反馈（要跟手）
+$p2-dur-settle: 220ms; // 选中态浮起（单向，不带回弹）
 
 /* 手绘标题字体（猫啃什锦黑，OFL 1.1）
  * 此处只声明字体名；@font-face 本体在 scss/font-maoken.scss，

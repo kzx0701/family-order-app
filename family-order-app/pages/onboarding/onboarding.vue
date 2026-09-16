@@ -13,51 +13,53 @@
         <view class="dot" :class="{ active: step === 2 }"></view>
       </view>
       <text class="hero-title">{{ step === 1 ? '你是男生还是女生' : '平时谁做饭呢' }}</text>
-      <text class="hero-sub">
-        {{ step === 1 ? '用来给你配一张默认头像' : '选好身份，就能开始了' }}
-      </text>
     </view>
 
     <!-- 第一步：选择性别 -->
     <view v-if="step === 1" class="pick-list">
+      <!-- 上下两个弹性留白按 25:75 分配多余高度，让标题与卡片靠近、
+           多余空间落到按钮上方。没用 justify-content:center 是因为它会上下均分，
+           而上半是纯空白、下半有按钮作视觉锚点，同样距离在大片空白里会显得更远 -->
+      <view class="spacer spacer-top"></view>
+
       <view
         class="pick-card card-female"
-        :class="{ selected: pickedGender === 'female' }"
+        :class="{ selected: pickedGender === 'female', dimmed: isDimmed(pickedGender, 'female') }"
+        :style="{ backgroundImage: CARD_BG.female }"
         @tap="pickedGender = 'female'"
       >
         <view class="pick-frame">
           <image class="pick-art" :src="genderArt.female" mode="aspectFill" :webp="true" />
         </view>
         <view class="pick-body">
-          <text class="pick-tag tag-female">女生</text>
           <text class="pick-name">女生</text>
-          <text class="pick-desc">默认头像用女生款</text>
         </view>
-        <view class="pick-flag" v-if="pickedGender === 'female'"></view>
       </view>
 
       <view
         class="pick-card card-male"
-        :class="{ selected: pickedGender === 'male' }"
+        :class="{ selected: pickedGender === 'male', dimmed: isDimmed(pickedGender, 'male') }"
+        :style="{ backgroundImage: CARD_BG.male }"
         @tap="pickedGender = 'male'"
       >
         <view class="pick-frame">
           <image class="pick-art" :src="genderArt.male" mode="aspectFill" :webp="true" />
         </view>
         <view class="pick-body">
-          <text class="pick-tag tag-male">男生</text>
           <text class="pick-name">男生</text>
-          <text class="pick-desc">默认头像用男生款</text>
         </view>
-        <view class="pick-flag" v-if="pickedGender === 'male'"></view>
       </view>
+
+      <view class="spacer spacer-bottom"></view>
     </view>
 
     <!-- 第二步：选择身份 -->
     <view v-else class="pick-list">
+      <view class="spacer spacer-top"></view>
+
       <view
         class="pick-card card-diner"
-        :class="{ selected: pickedMode === 'diner' }"
+        :class="{ selected: pickedMode === 'diner', dimmed: isDimmed(pickedMode, 'diner') }"
         @tap="pickedMode = 'diner'"
       >
         <view class="mascot-frame">
@@ -79,16 +81,13 @@
           <text class="floatie floatie-star">✦</text>
         </view>
         <view class="pick-body">
-          <text class="pick-tag tag-diner">点单</text>
           <text class="pick-name">干饭人</text>
-          <text class="pick-desc">我来点单，等吃等喝</text>
         </view>
-        <view class="pick-flag" v-if="pickedMode === 'diner'"></view>
       </view>
 
       <view
         class="pick-card card-cook"
-        :class="{ selected: pickedMode === 'cook' }"
+        :class="{ selected: pickedMode === 'cook', dimmed: isDimmed(pickedMode, 'cook') }"
         @tap="pickedMode = 'cook'"
       >
         <view class="mascot-frame">
@@ -113,12 +112,11 @@
           <text class="floatie floatie-leaf">❀</text>
         </view>
         <view class="pick-body">
-          <text class="pick-tag tag-cook">做饭</text>
           <text class="pick-name">饲养员</text>
-          <text class="pick-desc">我来做饭，管理菜单</text>
         </view>
-        <view class="pick-flag" v-if="pickedMode === 'cook'"></view>
       </view>
+
+      <view class="spacer spacer-bottom"></view>
     </view>
 
     <!-- 底部操作 -->
@@ -133,7 +131,7 @@
       </view>
 
       <view class="skip-link" @tap="onSkip">
-        <text>跳过，稍后在「我的」页面设置</text>
+        <text>暂不设置，随时可改</text>
       </view>
     </view>
   </view>
@@ -176,7 +174,28 @@ const genderArt = {
   female: imgUrl(AVATAR_ART.female, { w: AVATAR_ART_WIDTH })
 }
 
+/**
+ * 性别卡的蜡笔涂鸦背景图
+ *
+ * 涂鸦元素分布在画面四周、中间留大片留白，正好给头像与文案让位。
+ * 卡片显示比例 3.554（654:184）与原图 2.98（2164:727）不同：
+ * 用 100% 100% 拉伸而不是 cover 裁切 —— 涂鸦都在边缘，裁切会切掉一部分图案，
+ * 而 19% 的横向形变落在手绘涂鸦上几乎看不出来。
+ */
+const CARD_BG = {
+  female: `url(${imgUrl('https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E7%95%8C%E9%9D%A2/exec-79fd56c8-73b1-4f33-8fb9-6224f06d3e48.png', { w: 1080 })})`,
+  male: `url(${imgUrl('https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E7%95%8C%E9%9D%A2/exec-0ef5a4be-7dd3-46e6-a638-8d939f9c8aba.png', { w: 1080 })})`
+}
+
 const canGoNext = computed(() => (step.value === 1 ? !!pickedGender.value : !!pickedMode.value))
+
+/**
+ * 退后态判定：本列表里已经有选择、但选的是另一张时，未选中的卡转入退后态
+ * （降低饱和与投影、略微缩小，把视觉权重让给选中卡）
+ * @param {string} picked - 当前已选值
+ * @param {string} key - 本卡对应的值
+ */
+const isDimmed = (picked, key) => !!picked && picked !== key
 
 onLoad(() => {
   // 已处理过引导的用户不应再看到本页
@@ -239,16 +258,24 @@ const submit = async (payload) => {
   display: flex;
   flex-direction: column;
   background-color: $p2-paper;
-  overflow: hidden;
+  /* 这里刻意不设 overflow: hidden —— 卡片垂直居中后，极小屏上内容若超出容器，
+     顶部卡片会被裁掉且无法滚动。裁剪交给下面的 .bg-decor 自己做 */
   padding-bottom: calc(60rpx + env(safe-area-inset-bottom));
 }
 
 /* === 背景装饰 === */
 .bg-decor {
   position: absolute;
-  inset: 0;
+  /* 用四向声明而非 inset 简写：inset 属较新的逻辑属性，
+   * 老版本小程序 WebView 上可能不生效，会导致装饰块掉进文档流 */
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   pointer-events: none;
   z-index: 0;
+  /* 装饰色块超出页面边界时在此裁掉，替代页面级 overflow: hidden */
+  overflow: hidden;
 }
 
 .blob {
@@ -281,7 +308,7 @@ const submit = async (payload) => {
   align-items: center;
   padding-left: 60rpx;
   padding-right: 60rpx;
-  padding-bottom: 48rpx;
+  padding-bottom: 32rpx;
 
   .step-dots {
     display: flex;
@@ -313,12 +340,6 @@ const submit = async (payload) => {
     letter-spacing: 2rpx;
     color: $p2-ink;
   }
-
-  .hero-sub {
-    margin-top: 14rpx;
-    font-size: 24rpx;
-    color: $p2-ink-soft;
-  }
 }
 
 /* === 选择卡片列表 === */
@@ -327,74 +348,231 @@ const submit = async (payload) => {
   z-index: 1;
   flex: 1;
   @include flex-column;
-  gap: 40rpx;
+  /* 多余高度不在这里分配，交给首尾两个 .spacer；
+   * 不用 justify-content: center 的原因见模板注释 */
+  justify-content: flex-start;
   padding: 0 48rpx;
 }
 
+/* 弹性留白：按 flex-grow 比例吸收剩余高度。
+ * 用比例而非固定 padding 的好处是屏幕变矮时留白自动收窄，不会把卡片挤出屏幕 */
+.spacer {
+  flex-grow: 0;
+  flex-shrink: 0;
+  flex-basis: 0;
+
+  &.spacer-top {
+    flex-grow: 25;
+  }
+
+  &.spacer-bottom {
+    flex-grow: 75;
+  }
+}
+
+/* 两张卡片之间的间距（改用 margin 是因为 gap 会在 spacer 与卡片之间也产生间距） */
+.pick-card + .pick-card {
+  margin-top: 40rpx;
+}
+
 /* 卡片基础：与首页入口卡同一套手绘语言（深棕描边 + 硬投影 + 不规则圆角 + 轻微旋转） */
+/* === 选择卡片 ===
+ * 外观全部由 CSS 变量描述，「中性 / 选中 / 退后」三态只改变量值。
+ * 这样写是为了避免用选择器互相覆盖：早前版本把 transform 写在 .selected 与 .card-xxx 上，
+ * 两者特异性相同、靠源码顺序决胜，结果卡片的按下反馈被静默覆盖。
+ */
 .pick-card {
   position: relative;
+  flex: 0 0 auto; /* 不参与压缩，避免小屏上卡片被挤扁 */
   display: flex;
   align-items: center;
   gap: 28rpx;
   padding: 36rpx 32rpx;
-  border: 4rpx solid $p2-line;
-  box-shadow: 9rpx 11rpx 0 rgba(98, 71, 53, 0.16);
-  transition: transform $p2-dur-fast $p2-ease, box-shadow $p2-dur-fast $p2-ease;
-  animation: slideUp 0.5s $p2-ease both;
 
-  &:active {
-    transform: translate(3rpx, 4rpx) scale(0.98);
-    box-shadow: 2rpx 3rpx 0 rgba(98, 71, 53, 0.12);
+  --tilt: 0deg;
+  --scale: 1;
+  --shift: 0rpx;
+  --bg: #f2e9df;
+  --bd: #{$p2-line};
+  --lift: 9rpx 11rpx 0 rgba(98, 71, 53, 0.16);
+  --ring: 0 0 0 0 rgba(98, 71, 53, 0);
+
+  /* 性别卡用云存储背景图，身份卡暂无图、沿用底色：
+   * 底色保留在图片之下，图片加载期间先显示底色，不会白屏。 */
+  background-color: var(--bg);
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  background-position: center;
+  border: 4rpx solid var(--bd);
+  box-shadow: var(--lift), var(--ring);
+  transform: translateY(var(--shift)) rotate(var(--tilt)) scale(var(--scale));
+
+  /* === 点击动效：全程单一方向的「浮起」 ===
+   *
+   * 早前是「按下压扁 → 抬起弹回」的两段式。那个机制注定有顿挫感 —— 运动的
+   * **方向在抬起的那一刻反转了**，而这个转折点无论把时长缩短到多少、幅度压到多小，
+   * 用户都能感知到「顿一下」。所以继续在原设计上调参数（140→110ms、3rpx→2rpx……）
+   * 走不通，必须换机制。
+   *
+   * 现在只保留一段单向运动：手指抬起、选中态生效的那一刻，卡片沿**同一个方向**
+   * 完成「位移 + 放大 + 描边加深 + 投影加长」，四者共用同一条曲线与时长，
+   * 整体像被「抬起来」的一次动作，中途没有任何反向。
+   *
+   * 另一张卡同步单向落下（浮起 → 中性 → 退后），方向同样单调，不产生往复。
+   */
+  transition: transform 220ms $p2-ease,
+    box-shadow 220ms $p2-ease,
+    background-color 220ms $p2-ease,
+    border-color 220ms $p2-ease;
+  /* 入场改为纯淡入（原 slideUp 带位移动画）：除观感更安静外，关键是
+   * animation 播放期间会接管 transform，若用户入场后立刻点卡片，
+   * 浮起动效会被入场动画压住而「没反应」。淡入不碰 transform，冲突消失。 */
+  animation: fadeIn 0.45s $p2-ease both;
+
+  /* 按下时的唯一反馈：一层极淡的遮罩，**纯色彩、零位移**。
+   * 留它是为了按下到抬起之间不至于完全没有响应；
+   * 因为它不产生任何位移，也就不会带来「压扁再弹回」的往复感。
+   * 放在 ::before 而非 ::after：伪元素是卡片的第一个子元素，位于背景之上、
+   * 内容之下，遮罩不会压住头像与文字。 */
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    border-radius: inherit;
+    background-color: rgba(98, 71, 53, 0.12);
+    opacity: 0;
+    transition: opacity $p2-dur-tap ease-out;
+    pointer-events: none;
   }
 
-  &.selected {
-    box-shadow: 9rpx 11rpx 0 rgba(98, 71, 53, 0.16), 0 0 0 6rpx rgba(233, 122, 105, 0.3);
+  &:active::before {
+    opacity: 1;
   }
 
-  &.card-female {
-    background-color: #f6c7b8;
-    border-radius: 32rpx 44rpx 29rpx 46rpx;
-    transform: rotate(-1deg);
-    animation-delay: 0.05s;
+  /* === 退后态的淡化遮罩 ===
+   * 底色时代靠改 --bg 变淡，现在下层是固定图片，改用「叠加一层页面底色」来淡化：
+   * 用 $p2-paper 而不是灰色 —— 让未选中的卡「褪向背景」，而不是「落到阴影里」。
+   * 放在 ::after 上，并把四个内容容器抬到 z-index: 1，遮罩就不会压住头像与文字。
+   */
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    border-radius: inherit;
+    background-color: $p2-paper;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 220ms $p2-ease;
   }
 
-  &.card-male {
-    background-color: #c9e3e7;
-    border-radius: 44rpx 31rpx 47rpx 28rpx;
-    transform: rotate(1deg);
-    animation-delay: 0.15s;
+  &.dimmed::after {
+    opacity: 0.55;
   }
 
-  &.card-diner {
-    background-color: $p2-butter-soft;
-    border-radius: 32rpx 44rpx 29rpx 46rpx;
-    transform: rotate(-1deg);
-    animation-delay: 0.05s;
-  }
 
-  &.card-cook {
-    background-color: $p2-leaf-soft;
-    border-radius: 44rpx 31rpx 47rpx 28rpx;
-    transform: rotate(1deg);
-    animation-delay: 0.15s;
-  }
 }
 
-/* 选中标记：手绘勾选圆点 */
-.pick-flag {
-  position: absolute;
-  top: 22rpx;
-  right: 26rpx;
-  width: 26rpx;
-  height: 26rpx;
-  border-radius: 50%;
-  background-color: $p2-coral;
-  border: 4rpx solid $p2-white;
+/* === 选中态：底色转饱和 + 描边加深 + 双层投影浮起 ===
+ * 用三个维度同时表达，而不是只靠一个小标记：
+ *   底色饱和 —— 直觉上最直观的「亮起来」
+ *   描边加深 —— 由浅棕转深棕，边界更肯定
+ *   投影加远 —— 本项目的手绘语言里卡片本就是「贴在纸面上的贴纸」，加深投影等于浮起半寸
+ * 不只用颜色表达，是因为粉与蓝的「更鲜艳」在感知上强度并不一致，且需要考虑色觉差异，
+ * 所以同时给出形状信号（上浮 8rpx + 放大 1.5%）。
+ */
+.pick-card.selected {
+  --bd: #{$p2-ink};
+  --lift: 11rpx 16rpx 0 rgba(98, 71, 53, 0.26);
+  --ring: 0 0 0 7rpx rgba(98, 71, 53, 0.18);
+  --shift: -8rpx;
+  --scale: 1.015;
+}
+
+/* === 退后态：本列表已有选择时，未选中的卡降低饱和、贴平、略缩 ===
+ * 刻意不用整体 opacity —— 那会连文字一起变淡，白底上的对比度会掉到 3:1 以下不可读。
+ * 这里只降底色与描边，文字保持原色。
+ */
+.pick-card.dimmed {
+  --bd: rgba(118, 85, 64, 0.26);
+  --lift: 4rpx 5rpx 0 rgba(98, 71, 53, 0.09);
+  --scale: 0.985;
+}
+
+/* === 卡片各自的底色与倾斜（分别为 0,1,0 特异性）=== */
+.card-female {
+  --bg: #f6c7b8;
+  --tilt: -1deg;
+  border-radius: 32rpx 44rpx 29rpx 46rpx;
+  animation-delay: 0.05s;
+}
+
+.card-male {
+  --bg: #c9e3e7;
+  --tilt: 1deg;
+  border-radius: 44rpx 31rpx 47rpx 28rpx;
+  animation-delay: 0.15s;
+}
+
+.card-diner {
+  --bg: #{$p2-butter-soft};
+  --tilt: -1deg;
+  border-radius: 32rpx 44rpx 29rpx 46rpx;
+  animation-delay: 0.05s;
+}
+
+.card-cook {
+  --bg: #{$p2-leaf-soft};
+  --tilt: 1deg;
+  border-radius: 44rpx 31rpx 47rpx 28rpx;
+  animation-delay: 0.15s;
+}
+
+/* === 底色按状态取值（组合选择器为 0,2,0，特异性天然高于上面的类型规则，与顺序无关）=== */
+
+/* 选中：转饱和版 */
+.selected.card-female {
+  --bg: #f2ab92;
+}
+
+.selected.card-male {
+  --bg: #a3d3da;
+}
+
+.selected.card-diner {
+  --bg: #f5d274;
+}
+
+.selected.card-cook {
+  --bg: #bfd8a2;
+}
+
+/* 退后：转褪淡版（保留色相，仍认得出是哪个选项，只是让位给选中卡） */
+.dimmed.card-female {
+  --bg: #f5d5c9;
+}
+
+.dimmed.card-male {
+  --bg: #d8eaed;
+}
+
+.dimmed.card-diner {
+  --bg: #faefc6;
+}
+
+.dimmed.card-cook {
+  --bg: #e7f0da;
 }
 
 /* === 性别卡：头像素材圆框 === */
 .pick-frame {
+  position: relative;
+  z-index: 1; /* 抬到按下/退后遮罩之上 */
   position: relative;
   flex-shrink: 0;
   width: 148rpx;
@@ -413,6 +591,8 @@ const submit = async (payload) => {
 
 /* === 身份卡：CSS 手绘人物相框（与首页/旧角色页同一套画法） === */
 .mascot-frame {
+  position: relative;
+  z-index: 1; /* 抬到按下/退后遮罩之上 */
   position: relative;
   flex-shrink: 0;
   width: 148rpx;
@@ -740,44 +920,17 @@ const submit = async (payload) => {
 
 /* === 卡片文字区 === */
 .pick-body {
+  position: relative;
+  z-index: 1; /* 抬到按下/退后遮罩之上 */
   flex: 1;
   @include flex-column;
   align-items: flex-start;
   gap: 8rpx;
 
-  .pick-tag {
-    padding: 4rpx 16rpx;
-    border-radius: 999rpx;
-    background-color: rgba(255, 255, 255, 0.72);
-    font-size: 22rpx;
-    line-height: 1.5;
-
-    &.tag-female {
-      color: #b45309;
-    }
-
-    &.tag-male {
-      color: #2f6b80;
-    }
-
-    &.tag-diner {
-      color: #a86612;
-    }
-
-    &.tag-cook {
-      color: #3f6b2c;
-    }
-  }
-
   .pick-name {
     font-size: 40rpx;
     font-weight: 500;
     color: $p2-ink;
-  }
-
-  .pick-desc {
-    font-size: 24rpx;
-    color: rgba(98, 71, 53, 0.78);
   }
 }
 
@@ -836,8 +989,11 @@ const submit = async (payload) => {
       transform: scale(0.97);
     }
 
+    /* 待命态：未选择任何卡片时略微缩小并降透明度；选中后平滑恢复到实色与原尺寸。
+     * 这次"点亮"就是把视线从卡片引到按钮的信号（按钮离卡片较远，不引一下容易被忽略） */
     &.disabled {
       opacity: 0.45;
+      transform: scale(0.97);
     }
   }
 

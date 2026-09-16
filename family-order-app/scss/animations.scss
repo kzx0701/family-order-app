@@ -10,7 +10,15 @@
   to { opacity: 1; }
 }
 
-/* === 从下方滑入 === */
+/* === 从下方滑入 ===
+ * ⚠️ to 段刻意不声明 transform。
+ * 这些 keyframes 一律配合 animation-fill-mode: both/forwards 使用，动画结束后
+ * to 段的状态会持续生效；若这里写 transform: translateY(0)，元素自身声明的
+ * transform（倾斜角、选中态上浮、缩放）会被永久覆盖 —— 而这类失效在静态截图里
+ * 完全看不出来（rotate 1deg、上浮 8rpx 肉眼都难以察觉）。
+ * 省略后，transform 的补间终点即元素自身计算值，动画结束也不会覆盖它；
+ * 对没有自定义 transform 的元素，translateY(0) 与「无变换」等价，视觉不变。
+ */
 @keyframes slideUp {
   from {
     opacity: 0;
@@ -18,11 +26,10 @@
   }
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 
-/* === 从上方滑入 === */
+/* === 从上方滑入（同上：to 段不声明 transform）=== */
 @keyframes slideDown {
   from {
     opacity: 0;
@@ -30,7 +37,6 @@
   }
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 

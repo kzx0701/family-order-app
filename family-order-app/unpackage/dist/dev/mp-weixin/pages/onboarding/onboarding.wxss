@@ -74,16 +74,24 @@
   display: flex;
   flex-direction: column;
   background-color: #fff9ed;
-  overflow: hidden;
+  /* 这里刻意不设 overflow: hidden —— 卡片垂直居中后，极小屏上内容若超出容器，
+     顶部卡片会被裁掉且无法滚动。裁剪交给下面的 .bg-decor 自己做 */
   padding-bottom: calc(60rpx + env(safe-area-inset-bottom));
 }
 
 /* === 背景装饰 === */
 .bg-decor.data-v-739199e6 {
   position: absolute;
-  inset: 0;
+  /* 用四向声明而非 inset 简写：inset 属较新的逻辑属性，
+   * 老版本小程序 WebView 上可能不生效，会导致装饰块掉进文档流 */
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   pointer-events: none;
   z-index: 0;
+  /* 装饰色块超出页面边界时在此裁掉，替代页面级 overflow: hidden */
+  overflow: hidden;
 }
 .blob.data-v-739199e6 {
   position: absolute;
@@ -114,7 +122,7 @@
   align-items: center;
   padding-left: 60rpx;
   padding-right: 60rpx;
-  padding-bottom: 48rpx;
+  padding-bottom: 32rpx;
 }
 .hero .step-dots.data-v-739199e6 {
   display: flex;
@@ -142,11 +150,6 @@
   letter-spacing: 2rpx;
   color: #624735;
 }
-.hero .hero-sub.data-v-739199e6 {
-  margin-top: 14rpx;
-  font-size: 24rpx;
-  color: #8c725e;
-}
 
 /* === 选择卡片列表 === */
 .pick-list.data-v-739199e6 {
@@ -155,68 +158,209 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 40rpx;
+  /* 多余高度不在这里分配，交给首尾两个 .spacer；
+   * 不用 justify-content: center 的原因见模板注释 */
+  justify-content: flex-start;
   padding: 0 48rpx;
 }
 
+/* 弹性留白：按 flex-grow 比例吸收剩余高度。
+ * 用比例而非固定 padding 的好处是屏幕变矮时留白自动收窄，不会把卡片挤出屏幕 */
+.spacer.data-v-739199e6 {
+  flex-grow: 0;
+  flex-shrink: 0;
+  flex-basis: 0;
+}
+.spacer.spacer-top.data-v-739199e6 {
+  flex-grow: 25;
+}
+.spacer.spacer-bottom.data-v-739199e6 {
+  flex-grow: 75;
+}
+
+/* 两张卡片之间的间距（改用 margin 是因为 gap 会在 spacer 与卡片之间也产生间距） */
+.pick-card + .pick-card.data-v-739199e6 {
+  margin-top: 40rpx;
+}
+
 /* 卡片基础：与首页入口卡同一套手绘语言（深棕描边 + 硬投影 + 不规则圆角 + 轻微旋转） */
+/* === 选择卡片 ===
+ * 外观全部由 CSS 变量描述，「中性 / 选中 / 退后」三态只改变量值。
+ * 这样写是为了避免用选择器互相覆盖：早前版本把 transform 写在 .selected 与 .card-xxx 上，
+ * 两者特异性相同、靠源码顺序决胜，结果卡片的按下反馈被静默覆盖。
+ */
 .pick-card.data-v-739199e6 {
   position: relative;
+  flex: 0 0 auto;
+  /* 不参与压缩，避免小屏上卡片被挤扁 */
   display: flex;
   align-items: center;
   gap: 28rpx;
   padding: 36rpx 32rpx;
-  border: 4rpx solid #765540;
-  box-shadow: 9rpx 11rpx 0 rgba(98, 71, 53, 0.16);
-  transition: transform 140ms cubic-bezier(0.22, 0.75, 0.24, 1), box-shadow 140ms cubic-bezier(0.22, 0.75, 0.24, 1);
-  animation: slideUp 0.5s cubic-bezier(0.22, 0.75, 0.24, 1) both;
+  --tilt: 0deg;
+  --scale: 1;
+  --shift: 0rpx;
+  --bg: #f2e9df;
+  --bd: #765540;
+  --lift: 9rpx 11rpx 0 rgba(98, 71, 53, 0.16);
+  --ring: 0 0 0 0 rgba(98, 71, 53, 0);
+  /* 性别卡用云存储背景图，身份卡暂无图、沿用底色：
+   * 底色保留在图片之下，图片加载期间先显示底色，不会白屏。 */
+  background-color: var(--bg);
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  background-position: center;
+  border: 4rpx solid var(--bd);
+  box-shadow: var(--lift), var(--ring);
+  transform: translateY(var(--shift)) rotate(var(--tilt)) scale(var(--scale));
+  /* === 点击动效：全程单一方向的「浮起」 ===
+   *
+   * 早前是「按下压扁 → 抬起弹回」的两段式。那个机制注定有顿挫感 —— 运动的
+   * **方向在抬起的那一刻反转了**，而这个转折点无论把时长缩短到多少、幅度压到多小，
+   * 用户都能感知到「顿一下」。所以继续在原设计上调参数（140→110ms、3rpx→2rpx……）
+   * 走不通，必须换机制。
+   *
+   * 现在只保留一段单向运动：手指抬起、选中态生效的那一刻，卡片沿**同一个方向**
+   * 完成「位移 + 放大 + 描边加深 + 投影加长」，四者共用同一条曲线与时长，
+   * 整体像被「抬起来」的一次动作，中途没有任何反向。
+   *
+   * 另一张卡同步单向落下（浮起 → 中性 → 退后），方向同样单调，不产生往复。
+   */
+  transition: transform 220ms cubic-bezier(0.22, 0.75, 0.24, 1), box-shadow 220ms cubic-bezier(0.22, 0.75, 0.24, 1), background-color 220ms cubic-bezier(0.22, 0.75, 0.24, 1), border-color 220ms cubic-bezier(0.22, 0.75, 0.24, 1);
+  /* 入场改为纯淡入（原 slideUp 带位移动画）：除观感更安静外，关键是
+   * animation 播放期间会接管 transform，若用户入场后立刻点卡片，
+   * 浮起动效会被入场动画压住而「没反应」。淡入不碰 transform，冲突消失。 */
+  animation: fadeIn 0.45s cubic-bezier(0.22, 0.75, 0.24, 1) both;
+  /* 按下时的唯一反馈：一层极淡的遮罩，**纯色彩、零位移**。
+   * 留它是为了按下到抬起之间不至于完全没有响应；
+   * 因为它不产生任何位移，也就不会带来「压扁再弹回」的往复感。
+   * 放在 ::before 而非 ::after：伪元素是卡片的第一个子元素，位于背景之上、
+   * 内容之下，遮罩不会压住头像与文字。 */
+  /* === 退后态的淡化遮罩 ===
+   * 底色时代靠改 --bg 变淡，现在下层是固定图片，改用「叠加一层页面底色」来淡化：
+   * 用 $p2-paper 而不是灰色 —— 让未选中的卡「褪向背景」，而不是「落到阴影里」。
+   * 放在 ::after 上，并把四个内容容器抬到 z-index: 1，遮罩就不会压住头像与文字。
+   */
 }
-.pick-card.data-v-739199e6:active {
-  transform: translate(3rpx, 4rpx) scale(0.98);
-  box-shadow: 2rpx 3rpx 0 rgba(98, 71, 53, 0.12);
+.pick-card.data-v-739199e6::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  border-radius: inherit;
+  background-color: rgba(98, 71, 53, 0.12);
+  opacity: 0;
+  transition: opacity 110ms ease-out;
+  pointer-events: none;
 }
+.pick-card.data-v-739199e6:active::before {
+  opacity: 1;
+}
+.pick-card.data-v-739199e6::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  border-radius: inherit;
+  background-color: #fff9ed;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 220ms cubic-bezier(0.22, 0.75, 0.24, 1);
+}
+.pick-card.dimmed.data-v-739199e6::after {
+  opacity: 0.55;
+}
+
+/* === 选中态：底色转饱和 + 描边加深 + 双层投影浮起 ===
+ * 用三个维度同时表达，而不是只靠一个小标记：
+ *   底色饱和 —— 直觉上最直观的「亮起来」
+ *   描边加深 —— 由浅棕转深棕，边界更肯定
+ *   投影加远 —— 本项目的手绘语言里卡片本就是「贴在纸面上的贴纸」，加深投影等于浮起半寸
+ * 不只用颜色表达，是因为粉与蓝的「更鲜艳」在感知上强度并不一致，且需要考虑色觉差异，
+ * 所以同时给出形状信号（上浮 8rpx + 放大 1.5%）。
+ */
 .pick-card.selected.data-v-739199e6 {
-  box-shadow: 9rpx 11rpx 0 rgba(98, 71, 53, 0.16), 0 0 0 6rpx rgba(233, 122, 105, 0.3);
+  --bd: #624735;
+  --lift: 11rpx 16rpx 0 rgba(98, 71, 53, 0.26);
+  --ring: 0 0 0 7rpx rgba(98, 71, 53, 0.18);
+  --shift: -8rpx;
+  --scale: 1.015;
 }
-.pick-card.card-female.data-v-739199e6 {
-  background-color: #f6c7b8;
+
+/* === 退后态：本列表已有选择时，未选中的卡降低饱和、贴平、略缩 ===
+ * 刻意不用整体 opacity —— 那会连文字一起变淡，白底上的对比度会掉到 3:1 以下不可读。
+ * 这里只降底色与描边，文字保持原色。
+ */
+.pick-card.dimmed.data-v-739199e6 {
+  --bd: rgba(118, 85, 64, 0.26);
+  --lift: 4rpx 5rpx 0 rgba(98, 71, 53, 0.09);
+  --scale: 0.985;
+}
+
+/* === 卡片各自的底色与倾斜（分别为 0,1,0 特异性）=== */
+.card-female.data-v-739199e6 {
+  --bg: #f6c7b8;
+  --tilt: -1deg;
   border-radius: 32rpx 44rpx 29rpx 46rpx;
-  transform: rotate(-1deg);
   animation-delay: 0.05s;
 }
-.pick-card.card-male.data-v-739199e6 {
-  background-color: #c9e3e7;
+.card-male.data-v-739199e6 {
+  --bg: #c9e3e7;
+  --tilt: 1deg;
   border-radius: 44rpx 31rpx 47rpx 28rpx;
-  transform: rotate(1deg);
   animation-delay: 0.15s;
 }
-.pick-card.card-diner.data-v-739199e6 {
-  background-color: #f9e8aa;
+.card-diner.data-v-739199e6 {
+  --bg: #f9e8aa;
+  --tilt: -1deg;
   border-radius: 32rpx 44rpx 29rpx 46rpx;
-  transform: rotate(-1deg);
   animation-delay: 0.05s;
 }
-.pick-card.card-cook.data-v-739199e6 {
-  background-color: #dbe8c8;
+.card-cook.data-v-739199e6 {
+  --bg: #dbe8c8;
+  --tilt: 1deg;
   border-radius: 44rpx 31rpx 47rpx 28rpx;
-  transform: rotate(1deg);
   animation-delay: 0.15s;
 }
 
-/* 选中标记：手绘勾选圆点 */
-.pick-flag.data-v-739199e6 {
-  position: absolute;
-  top: 22rpx;
-  right: 26rpx;
-  width: 26rpx;
-  height: 26rpx;
-  border-radius: 50%;
-  background-color: #e97a69;
-  border: 4rpx solid #fffef9;
+/* === 底色按状态取值（组合选择器为 0,2,0，特异性天然高于上面的类型规则，与顺序无关）=== */
+/* 选中：转饱和版 */
+.selected.card-female.data-v-739199e6 {
+  --bg: #f2ab92;
+}
+.selected.card-male.data-v-739199e6 {
+  --bg: #a3d3da;
+}
+.selected.card-diner.data-v-739199e6 {
+  --bg: #f5d274;
+}
+.selected.card-cook.data-v-739199e6 {
+  --bg: #bfd8a2;
+}
+
+/* 退后：转褪淡版（保留色相，仍认得出是哪个选项，只是让位给选中卡） */
+.dimmed.card-female.data-v-739199e6 {
+  --bg: #f5d5c9;
+}
+.dimmed.card-male.data-v-739199e6 {
+  --bg: #d8eaed;
+}
+.dimmed.card-diner.data-v-739199e6 {
+  --bg: #faefc6;
+}
+.dimmed.card-cook.data-v-739199e6 {
+  --bg: #e7f0da;
 }
 
 /* === 性别卡：头像素材圆框 === */
 .pick-frame.data-v-739199e6 {
+  position: relative;
+  z-index: 1;
+  /* 抬到按下/退后遮罩之上 */
   position: relative;
   flex-shrink: 0;
   width: 148rpx;
@@ -236,6 +380,9 @@
 
 /* === 身份卡：CSS 手绘人物相框（与首页/旧角色页同一套画法） === */
 .mascot-frame.data-v-739199e6 {
+  position: relative;
+  z-index: 1;
+  /* 抬到按下/退后遮罩之上 */
   position: relative;
   flex-shrink: 0;
   width: 148rpx;
@@ -520,39 +667,19 @@
 }
 /* === 卡片文字区 === */
 .pick-body.data-v-739199e6 {
+  position: relative;
+  z-index: 1;
+  /* 抬到按下/退后遮罩之上 */
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 8rpx;
 }
-.pick-body .pick-tag.data-v-739199e6 {
-  padding: 4rpx 16rpx;
-  border-radius: 999rpx;
-  background-color: rgba(255, 255, 255, 0.72);
-  font-size: 22rpx;
-  line-height: 1.5;
-}
-.pick-body .pick-tag.tag-female.data-v-739199e6 {
-  color: #b45309;
-}
-.pick-body .pick-tag.tag-male.data-v-739199e6 {
-  color: #2f6b80;
-}
-.pick-body .pick-tag.tag-diner.data-v-739199e6 {
-  color: #a86612;
-}
-.pick-body .pick-tag.tag-cook.data-v-739199e6 {
-  color: #3f6b2c;
-}
 .pick-body .pick-name.data-v-739199e6 {
   font-size: 40rpx;
   font-weight: 500;
   color: #624735;
-}
-.pick-body .pick-desc.data-v-739199e6 {
-  font-size: 24rpx;
-  color: rgba(98, 71, 53, 0.78);
 }
 
 /* === 底部操作 === */
@@ -602,12 +729,15 @@
   font-size: 30rpx;
   color: #fffef9;
   transition: transform 140ms cubic-bezier(0.22, 0.75, 0.24, 1), opacity 140ms cubic-bezier(0.22, 0.75, 0.24, 1);
+  /* 待命态：未选择任何卡片时略微缩小并降透明度；选中后平滑恢复到实色与原尺寸。
+   * 这次"点亮"就是把视线从卡片引到按钮的信号（按钮离卡片较远，不引一下容易被忽略） */
 }
 .footer-actions .btn-primary.data-v-739199e6:active {
   transform: scale(0.97);
 }
 .footer-actions .btn-primary.disabled.data-v-739199e6 {
   opacity: 0.45;
+  transform: scale(0.97);
 }
 .footer-actions .skip-link.data-v-739199e6 {
   margin-top: 28rpx;

@@ -19,7 +19,12 @@ const _sfc_main = {
       male: utils_image.imgUrl(utils_artwork.AVATAR_ART.male, { w: utils_artwork.AVATAR_ART_WIDTH }),
       female: utils_image.imgUrl(utils_artwork.AVATAR_ART.female, { w: utils_artwork.AVATAR_ART_WIDTH })
     };
+    const CARD_BG = {
+      female: `url(${utils_image.imgUrl("https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E7%95%8C%E9%9D%A2/exec-79fd56c8-73b1-4f33-8fb9-6224f06d3e48.png", { w: 1080 })})`,
+      male: `url(${utils_image.imgUrl("https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E7%95%8C%E9%9D%A2/exec-0ef5a4be-7dd3-46e6-a638-8d939f9c8aba.png", { w: 1080 })})`
+    };
     const canGoNext = common_vendor.computed(() => step.value === 1 ? !!pickedGender.value : !!pickedMode.value);
+    const isDimmed = (picked, key) => !!picked && picked !== key;
     common_vendor.onLoad(() => {
       if (userStore.onboardingCompleted) {
         common_vendor.index.reLaunch({ url: utils_authGuard.HOME_PATH });
@@ -53,7 +58,7 @@ const _sfc_main = {
           common_vendor.index.reLaunch({ url: utils_authGuard.HOME_PATH });
         }, 500);
       } catch (e) {
-        common_vendor.index.__f__("error", "at pages/onboarding/onboarding.vue:228", "[onboarding] submit error", e);
+        common_vendor.index.__f__("error", "at pages/onboarding/onboarding.vue:247", "[onboarding] submit error", e);
         common_vendor.index.showToast({ title: e.message || "保存失败，请重试", icon: "none" });
         submitting.value = false;
       }
@@ -64,41 +69,38 @@ const _sfc_main = {
         b: step.value > 1 ? 1 : "",
         c: step.value === 2 ? 1 : "",
         d: common_vendor.t(step.value === 1 ? "你是男生还是女生" : "平时谁做饭呢"),
-        e: common_vendor.t(step.value === 1 ? "用来给你配一张默认头像" : "选好身份，就能开始了"),
-        f: headerTop.value + "px",
-        g: step.value === 1
-      }, step.value === 1 ? common_vendor.e({
-        h: genderArt.female,
-        i: pickedGender.value === "female"
-      }, pickedGender.value === "female" ? {} : {}, {
-        j: pickedGender.value === "female" ? 1 : "",
-        k: common_vendor.o(($event) => pickedGender.value = "female", "88"),
+        e: headerTop.value + "px",
+        f: step.value === 1
+      }, step.value === 1 ? {
+        g: genderArt.female,
+        h: pickedGender.value === "female" ? 1 : "",
+        i: isDimmed(pickedGender.value, "female") ? 1 : "",
+        j: CARD_BG.female,
+        k: common_vendor.o(($event) => pickedGender.value = "female", "53"),
         l: genderArt.male,
-        m: pickedGender.value === "male"
-      }, pickedGender.value === "male" ? {} : {}, {
-        n: pickedGender.value === "male" ? 1 : "",
-        o: common_vendor.o(($event) => pickedGender.value = "male", "e9")
-      }) : common_vendor.e({
-        p: pickedMode.value === "diner" ? 1 : "",
-        q: pickedMode.value === "diner"
-      }, pickedMode.value === "diner" ? {} : {}, {
+        m: pickedGender.value === "male" ? 1 : "",
+        n: isDimmed(pickedGender.value, "male") ? 1 : "",
+        o: CARD_BG.male,
+        p: common_vendor.o(($event) => pickedGender.value = "male", "ed")
+      } : {
+        q: pickedMode.value === "diner" ? 1 : "",
         r: pickedMode.value === "diner" ? 1 : "",
-        s: common_vendor.o(($event) => pickedMode.value = "diner", "70"),
-        t: pickedMode.value === "cook" ? 1 : "",
-        v: pickedMode.value === "cook"
-      }, pickedMode.value === "cook" ? {} : {}, {
+        s: isDimmed(pickedMode.value, "diner") ? 1 : "",
+        t: common_vendor.o(($event) => pickedMode.value = "diner", "0a"),
+        v: pickedMode.value === "cook" ? 1 : "",
         w: pickedMode.value === "cook" ? 1 : "",
-        x: common_vendor.o(($event) => pickedMode.value = "cook", "24")
-      }), {
-        y: step.value === 2
+        x: isDimmed(pickedMode.value, "cook") ? 1 : "",
+        y: common_vendor.o(($event) => pickedMode.value = "cook", "5c")
+      }, {
+        z: step.value === 2
       }, step.value === 2 ? {
-        z: submitting.value ? 1 : "",
-        A: common_vendor.o(($event) => goStep(1), "bf")
+        A: submitting.value ? 1 : "",
+        B: common_vendor.o(($event) => goStep(1), "ba")
       } : {}, {
-        B: common_vendor.t(submitting.value ? "保存中…" : step.value === 1 ? "下一步" : "进入小程序"),
-        C: !canGoNext.value || submitting.value ? 1 : "",
-        D: common_vendor.o(onPrimary, "34"),
-        E: common_vendor.o(onSkip, "e3")
+        C: common_vendor.t(submitting.value ? "保存中…" : step.value === 1 ? "下一步" : "进入小程序"),
+        D: !canGoNext.value || submitting.value ? 1 : "",
+        E: common_vendor.o(onPrimary, "9a"),
+        F: common_vendor.o(onSkip, "59")
       });
     };
   }
