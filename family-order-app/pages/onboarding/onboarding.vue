@@ -154,7 +154,7 @@ import { onLoad } from '@dcloudio/uni-app'
 import { useUserStore } from '@/store/user.js'
 import { useSafeArea } from '@/composables/useSafeArea.js'
 import { imgUrl } from '@/utils/image.js'
-import { AVATAR_ART, AVATAR_ART_WIDTH } from '@/utils/artwork.js'
+import { AVATAR_ART } from '@/utils/artwork.js'
 import { HOME_PATH } from '@/utils/auth-guard.js'
 
 const { statusBarHeight } = useSafeArea()
@@ -168,10 +168,19 @@ const pickedGender = ref('')
 const pickedMode = ref('')
 const submitting = ref(false)
 
+/**
+ * 性别卡人物素材的输出宽度
+ *
+ * 脱框后人物按 240rpx 显示：最大机型（414px 屏宽）约 132.5 逻辑像素，DPR3 需约 398 物理像素，取 400。
+ * 不复用 utils/artwork.js 的 AVATAR_ART_WIDTH（240，是按 146rpx 内径算的）：
+ * 那个值还被通用头像组件引用，为引导页改大只会让那边白下载流量。
+ */
+const CARD_ART_WIDTH = 400
+
 // 性别卡片复用默认头像素材
 const genderArt = {
-  male: imgUrl(AVATAR_ART.male, { w: AVATAR_ART_WIDTH }),
-  female: imgUrl(AVATAR_ART.female, { w: AVATAR_ART_WIDTH })
+  male: imgUrl(AVATAR_ART.male, { w: CARD_ART_WIDTH }),
+  female: imgUrl(AVATAR_ART.female, { w: CARD_ART_WIDTH })
 }
 
 /**
@@ -252,6 +261,9 @@ const submit = async (payload) => {
 </script>
 
 <style lang="scss" scoped>
+/* 选择卡文字的手绘字体（含 base64 数据，按需引入；不可放进 uni.scss，否则会被重复打进每个页面的 wxss） */
+@import '@/scss/font-maoken.scss';
+
 .page-onboarding {
   position: relative;
   min-height: 100vh;
@@ -505,11 +517,16 @@ const submit = async (payload) => {
 }
 
 /* === 卡片各自的底色与倾斜（分别为 0,1,0 特异性）=== */
+/* 性别卡人物脱框后不再有 flex 元素撑高卡片，需要显式给高度：
+ * 228rpx = 原头像框 148 + 上下内边距 72 + 边框 8，与身份卡（仍用圆框）保持等高。
+ * overflow: hidden 用来收口人物底部，详见 .pick-frame。 */
 .card-female {
   --bg: #f6c7b8;
   --tilt: -1deg;
   border-radius: 32rpx 44rpx 29rpx 46rpx;
   animation-delay: 0.05s;
+  height: 228rpx;
+  overflow: hidden;
 }
 
 .card-male {
@@ -517,6 +534,8 @@ const submit = async (payload) => {
   --tilt: 1deg;
   border-radius: 44rpx 31rpx 47rpx 28rpx;
   animation-delay: 0.15s;
+  height: 228rpx;
+  overflow: hidden;
 }
 
 .card-diner {
@@ -569,19 +588,36 @@ const submit = async (payload) => {
   --bg: #e7f0da;
 }
 
-/* === 性别卡：头像素材圆框 === */
+/* === 性别卡：脱框人物 ===
+ *
+ * 原为 148rpx 的白底圆形描边框。去掉框的依据：素材本身是透明底半身像
+ * （实测四角 alpha=0，透明像素占 32% / 44.6%），不需要白底去遮挡背景涂鸦；
+ * 而圆形裁切会切掉肩、胸与衣服，损失素材大半信息。
+ *
+ * 现在按「贴左满高」构图：
+ *   尺寸 240rpx + bottom -40rpx → 卡片内可见 200rpx，比原来的 148rpx 放大约 35%；
+ *   底部沉出卡片 40rpx，交给卡片的 overflow: hidden 收口 —— 素材底边是画布硬切边
+ *   （女生下留白 2px、男生 0px），没有圆框弧线可收，只能靠卡片下边缘裁掉。
+ *   贴左（left: 0）而不右移避让涂鸦：实测女生卡左上的花在 y≈45~98rpx、
+ *   左中的小花在 y≈117~143rpx，都落在人物头发覆盖范围内，会被人物盖住；
+ *   露出来的只有头顶与肩侧之外的装饰，正好当背景点缀。
+ */
 .pick-frame {
-  position: relative;
+  position: absolute;
+  left: 0;
+  bottom: -40rpx;
   z-index: 1; /* 抬到按下/退后遮罩之上 */
-  position: relative;
-  flex-shrink: 0;
-  width: 148rpx;
-  height: 148rpx;
-  border-radius: 50%;
-  background-color: $p2-white;
-  border: 4rpx solid $p2-line;
-  overflow: hidden;
-  @include flex-center;
+  width: 240rpx;
+  height: 240rpx;
+  transition: opacity 220ms $p2-ease;
+}
+
+/* 退后态：人物一并淡出。
+ * 原来圆框只有 148rpx、不淡化影响有限；脱框放大后人物是卡片里权重最大的元素，
+ * 不淡化就压不出「选中 / 未选中」的差别。
+ * 这里用 opacity 是安全的 —— 作用对象是图像而非文字，不存在褪色后对比度不足的问题。 */
+.pick-card.dimmed .pick-frame {
+  opacity: 0.7;
 }
 
 .pick-art {
@@ -928,10 +964,22 @@ const submit = async (payload) => {
   gap: 8rpx;
 
   .pick-name {
-    font-size: 40rpx;
-    font-weight: 500;
+    /* 猫啃什锦黑：单字重手绘体（usWeightClass 500），固定 normal 以避免合成加粗破坏笔触。
+     * 性别卡与身份卡共用本样式，两页文字因此统一为同一只手绘字体 */
+    font-family: $p2-font-hand, $p2-font-fallback;
+    /* 48rpx：手绘体字面（em 框内字形占比）比系统字体小，同样字号看着更小，
+     * 所以比原来的 40rpx 上调一档，让它与放大后的人物配得上 */
+    font-size: 48rpx;
+    font-weight: normal;
     color: $p2-ink;
   }
+}
+
+/* 脱框后人物是绝对定位、不占 flex 位置，文字需要自己让出人物宽度：
+ * 人物右缘 240rpx + 原有的 28rpx 间距 = 内容起点 268rpx，再减去卡片左内边距 32rpx */
+.card-female .pick-body,
+.card-male .pick-body {
+  padding-left: 236rpx;
 }
 
 /* === 底部操作 === */

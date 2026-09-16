@@ -5,6 +5,7 @@ const composables_useSafeArea = require("../../composables/useSafeArea.js");
 const utils_image = require("../../utils/image.js");
 const utils_artwork = require("../../utils/artwork.js");
 const utils_authGuard = require("../../utils/auth-guard.js");
+const CARD_ART_WIDTH = 400;
 const _sfc_main = {
   __name: "onboarding",
   setup(__props) {
@@ -16,8 +17,8 @@ const _sfc_main = {
     const pickedMode = common_vendor.ref("");
     const submitting = common_vendor.ref(false);
     const genderArt = {
-      male: utils_image.imgUrl(utils_artwork.AVATAR_ART.male, { w: utils_artwork.AVATAR_ART_WIDTH }),
-      female: utils_image.imgUrl(utils_artwork.AVATAR_ART.female, { w: utils_artwork.AVATAR_ART_WIDTH })
+      male: utils_image.imgUrl(utils_artwork.AVATAR_ART.male, { w: CARD_ART_WIDTH }),
+      female: utils_image.imgUrl(utils_artwork.AVATAR_ART.female, { w: CARD_ART_WIDTH })
     };
     const CARD_BG = {
       female: `url(${utils_image.imgUrl("https://env-00jy6tjoglvj.normal.cloudstatic.cn/%E9%BB%91%E7%B1%B3%E5%92%96%E5%95%A1/%E5%9B%BE%E7%89%87%E7%B4%A0%E6%9D%90/%E7%95%8C%E9%9D%A2/exec-79fd56c8-73b1-4f33-8fb9-6224f06d3e48.png", { w: 1080 })})`,
@@ -58,7 +59,7 @@ const _sfc_main = {
           common_vendor.index.reLaunch({ url: utils_authGuard.HOME_PATH });
         }, 500);
       } catch (e) {
-        common_vendor.index.__f__("error", "at pages/onboarding/onboarding.vue:247", "[onboarding] submit error", e);
+        common_vendor.index.__f__("error", "at pages/onboarding/onboarding.vue:256", "[onboarding] submit error", e);
         common_vendor.index.showToast({ title: e.message || "保存失败，请重试", icon: "none" });
         submitting.value = false;
       }
