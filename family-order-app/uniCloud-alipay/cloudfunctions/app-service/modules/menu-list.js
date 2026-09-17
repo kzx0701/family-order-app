@@ -15,8 +15,8 @@
  *      - 推荐菜品：取 isRecommended=true 的菜品（由管理员在菜品表单中配置）
  *   5. 返回 { code, categories, dishes }
  *      - categories：[{ id, name, type, sortOrder }, ...]，首项为推荐
- *      - dishes：[{ dishId, name, image, description, type, categoryId, categoryName, sortOrder, isRecommended }, ...]
- *        其中 isRecommended=true 表示该菜品出现在推荐区
+ *      - dishes：[{ dishId, name, image, description, spicy, note, type, categoryId, categoryName, sortOrder, isRecommended, isSignature }, ...]
+ *        其中 isRecommended=true 表示该菜品出现在推荐区，isSignature=true 表示招牌/拿手菜
  */
 
 // 推荐分类的系统内置 id 与名称
@@ -62,11 +62,15 @@ exports.main = async (event, context) => {
       name: d.name,
       image: d.image || '',
       description: d.description || '',
+      // 辣度：档位与 dishes.schema.json 的 enum 一致，脏值落回不辣
+      spicy: ['none', 'mild', 'medium'].includes(d.spicy) ? d.spicy : 'none',
+      note: d.note || '',
       type: d.type,
       categoryId: d.categoryId || '',
       categoryName: (catMap[d.categoryId] && catMap[d.categoryId].name) || '',
       sortOrder: d.sortOrder || 0,
       isRecommended: !!d.isRecommended,
+      isSignature: !!d.isSignature,
       // 冷热配置：仅咖啡有值（ice/hot），美食为空字符串
       temp: d.temp === 'ice' || d.temp === 'hot' ? d.temp : ''
     }))

@@ -31,6 +31,23 @@
             "label": "描述",
             "defaultValue": ""
         },
+        "spicy": {
+            "bsonType": "string",
+            "description": "辣度：none 不辣 / mild 微辣 / medium 中辣（菜品默认辣度；将来若要支持「一菜多口味」再另加字段）",
+            "enum": ["none", "mild", "medium"],
+            "label": "辣度",
+            "errorMessage": "辣度只能为 none / mild / medium",
+            "defaultValue": "none"
+        },
+        "note": {
+            "bsonType": "string",
+            "description": "菜品备注（做饭人的经验提醒，如「收汁时留一点汤汁，土豆拌饭真的很香」）",
+            "trim": "both",
+            "maxLength": 200,
+            "label": "备注",
+            "errorMessage": "备注最多 200 字",
+            "defaultValue": ""
+        },
         "type": {
             "bsonType": "string",
             "description": "类型：coffee 咖啡 / food 美食",
@@ -55,6 +72,12 @@
             "description": "是否推荐（推荐菜品显示在点单页推荐区）",
             "defaultValue": false,
             "label": "推荐状态"
+        },
+        "isSignature": {
+            "bsonType": "bool",
+            "description": "是否招牌（本家拿手菜，菜谱/菜单上打「家的拿手菜」标记，与「推荐」是两个独立标记）",
+            "defaultValue": false,
+            "label": "招牌"
         },
         "sortOrder": {
             "bsonType": "int",

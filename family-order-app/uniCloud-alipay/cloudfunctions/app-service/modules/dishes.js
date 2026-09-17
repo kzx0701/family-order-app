@@ -1,8 +1,18 @@
 'use strict'
 const { requireCook } = require('../utils/auth.js')
 
+// 辣度档位：与 mock/recipes.js 的 flavors 一致（不辣 / 微辣 / 中辣）
+const SPICY_LEVELS = ['none', 'mild', 'medium']
+
 /**
  * 菜品 CRUD 云函数
+ *
+ * 与菜谱业务对齐的字段（写入时统一归一化，见 createDish / updateDish）：
+ *   - image        菜品图片（uniCloud 云存储 URL）
+ *   - name         菜品名称
+ *   - spicy        辣度：none 不辣 / mild 微辣 / medium 中辣
+ *   - isSignature  是否招牌（本家拿手菜）
+ *   - note         菜品备注（做饭人的经验提醒，≤200 字）
  *
  * 支持的 action：
  *   - list       查询菜品（支持 type、categoryId、isOnSale 筛选），返回列表（含分类名 join）
@@ -108,8 +118,13 @@ async function listDishes({ type, categoryId, isOnSale } = {}, dishCol, catCol) 
     .orderBy('createTime', 'desc')
     .get()
 
-  // 一次性查询所有分类用于 join 分类名
-  const catRes = await catCol.get()
+  // 一次性查询所有分类：既用于 join 分类名，也随 list 一起返回给菜谱页。
+  // 排序必须与 categories-crud/list 完全一致（sortOrder asc, createTime asc），
+  // 否则菜谱页分类栏的顺序会与直接从分类接口取时不同。
+  const catRes = await catCol
+    .orderBy('sortOrder', 'asc')
+    .orderBy('createTime', 'asc')
+    .get()
   const catMap = {}
   catRes.data.forEach((c) => {
     catMap[c._id] = c
@@ -120,14 +135,24 @@ async function listDishes({ type, categoryId, isOnSale } = {}, dishCol, catCol) 
     categoryName: (catMap[d.categoryId] && catMap[d.categoryId].name) || ''
   }))
 
-  return { code: 0, list }
+  // 分类栏数据：这次分类查询本来就已经付过成本（join 分类名必需），顺带返回
+  // 即可让菜谱页省掉一整次 categories-crud/list 调用 —— 少一次网络往返，
+  // 图片也就能更早开始加载。字段形状与 categories-crud/list 保持一致。
+  const categories = catRes.data.map((c) => ({
+    id: c._id,
+    name: c.name,
+    type: c.type,
+    sortOrder: c.sortOrder || 0
+  }))
+
+  return { code: 0, list, categories }
 }
 
 /**
  * 新增菜品
  * 必填：name、type
  */
-async function createDish({ name, image, description, type, categoryId, isOnSale, isRecommended, sortOrder, temp } = {}, dishCol) {
+async function createDish({ name, image, description, spicy, note, type, categoryId, isOnSale, isRecommended, isSignature, sortOrder, temp } = {}, dishCol) {
   if (!name || !String(name).trim()) {
     return { code: 400, message: '菜品名称必填' }
   }
@@ -140,10 +165,14 @@ async function createDish({ name, image, description, type, categoryId, isOnSale
     name: String(name).trim(),
     image: image || '',
     description: (description || '').trim(),
+    // 辣度：不在档位内一律落回「不辣」，避免脏值进库
+    spicy: SPICY_LEVELS.includes(spicy) ? spicy : 'none',
+    note: note ? String(note).trim().slice(0, 200) : '',
     type,
     categoryId: categoryId || '',
     isOnSale: isOnSale !== false,
     isRecommended: !!isRecommended,
+    isSignature: !!isSignature,
     sortOrder: Number(sortOrder) || 0,
     // 冷热配置：仅咖啡有效，美食留空
     temp: type === 'coffee' && (temp === 'ice' || temp === 'hot') ? temp : '',
@@ -175,6 +204,12 @@ async function updateDish({ _id, ...patch } = {}, dishCol) {
   if (patch.description !== undefined) {
     patch.description = String(patch.description).trim()
   }
+  if (patch.spicy !== undefined) {
+    patch.spicy = SPICY_LEVELS.includes(patch.spicy) ? patch.spicy : 'none'
+  }
+  if (patch.note !== undefined) {
+    patch.note = patch.note ? String(patch.note).trim().slice(0, 200) : ''
+  }
   if (patch.sortOrder !== undefined) {
     patch.sortOrder = Number(patch.sortOrder) || 0
   }
@@ -183,6 +218,9 @@ async function updateDish({ _id, ...patch } = {}, dishCol) {
   }
   if (patch.isRecommended !== undefined) {
     patch.isRecommended = !!patch.isRecommended
+  }
+  if (patch.isSignature !== undefined) {
+    patch.isSignature = !!patch.isSignature
   }
   // 冷热配置：仅 coffee 有效；切换为 food 时清空 temp
   if (patch.temp !== undefined) {
