@@ -4,6 +4,7 @@
   "usingComponents": {
     "default-avatar": "../../components/default-avatar/default-avatar",
     "icon": "../../components/icons/Icon",
-    "custom-tabbar": "../../components/custom-tabbar/custom-tabbar"
+    "custom-tabbar": "../../components/custom-tabbar/custom-tabbar",
+    "fo-dialog": "../../components/fo-dialog/fo-dialog"
   }
 }

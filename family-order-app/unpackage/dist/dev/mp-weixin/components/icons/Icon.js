@@ -50,6 +50,8 @@ const _sfc_main = {
       "book-open": '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2Z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7Z"/>',
       // 关闭
       close: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+      // 搜索
+      search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
       // 裁剪
       crop: '<path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/>',
       // 右箭头

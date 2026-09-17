@@ -8,6 +8,7 @@
     "pages/my/my",
     "pages/record/record",
     "pages/admin/admin",
+    "pages/recipe-detail/recipe-detail",
     "pages/dish-detail/dish-detail",
     "pages/order-detail/order-detail",
     "pages/submit/submit",

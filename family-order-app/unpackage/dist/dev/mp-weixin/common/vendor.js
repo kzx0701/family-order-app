@@ -8980,6 +8980,13 @@ const pages = [
     }
   },
   {
+    path: "pages/recipe-detail/recipe-detail",
+    style: {
+      navigationStyle: "custom",
+      navigationBarTitleText: "菜谱详情"
+    }
+  },
+  {
     path: "pages/dish-detail/dish-detail",
     style: {
       navigationStyle: "custom",
@@ -12330,6 +12337,11 @@ const onLoad = /* @__PURE__ */ createLifeCycleHook(
   2
   /* HookFlags.PAGE */
 );
+const onBackPress = /* @__PURE__ */ createLifeCycleHook(
+  ON_BACK_PRESS,
+  2
+  /* HookFlags.PAGE */
+);
 const onPageScroll = /* @__PURE__ */ createLifeCycleHook(
   ON_PAGE_SCROLL,
   2
@@ -12358,6 +12370,7 @@ exports.index = index;
 exports.n = n$1;
 exports.nextTick$1 = nextTick$1;
 exports.o = o$1;
+exports.onBackPress = onBackPress;
 exports.onLoad = onLoad;
 exports.onMounted = onMounted;
 exports.onPageScroll = onPageScroll;

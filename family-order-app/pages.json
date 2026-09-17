@@ -62,6 +62,13 @@
             }
         },
         {
+            "path": "pages/recipe-detail/recipe-detail",
+            "style": {
+                "navigationStyle": "custom",
+                "navigationBarTitleText": "菜谱详情"
+            }
+        },
+        {
             "path": "pages/dish-detail/dish-detail",
             "style": {
                 "navigationStyle": "custom",

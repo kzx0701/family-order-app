@@ -12,6 +12,7 @@ if (!Math) {
   "./pages/my/my.js";
   "./pages/record/record.js";
   "./pages/admin/admin.js";
+  "./pages/recipe-detail/recipe-detail.js";
   "./pages/dish-detail/dish-detail.js";
   "./pages/order-detail/order-detail.js";
   "./pages/submit/submit.js";

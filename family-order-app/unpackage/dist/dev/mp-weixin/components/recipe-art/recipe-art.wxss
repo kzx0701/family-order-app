@@ -1,0 +1,4 @@
+.recipe-art.data-v-36d9182a { position: relative; width: 100%; padding-top: 75%; overflow: hidden; background: #fff9ed;
+}
+.atlas.data-v-36d9182a { position: absolute; width: 200%; height: 300%; max-width: none;
+}

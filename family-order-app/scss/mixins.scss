@@ -1,9 +1,9 @@
-/**
- * 通用 SCSS Mixin
- * 此文件仅包含 @mixin 定义，不生成 CSS 输出（可安全被 uni.scss 自动注入）
- */
+// *
+// 通用 SCSS Mixin
+// 此文件仅包含 @mixin 定义，不生成 CSS 输出（可安全被 uni.scss 自动注入）
+//
 
-/* === 卡片样式 === */
+// === 卡片样式 ===
 @mixin card-base($radius: $radius-lg, $shadow: $shadow-sm) {
   background-color: $color-card;
   border-radius: $radius;
@@ -11,7 +11,7 @@
   box-sizing: border-box;
 }
 
-/* 主题卡片：带主题色渐变背景 */
+// 主题卡片：带主题色渐变背景
 @mixin card-themed($radius: $radius-lg) {
   border-radius: $radius;
   background: linear-gradient(160deg, var(--theme-grad-start), var(--theme-grad-end));
@@ -19,7 +19,7 @@
   box-sizing: border-box;
 }
 
-/* === 按钮 === */
+// === 按钮 ===
 @mixin btn-base($padding-y: 16rpx, $padding-x: 32rpx, $radius: $radius-full) {
   display: inline-flex;
   align-items: center;
@@ -37,28 +37,28 @@
   }
 }
 
-/* 主题主按钮 */
+// 主题主按钮
 @mixin btn-primary {
   @include btn-base;
   background-color: var(--theme-primary);
   color: var(--theme-primary-foreground);
 }
 
-/* 次级按钮 */
+// 次级按钮
 @mixin btn-secondary {
   @include btn-base;
   background-color: var(--theme-secondary);
   color: var(--theme-secondary-foreground);
 }
 
-/* 禁用按钮 */
+// 禁用按钮
 @mixin btn-disabled {
   @include btn-base;
   background-color: $color-neutral-200;
   color: $color-neutral-400;
 }
 
-/* 圆形图标按钮（如返回按钮、加号按钮） */
+// 圆形图标按钮（如返回按钮、加号按钮）
 @mixin btn-icon($size: 72rpx, $bg: var(--theme-secondary), $fg: var(--theme-primary)) {
   width: $size;
   height: $size;
@@ -75,7 +75,7 @@
   }
 }
 
-/* === 安全区域 === */
+// === 安全区域 ===
 @mixin safe-area-bottom($extra: 0rpx) {
   padding-bottom: calc(#{$extra} + #{$safe-area-inset-bottom});
 }
@@ -93,7 +93,7 @@
   @include safe-area-bottom;
 }
 
-/* === 文本省略 === */
+// === 文本省略 ===
 @mixin ellipsis($lines: 1) {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -108,7 +108,7 @@
   }
 }
 
-/* === flex 工具 === */
+// === flex 工具 ===
 @mixin flex-center {
   display: flex;
   align-items: center;
@@ -126,7 +126,7 @@
   flex-direction: column;
 }
 
-/* === 状态徽章 === */
+// === 状态徽章 ===
 @mixin status-badge {
   display: inline-flex;
   align-items: center;
@@ -138,7 +138,7 @@
   color: var(--status-fg);
 }
 
-/* === 1px 细边框（小程序适配） === */
+// === 1px 细边框（小程序适配） ===
 @mixin hairline-bottom($color: $color-border) {
   position: relative;
 
@@ -155,7 +155,7 @@
   }
 }
 
-/* === 点击反馈 === */
+// === 点击反馈 ===
 @mixin tap-feedback($scale: 0.97) {
   transition: transform $dur-fast $ease-smooth;
 
@@ -164,14 +164,14 @@
   }
 }
 
-/* === 应用外壳页（页面级布局标准之一） === */
-/*
- * 适用：点单页这类「头部/底部固定 + 中间区域内部滚动」的应用外壳页
- * 必须 height:100vh（不能 min-height）+ overflow:hidden，
- * 否则 flex 子项 min-height:auto 会被内容撑高，整个页面变成 body 滚动，
- * 导致头部/底部随页面滚走、内部 scroll-view 的高度等于内容高度而完全无法滚动
- * 搭配 page-shell-body 使用
- */
+// === 应用外壳页（页面级布局标准之一） ===
+//
+// 适用：点单页这类「头部/底部固定 + 中间区域内部滚动」的应用外壳页
+// 必须 height:100vh（不能 min-height）+ overflow:hidden，
+// 否则 flex 子项 min-height:auto 会被内容撑高，整个页面变成 body 滚动，
+// 导致头部/底部随页面滚走、内部 scroll-view 的高度等于内容高度而完全无法滚动
+// 搭配 page-shell-body 使用
+//
 @mixin page-shell {
   height: 100vh;
   display: flex;
@@ -179,7 +179,7 @@
   overflow: hidden;
 }
 
-/* 外壳页的中间滚动区：flex:1 + min-height:0 允许收缩，内部 scroll-view 才能生效 */
+// 外壳页的中间滚动区：flex:1 + min-height:0 允许收缩，内部 scroll-view 才能生效
 @mixin page-shell-body {
   flex: 1;
   min-height: 0;

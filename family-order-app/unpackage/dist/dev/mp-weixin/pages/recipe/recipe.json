@@ -3,6 +3,7 @@
   "navigationBarTitleText": "菜谱",
   "usingComponents": {
     "icon": "../../components/icons/Icon",
-    "custom-tabbar": "../../components/custom-tabbar/custom-tabbar"
+    "custom-tabbar": "../../components/custom-tabbar/custom-tabbar",
+    "recipe-art": "../../components/recipe-art/recipe-art"
   }
 }

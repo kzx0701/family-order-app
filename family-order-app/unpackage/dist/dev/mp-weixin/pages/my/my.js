@@ -7,13 +7,15 @@ if (!Array) {
   const _easycom_default_avatar2 = common_vendor.resolveComponent("default-avatar");
   const _easycom_Icon2 = common_vendor.resolveComponent("Icon");
   const _easycom_custom_tabbar2 = common_vendor.resolveComponent("custom-tabbar");
-  (_easycom_default_avatar2 + _easycom_Icon2 + _easycom_custom_tabbar2)();
+  const _easycom_fo_dialog2 = common_vendor.resolveComponent("fo-dialog");
+  (_easycom_default_avatar2 + _easycom_Icon2 + _easycom_custom_tabbar2 + _easycom_fo_dialog2)();
 }
 const _easycom_default_avatar = () => "../../components/default-avatar/default-avatar.js";
 const _easycom_Icon = () => "../../components/icons/Icon.js";
 const _easycom_custom_tabbar = () => "../../components/custom-tabbar/custom-tabbar.js";
+const _easycom_fo_dialog = () => "../../components/fo-dialog/fo-dialog.js";
 if (!Math) {
-  (_easycom_default_avatar + _easycom_Icon + _easycom_custom_tabbar)();
+  (_easycom_default_avatar + _easycom_Icon + _easycom_custom_tabbar + _easycom_fo_dialog)();
 }
 const _sfc_main = {
   __name: "my",
@@ -70,12 +72,36 @@ const _sfc_main = {
         }
       });
     };
+    const nicknameVisible = common_vendor.ref(false);
+    const nicknameDraft = common_vendor.ref("");
+    const onChangeNickname = () => {
+      nicknameDraft.value = userStore.nickname || "";
+      nicknameVisible.value = true;
+    };
+    const onConfirmNickname = async () => {
+      const name = String(nicknameDraft.value || "").trim();
+      if (name === userStore.nickname) {
+        nicknameVisible.value = false;
+        return;
+      }
+      try {
+        await userStore.updateProfile({ nickname: name });
+        nicknameVisible.value = false;
+        common_vendor.index.showToast({ title: "昵称已更新", icon: "none" });
+      } catch (e) {
+        common_vendor.index.showToast({ title: e.message || "修改失败", icon: "none" });
+      }
+    };
     const onEditProfile = () => {
       common_vendor.index.showActionSheet({
-        itemList: ["修改性别", "修改昵称（后续接入）", "修改头像（后续接入）"],
+        itemList: ["修改性别", "修改昵称", "修改头像（后续接入）"],
         success: (res) => {
           if (res.tapIndex === 0) {
             onChangeGender();
+            return;
+          }
+          if (res.tapIndex === 1) {
+            onChangeNickname();
             return;
           }
           showPreviewTip("该功能将在后续接入");
@@ -149,7 +175,19 @@ const _sfc_main = {
           size: 19,
           ["stroke-width"]: 2.4
         }),
-        t: common_vendor.o(goRecords, "b0")
+        t: common_vendor.o(goRecords, "b0"),
+        v: common_vendor.o(($event) => nicknameVisible.value = false, "d6"),
+        w: common_vendor.o(onConfirmNickname, "40"),
+        x: common_vendor.o(($event) => nicknameDraft.value = $event, "2d"),
+        y: common_vendor.p({
+          visible: nicknameVisible.value,
+          title: "修改昵称",
+          input: true,
+          placeholder: common_vendor.unref(userStore).nickname || "家庭成员",
+          maxlength: 20,
+          ["confirm-disabled"]: !nicknameDraft.value.trim(),
+          modelValue: nicknameDraft.value
+        })
       });
     };
   }

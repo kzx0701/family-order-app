@@ -245,8 +245,13 @@ const onLogin = async () => {
    * font-weight 必须固定 normal —— 原先是系统字体下的 750 加粗，
    * 沿用到单字重字体会触发合成加粗，把马克笔笔触压糊（首页/引导页同样处理）。 */
   font-family: $p2-font-hand, $p2-font-fallback;
-  /* 60rpx：比原 54rpx 上调一档，与放大后的主视觉比例协调 */
-  font-size: 60rpx;
+  /* 72rpx：比原 60rpx 再上调一档（+20%）。
+   * 依据不在于「比别的页面小」——项目里首页 66rpx、引导页 56rpx，60 并不算小；
+   * 而在于本页的对比对象是一整屏主视觉（660×880rpx，占屏宽 88%），
+   * 4 字标题只占屏宽 32%，视觉重量差了一个量级。品牌名是登录页的首要信息，
+   * 需要这个量级才能压得住上方插画。手绘体不能靠加字重补（会合成加粗糊掉笔触），
+   * 只能走字号。 */
+  font-size: 72rpx;
   font-weight: normal;
   /* 手绘体字形本身饱满，字距收到 3rpx（原系统字体用 6rpx 撑呼吸感） */
   letter-spacing: 3rpx;
@@ -257,8 +262,9 @@ const onLogin = async () => {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  /* 随标题变宽同步放大（原 190rpx 配 54rpx 标题），避免笔触相对变窄托不住标题 */
-  width: 210rpx;
+  /* 与标题保持固定比例（72rpx 标题配 252rpx 笔触），
+   * 否则标题放大后笔触相对变窄、托不住它 */
+  width: 252rpx;
   margin-top: 8rpx;
 }
 
@@ -284,10 +290,13 @@ const onLogin = async () => {
 }
 
 .login-sub {
-  margin-top: 11rpx;
+  /* 上间距随字号同步放大（11 -> 14rpx），保持与标题的疏密关系 */
+  margin-top: 14rpx;
   /* 与主标题统一为手绘体；同为单字重，固定 normal 避免合成加粗 */
   font-family: $p2-font-hand, $p2-font-fallback;
-  font-size: 26rpx;
+  /* 30rpx：原 26rpx 只有标题的 0.43 倍，叠上浅棕与细笔画几乎淡成注脚。
+   * 提到 30rpx 后与 72rpx 标题构成 0.42 的比例，同时手绘体在这个尺寸下更清晰 */
+  font-size: 30rpx;
   font-weight: normal;
   color: $p2-ink-soft;
 }

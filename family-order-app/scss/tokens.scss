@@ -1,14 +1,14 @@
-/**
- * 设计 Token - SCSS 变量定义
- * 从 colors_and_type.css 提取并转换为 SCSS 变量
- * 此文件仅包含变量声明，不生成 CSS 输出（可安全被 uni.scss 自动注入）
- */
+// *
+// 设计 Token - SCSS 变量定义
+// 从 colors_and_type.css 提取并转换为 SCSS 变量
+// 此文件仅包含变量声明，不生成 CSS 输出（可安全被 uni.scss 自动注入）
+//
 
-/* === 暖奶油底色（全局背景） === */
+// === 暖奶油底色（全局背景） ===
 $color-bg: #FFFBF5;
 $color-bg-soft: #FFF8F0;
 
-/* === 品牌主色：暖奶油 === */
+// === 品牌主色：暖奶油 ===
 $color-primary-50: #FFF8F0;
 $color-primary-100: #FFEFD6;
 $color-primary-200: #FFE0B2;
@@ -20,7 +20,7 @@ $color-primary-700: #F57C00;
 $color-primary-800: #EF6C00;
 $color-primary-900: #E65100;
 
-/* === 咖啡棕系（咖啡主题主色） === */
+// === 咖啡棕系（咖啡主题主色） ===
 $color-coffee-50: #FDF8F0;
 $color-coffee-100: #F5E6D3;
 $color-coffee-200: #E8D0B3;
@@ -32,7 +32,7 @@ $color-coffee-700: #5C4033;
 $color-coffee-800: #3E2723;
 $color-coffee-900: #2C1B14;
 
-/* === 美食绿系（美食主题主色） === */
+// === 美食绿系（美食主题主色） ===
 $color-food-50: #F5F7F2;
 $color-food-100: #E8EDE2;
 $color-food-200: #C9D4BD;
@@ -44,7 +44,7 @@ $color-food-700: #3A4A2C;
 $color-food-800: #2D3922;
 $color-food-900: #1F2818;
 
-/* === neutral 灰阶 === */
+// === neutral 灰阶 ===
 $color-neutral-50: #FAFAF9;
 $color-neutral-100: #F5F5F4;
 $color-neutral-200: #E7E5E4;
@@ -56,13 +56,13 @@ $color-neutral-700: #44403C;
 $color-neutral-800: #292524;
 $color-neutral-900: #1C1917;
 
-/* === 状态色 === */
+// === 状态色 ===
 $color-state-success: #22C55E;
 $color-state-warning: #F59E0B;
 $color-state-error: #EF4444;
 $color-state-info: #3B82F6;
 
-/* === 语义别名（指向常用 token） === */
+// === 语义别名（指向常用 token） ===
 $color-text: #2C1B14;            // 主文字色（深咖啡）
 $color-text-strong: $color-coffee-800;
 $color-text-muted: $color-neutral-500;
@@ -75,7 +75,7 @@ $color-muted: #F5F0EB;
 $color-muted-foreground: $color-neutral-500;
 $color-ring: $color-coffee-300;
 
-/* === 圆角 === */
+// === 圆角 ===
 $radius-sm: 4px;
 $radius-md: 8px;
 $radius-lg: 12px;
@@ -83,11 +83,11 @@ $radius-xl: 16px;
 $radius-2xl: 20px;
 $radius-full: 9999px;
 
-/* === 字体 === */
+// === 字体 ===
 $font-sans: 'Inter', -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
 $font-display: 'Inter', -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
 
-/* === 字号 === */
+// === 字号 ===
 $font-size-xs: 10px;
 $font-size-sm: 12px;
 $font-size-base: 14px;
@@ -96,23 +96,23 @@ $font-size-xl: 18px;
 $font-size-2xl: 22px;
 $font-size-3xl: 28px;
 
-/* === 字重 === */
+// === 字重 ===
 $font-weight-normal: 400;
 $font-weight-medium: 500;
 $font-weight-semibold: 600;
 $font-weight-bold: 700;
 
-/* === 行高 === */
+// === 行高 ===
 $line-height-tight: 1.25;
 $line-height-normal: 1.5;
 $line-height-relaxed: 1.75;
 
-/* === 阴影 === */
+// === 阴影 ===
 $shadow-sm: 0 1px 2px rgba(44, 27, 20, 0.04), 0 1px 3px rgba(44, 27, 20, 0.06);
 $shadow-md: 0 2px 8px rgba(44, 27, 20, 0.06), 0 4px 16px rgba(44, 27, 20, 0.04);
 $shadow-lg: 0 8px 24px rgba(44, 27, 20, 0.10), 0 4px 12px rgba(44, 27, 20, 0.06);
 
-/* === 间距（rpx 适配小程序） === */
+// === 间距（rpx 适配小程序） ===
 $space-1: 8rpx;
 $space-2: 16rpx;
 $space-3: 24rpx;
@@ -121,13 +121,13 @@ $space-5: 40rpx;
 $space-6: 48rpx;
 $space-8: 64rpx;
 
-/* === 动效时长与缓动 === */
+// === 动效时长与缓动 ===
 $ease-smooth: cubic-bezier(0.4, 0.0, 0.2, 1);
 $ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
 $dur-fast: 150ms;
 $dur-base: 250ms;
 $dur-slow: 400ms;
 
-/* === 安全区域 === */
+// === 安全区域 ===
 $safe-area-inset-bottom: env(safe-area-inset-bottom);
 $safe-area-inset-top: env(safe-area-inset-top);

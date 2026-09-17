@@ -231,6 +231,8 @@ const useUserStore = common_vendor.defineStore("user", {
         const name = String(nickname || "").trim();
         if (!name)
           throw new Error("昵称不能为空");
+        if (name.length > 20)
+          throw new Error("昵称最多 20 个字符");
         data.nickname = name;
       }
       if (gender !== void 0) {
@@ -283,7 +285,7 @@ const useUserStore = common_vendor.defineStore("user", {
       });
       let res = await call();
       if (res.result.code === 401 || res.result.code === 404) {
-        common_vendor.index.__f__("warn", "at store/user.js:326", `[user] ${moduleName} 登录态失效（${res.result.message}），重新登录后重试`);
+        common_vendor.index.__f__("warn", "at store/user.js:329", `[user] ${moduleName} 登录态失效（${res.result.message}），重新登录后重试`);
         await this.login();
         res = await call();
       }
@@ -302,7 +304,7 @@ const useUserStore = common_vendor.defineStore("user", {
       try {
         common_vendor.index.removeStorageSync(STORAGE_KEY);
       } catch (e) {
-        common_vendor.index.__f__("error", "at store/user.js:346", "[user] logout clear storage error", e);
+        common_vendor.index.__f__("error", "at store/user.js:349", "[user] logout clear storage error", e);
       }
     },
     /**
@@ -319,7 +321,7 @@ const useUserStore = common_vendor.defineStore("user", {
           family: this.family
         });
       } catch (e) {
-        common_vendor.index.__f__("error", "at store/user.js:364", "[user] persist error", e);
+        common_vendor.index.__f__("error", "at store/user.js:367", "[user] persist error", e);
       }
     },
     /**
@@ -339,7 +341,7 @@ const useUserStore = common_vendor.defineStore("user", {
         this.onboardingCompleted = !!data.onboardingCompleted;
         this.family = data.family || null;
       } catch (e) {
-        common_vendor.index.__f__("error", "at store/user.js:383", "[user] restore error", e);
+        common_vendor.index.__f__("error", "at store/user.js:386", "[user] restore error", e);
       }
     }
   }

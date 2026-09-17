@@ -54,6 +54,20 @@
     </view>
 
     <custom-tabbar />
+
+    <!-- 编辑昵称：自定义弹窗（二期手绘卡语言），替代系统原生 showModal。
+         走 easycom 自动注册（pages.json 的 ^fo-(.*) 规则），无需 import -->
+    <fo-dialog
+      v-model="nicknameDraft"
+      :visible="nicknameVisible"
+      title="修改昵称"
+      input
+      :placeholder="userStore.nickname || '家庭成员'"
+      :maxlength="20"
+      :confirm-disabled="!nicknameDraft.trim()"
+      @close="nicknameVisible = false"
+      @confirm="onConfirmNickname"
+    />
   </view>
 </template>
 
@@ -64,7 +78,7 @@
  * 身份是可随时切换的工作模式（不限制次数），切换后服务端 lastMode 立即更新，
  * 饲养员权限随之生效；性别决定默认头像，同样可修改。
  */
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { useSafeArea } from '@/composables/useSafeArea.js'
 import { useUserStore } from '@/store/user.js'
@@ -141,13 +155,49 @@ const onChangeGender = () => {
   })
 }
 
-/** 编辑资料：目前接入性别，昵称与头像待后续接入 */
+/**
+ * 修改昵称
+ *
+ * 走项目自定义弹窗（fo-dialog，二期手绘卡语言），替代系统原生 showModal ——
+ * 原生弹窗的视觉与页面完全脱节，且只能给占位符、无法预填当前昵称。
+ * 空值与 20 字上限由 store 的 updateProfile 前置校验（与云端校验一致）；
+ * 「确定」在输入为空时直接置灰，比提交后再弹提示更直接。
+ */
+const nicknameVisible = ref(false)
+const nicknameDraft = ref('')
+
+const onChangeNickname = () => {
+  nicknameDraft.value = userStore.nickname || ''
+  nicknameVisible.value = true
+}
+
+const onConfirmNickname = async () => {
+  const name = String(nicknameDraft.value || '').trim()
+  // 与当前昵称一致则不发起请求（无实际改动就不提交）
+  if (name === userStore.nickname) {
+    nicknameVisible.value = false
+    return
+  }
+  try {
+    await userStore.updateProfile({ nickname: name })
+    nicknameVisible.value = false
+    uni.showToast({ title: '昵称已更新', icon: 'none' })
+  } catch (e) {
+    uni.showToast({ title: e.message || '修改失败', icon: 'none' })
+  }
+}
+
+/** 编辑资料：已接入性别与昵称，头像待后续接入 */
 const onEditProfile = () => {
   uni.showActionSheet({
-    itemList: ['修改性别', '修改昵称（后续接入）', '修改头像（后续接入）'],
+    itemList: ['修改性别', '修改昵称', '修改头像（后续接入）'],
     success: (res) => {
       if (res.tapIndex === 0) {
         onChangeGender()
+        return
+      }
+      if (res.tapIndex === 1) {
+        onChangeNickname()
         return
       }
       showPreviewTip('该功能将在后续接入')

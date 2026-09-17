@@ -262,6 +262,9 @@ export const useUserStore = defineStore('user', {
       if (nickname !== undefined) {
         const name = String(nickname || '').trim()
         if (!name) throw new Error('昵称不能为空')
+        // 长度上限与云端 user-update-profile 的校验保持一致（20 字）。
+        // 前置拦截能省掉一次注定失败的云函数往返，提示也更及时。
+        if (name.length > 20) throw new Error('昵称最多 20 个字符')
         data.nickname = name
       }
       if (gender !== undefined) {

@@ -1,7 +1,7 @@
-/**
- * 二期视觉 Token
- * 仅包含变量声明，供新版页面逐步迁移使用，不直接生成 CSS。
- */
+// *
+// 二期视觉 Token
+// 仅包含变量声明，供新版页面逐步迁移使用，不直接生成 CSS。
+//
 
 $p2-paper: #fff9ed;
 $p2-paper-deep: #f8efd9;
@@ -36,9 +36,36 @@ $p2-ease: cubic-bezier(0.22, 0.75, 0.24, 1);
 $p2-dur-tap: 110ms; // 按下反馈（要跟手）
 $p2-dur-settle: 220ms; // 选中态浮起（单向，不带回弹）
 
-/* 手绘标题字体（猫啃什锦黑，OFL 1.1）
- * 此处只声明字体名；@font-face 本体在 scss/font-maoken.scss，
- * 需要使用的页面自行 @import，避免 base64 数据被重复打进每个页面的 wxss
- * 注意：该字体为单字重（usWeightClass 500），使用处不要再设 font-weight: bold */
+// 字号档位（rpx）
+//
+// 与一期的 $font-size-* 一一对应（一期用 px，二期统一用 rpx；1px ≈ 2rpx @750 设计稿）。
+// 语义化命名便于按「用途」取用 —— 组件里不要再手写 rpx 数值，改档位时才会全局生效。
+//
+// | 二期 token      | rpx   | 一期对应              | 用途                                  |
+// | --------------- | ----- | --------------------- | ------------------------------------- |
+// | $p2-fs-caption  | 24rpx | $font-size-sm  (12px) | 辅助说明、表单校验提示                |
+// | $p2-fs-body     | 28rpx | $font-size-base(14px) | 正文段落                              |
+// | $p2-fs-control  | 32rpx | $font-size-lg  (16px) | 输入框与按钮文字（控件文字统一此档）  |
+// | $p2-fs-title    | 36rpx | $font-size-xl  (18px) | 弹窗标题、区块小标题                  |
+// | $p2-fs-heading  | 44rpx | $font-size-2xl (22px) | 页面区块标题                          |
+// | $p2-fs-display  | 56rpx | $font-size-3xl (28px) | 页面主标题                            |
+//
+// 依据：档位对齐一期的既有体系（一期 fo-sheet 的弹窗标题即 $font-size-lg = 32rpx），
+// 同时与平台规范同量级 —— iOS HIG 的 Alert 标题为 17pt（≈34rpx），
+// Material 3 的 dialog headline 为 24sp（≈48rpx）。本项目是 iOS 风格的暖色手绘风，
+// 取 iOS 那一档，并因手绘体笔画偏细而上浮一档（title 36rpx）。
+// 页面主标题（如登录页品牌名的 72rpx）属特殊场景，可不受此表约束单独定值。
+//
+$p2-fs-caption: 24rpx;
+$p2-fs-body: 28rpx;
+$p2-fs-control: 32rpx;
+$p2-fs-title: 36rpx;
+$p2-fs-heading: 44rpx;
+$p2-fs-display: 56rpx;
+
+// 手绘标题字体（猫啃什锦黑，OFL 1.1）
+// 此处只声明字体名；@font-face 本体在 scss/font-maoken.scss，
+// 需要使用的页面自行 @import，避免 base64 数据被重复打进每个页面的 wxss
+// 注意：该字体为单字重（usWeightClass 500），使用处不要再设 font-weight: bold
 $p2-font-hand: 'MaokenAssortedSans';
 $p2-font-fallback: -apple-system, 'PingFang SC', 'Helvetica Neue', sans-serif;
