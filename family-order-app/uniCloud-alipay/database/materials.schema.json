@@ -1,0 +1,67 @@
+{
+    "bsonType": "object",
+    "required": ["name", "group"],
+    "permission": {
+        "read": false,
+        "create": false,
+        "update": false,
+        "delete": false
+    },
+    "properties": {
+        "_id": {
+            "description": "ID"
+        },
+        "name": {
+            "bsonType": "string",
+            "description": "物料名称",
+            "trim": "both",
+            "label": "名称",
+            "errorMessage": "物料名称必填"
+        },
+        "group": {
+            "bsonType": "string",
+            "description": "所属分组：ingredient 食材 / seasoning 调料。两者字段完全同构，故合并为一张表、靠本字段区分，将来新增分组（如干货、冷冻）只需扩展 enum",
+            "enum": ["ingredient", "seasoning"],
+            "label": "分组",
+            "errorMessage": "分组必填且只能为 ingredient 或 seasoning"
+        },
+        "image": {
+            "bsonType": "string",
+            "description": "物料图片地址（云存储）。每个物料一张，建议生成时统一规格（尺寸 / 比例 / 透明底一致），列表渲染才能共用同一套裁切逻辑",
+            "defaultValue": "",
+            "label": "图片"
+        },
+        "defaultQuantity": {
+            "bsonType": "string",
+            "description": "默认用量文本（新增到菜品时预填，如「300 g」）。用量按自由文本存，不做结构化 —— 将来若要做份量换算或采购汇总，需连同 dishes 侧的 quantity 一起迁移",
+            "defaultValue": "",
+            "label": "默认用量"
+        },
+        "sortOrder": {
+            "bsonType": "int",
+            "description": "排序值（越小越靠前）",
+            "defaultValue": 0,
+            "label": "排序"
+        },
+        "isActive": {
+            "bsonType": "bool",
+            "description": "是否启用（软删除）。停用后不再出现在选择器中，但已被菜品引用的仍能正常渲染，避免菜品里留下查不到的 ID 变成空白格",
+            "defaultValue": true,
+            "label": "启用"
+        },
+        "createTime": {
+            "bsonType": "timestamp",
+            "description": "创建时间",
+            "forceDefaultValue": {
+                "$env": "now"
+            }
+        },
+        "updateTime": {
+            "bsonType": "timestamp",
+            "description": "更新时间",
+            "forceDefaultValue": {
+                "$env": "now"
+            }
+        }
+    }
+}

@@ -48,6 +48,48 @@
             "errorMessage": "备注最多 200 字",
             "defaultValue": ""
         },
+        "ingredients": {
+            "bsonType": "array",
+            "description": "食材列表。只存对 materials 集合的引用 + 本菜用量，名称与图片不复制 —— 物料改名或换图只需改一处，所有引用它的菜品同步生效",
+            "arrayType": "object",
+            "label": "食材",
+            "defaultValue": [],
+            "properties": {
+                "materialId": {
+                    "bsonType": "string",
+                    "description": "物料 ID（materials 集合，group 为 ingredient）",
+                    "label": "物料"
+                },
+                "quantity": {
+                    "bsonType": "string",
+                    "description": "本菜用量（自由文本，如「300 g」「4 瓣」）。用量随菜而异，故存在引用处而非物料表；物料表里的 defaultQuantity 只是新增时的预填值",
+                    "trim": "both",
+                    "defaultValue": "",
+                    "label": "用量"
+                }
+            }
+        },
+        "seasonings": {
+            "bsonType": "array",
+            "description": "调料列表。结构与 ingredients 完全一致，仅分组不同；与食材分成两个数组是为了 UI 直接映射（详情页分「食材 / 调料」两栏展示）",
+            "arrayType": "object",
+            "label": "调料",
+            "defaultValue": [],
+            "properties": {
+                "materialId": {
+                    "bsonType": "string",
+                    "description": "物料 ID（materials 集合，group 为 seasoning）",
+                    "label": "物料"
+                },
+                "quantity": {
+                    "bsonType": "string",
+                    "description": "本菜用量（自由文本，如「10 ml」「1 小勺」）",
+                    "trim": "both",
+                    "defaultValue": "",
+                    "label": "用量"
+                }
+            }
+        },
         "type": {
             "bsonType": "string",
             "description": "类型：coffee 咖啡 / food 美食",

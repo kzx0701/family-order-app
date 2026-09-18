@@ -27,7 +27,6 @@
               <button v-if="editing" class="remove" :aria-label="'移除' + lookup(item.id).name" @tap="removeMaterial(section.key, item.id)"><Icon name="minus" :size="13" /></button>
               <view class="material-art"><image :src="lookup(item.id).image" mode="aspectFit" /></view>
               <text class="material-name">{{ lookup(item.id).name }}</text>
-              <input v-if="editing" v-model="item.quantity" class="quantity-input" maxlength="20" placeholder="用量（选填）" :aria-label="lookup(item.id).name + '用量'" />
             </view>
             <button v-if="editing" class="add-material" :aria-label="'选择' + section.title" @tap="openPicker(section.key)"><Icon name="plus" :size="23" /><text>加一点</text></button>
           </view>
@@ -112,17 +111,88 @@ const saved = ref(freshRecipe()), draft = ref(null), editing = ref(false), savin
 const shown = computed(() => editing.value ? draft.value : saved.value)
 const dirty = computed(() => editing.value && JSON.stringify(draft.value) !== JSON.stringify(saved.value))
 const picker = ref(''), selection = ref([]), discardDialog = ref(false)
-const pickerOptions = computed(() => pantry.filter(item => item.group === picker.value))
+/**
+ * 云端物料（materials 集合）
+ *
+ * 页面的分组 key 是复数（ingredients / seasonings），而云端 materials.group 是单数
+ * （ingredient / seasoning）—— 在这里做一次映射，不把两套命名混进模板。
+ */
+const CLOUD_GROUP = { ingredients: 'ingredient', seasonings: 'seasoning' }
+const cloudMaterials = ref([])
+const cloudMaterialMap = computed(() => {
+  const map = {}
+  for (const m of cloudMaterials.value) map[m._id] = m
+  return map
+})
+
 const sections = [{ key: 'ingredients', title: '食材', caption: '新鲜一点，好吃一点' }, { key: 'seasonings', title: '调料', caption: '好味道的秘密' }]
-const lookup = id => pantry.find(item => item.id === id) || { name: '食材', image: '' }
+
+/**
+ * 按 id 取物料的名称与图片：**云端优先、本地兜底**
+ *
+ * 已入 materials 的物料（当前是调料）显示云端的真实名称与图片；
+ * 尚未入库的（当前是食材）回退到内置 pantry —— 页面不会因此出现空白格。
+ * 统一返回 { name, image, quantity }，调用方不必关心数据来自哪一侧。
+ */
+const lookup = id => {
+  const cloud = cloudMaterialMap.value[id]
+  if (cloud) return { name: cloud.name, image: cloud.image, quantity: cloud.defaultQuantity || '' }
+  return pantry.find(item => item.id === id) || { name: '食材', image: '', quantity: '' }
+}
+
+/**
+ * 选择器选项：只读云端 materials 的真实数据
+ *
+ * 不再拼接本地 mock —— 两套数据的 id 体系不同（云端是物料 _id，本地是 'oil' / 'salt'），
+ * 按 id 去重根本不成立，结果就是「同一个食用油出现两次」。取消本地补足后只剩一份数据源。
+ * 已停用（isActive === false）的物料不出现在选择器里。
+ */
+const pickerOptions = computed(() => cloudMaterials.value
+  .filter(m => m.group === CLOUD_GROUP[picker.value] && m.isActive !== false)
+  .map(m => ({ id: m._id, name: m.name, image: m.image, quantity: m.defaultQuantity || '' })))
 let leaveAfterDiscard = false, nextId = 0
-onLoad(() => {
+/**
+ * 加载云端真实数据（当前只用于「调料」）
+ *
+ * 两件事：
+ *   1. 取 materials 全量，供 lookup() 与选择器把 materialId 翻译成名称与图片
+ *   2. 取云端菜品的 seasonings 覆盖本地那一份 —— 调料以云端配置为准
+ *
+ * 页面尚未接入列表页传参，暂取 food 类型的第一条菜品；
+ * 接口不通时整段静默降级为本地数据，页面照旧可看，不会白屏。
+ */
+const loadCloudSeasonings = async () => {
+  try {
+    const [matRes, dishRes] = await Promise.all([
+      uniCloud.callFunction({ name: 'app-service', data: { module: 'materials-crud', action: 'list' } }),
+      uniCloud.callFunction({ name: 'app-service', data: { module: 'dishes-crud', action: 'list', type: 'food' } })
+    ])
+    const matResult = matRes.result || {}
+    if (matResult.code === 0) cloudMaterials.value = matResult.list || []
+
+    const dishResult = dishRes.result || {}
+    const dish = dishResult.code === 0 ? (dishResult.list || [])[0] : null
+    if (dish && Array.isArray(dish.seasonings) && dish.seasonings.length) {
+      // 云端存的是 { materialId, quantity }，页面内部统一用 { id, quantity }
+      saved.value = {
+        ...saved.value,
+        seasonings: dish.seasonings.map(s => ({ id: s.materialId, quantity: s.quantity || '' }))
+      }
+    }
+  } catch (e) {
+    console.error('[recipe-detail] 加载云端调料失败', e)
+  }
+}
+
+onLoad(async () => {
   try {
     const value = uni.getStorageSync(STORAGE_KEY)
     if (value?.version === 1 && typeof value.name === 'string' && typeof value.subtitle === 'string'
       && ['ingredients', 'seasonings'].every(group => Array.isArray(value[group]) && value[group].every(item => pantry.some(p => p.id === item.id && p.group === group) && typeof item.quantity === 'string'))
       && Array.isArray(value.steps) && value.steps.length > 0 && value.steps.every(step => typeof step.id === 'string' && ['title', 'description', 'tip'].every(key => typeof step[key] === 'string')) && !validateRecipe(value)) saved.value = cloneRecipe(value)
   } catch { /* Corrupted or unavailable local storage falls back to the demo. */ }
+
+  await loadCloudSeasonings()
 })
 const exitEditing = () => { editing.value = false; draft.value = null; picker.value = ''; attempted.value = false }
 watch(canEdit, allowed => { if (!allowed) { exitEditing(); discardDialog.value = false } })
@@ -191,7 +261,7 @@ button { margin:0; padding:0; background:transparent; color:inherit; font:inheri
 .nav { position:absolute; top:0; left:0; right:0; z-index:10; display:flex; align-items:center; padding:0 34rpx; font-size:$p2-fs-caption; }
 .icon-button { width:72rpx; height:72rpx; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 // 返回按钮：形态对齐项目统一的圆形图标按钮（scss/mixins.scss 的 btn-icon —— 72rpx、
-// 图标居中、按下缩放），质感改用二期语言 —— 手绘圆（同 .hero-wash / .material-art 的
+// 图标居中、按下缩放），质感改用二期语言 —— 手绘圆（同 .hero-wash 的
 // 不规则圆角手法）+ 实棕描边 + 硬投影，与页面 .primary 按钮同一套「贴纸」语汇。
 // 原来是一个 #d4c4af 浅描边的方角块、且无投影，与页面其它元素不是同一套语言。
 .back { border:2rpx solid $p2-line; background:$p2-surface; border-radius:48% 52% 47% 53%; box-shadow:3rpx 4rpx 0 #62473518; }
@@ -232,13 +302,18 @@ button { margin:0; padding:0; background:transparent; color:inherit; font:inheri
 // vertical-align:top 用于消除 inline 元素固有的基线间隙。
 .material-scroll { width:100%; }.material-row { display:inline-flex; vertical-align:top; gap:19rpx; padding:12rpx 0 6rpx; }
 .material { width:140rpx; flex-shrink:0; text-align:center; position:relative; }
-.material-art { width:120rpx; height:116rpx; border-radius:48% 52% 47% 53%; margin:0 auto 8rpx; background:#f2efde; image { width:100%; height:100%; } }
-// 浏览态卡片只保留「图标 + 名称」：名称下方不再渲染用量，原 `.quantity` 样式随之移除。
-// 用量数据本身仍在（pantry / storage 的 item.quantity），编辑态仍可填写、保存时仍会 trim 保留。
+// 图标不衬底色：去掉原来的浅色圆片（background:#f2efde + 不规则圆角），素材直接落在纸色底上。
+// 尺寸与下间距保持不变，标题行不会位移。
+.material-art { width:120rpx; height:116rpx; margin:0 auto 8rpx; image { width:100%; height:100%; } }
+// 卡片只保留「图标 + 名称」：浏览态与编辑态都不再出现用量。
+// 数据结构里的 quantity 字段**保留不动** —— 它与云端 dishes.seasonings 一致、随接口读入，
+// 将来要恢复用量展示或编辑时数据还在，不必迁移。
 .material-name { display:block; font-size:$p2-fs-body; }
 .remove { position:absolute; top:-8rpx; right:2rpx; width:48rpx; height:48rpx; display:flex; align-items:center; justify-content:center; background:#fae4d9; border-radius:50%; z-index:1; }
-.quantity-input { font-size:22rpx; height:62rpx; border:2rpx dashed #cbbba2; border-radius:12rpx; margin-top:10rpx; background:$p2-surface; }
-.add-material { width:124rpx; min-height:190rpx; flex-shrink:0; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:12rpx; color:#879172; border:2rpx dashed #c3c9ac; border-radius:20rpx 24rpx 19rpx 23rpx; font-size:$p2-fs-caption; }
+// 「加一点」的高度交给 flex 自动拉伸（.material-row 默认 align-items:stretch）。
+// 原先写死 min-height:190rpx，是因为编辑态卡片带用量输入框、总高约 235rpx；
+// 去掉输入框后卡片只剩约 163rpx，190rpx 会让它比旁边的卡片高出一截。
+.add-material { width:124rpx; flex-shrink:0; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:12rpx; color:#879172; border:2rpx dashed #c3c9ac; border-radius:20rpx 24rpx 19rpx 23rpx; font-size:$p2-fs-caption; }
 .empty { display:block; font-size:$p2-fs-caption; color:$p2-ink-soft; padding:20rpx 0; }
 .steps-heading { padding-top:26rpx; border-top:2rpx dashed #e1d6c3; }
 .step { padding:24rpx 0 30rpx; border-bottom:2rpx dashed #e1d6c3; }

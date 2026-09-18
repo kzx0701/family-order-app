@@ -201,9 +201,7 @@ button[disabled].data-v-fc6387aa {
 .material-art.data-v-fc6387aa {
   width: 120rpx;
   height: 116rpx;
-  border-radius: 48% 52% 47% 53%;
   margin: 0 auto 8rpx;
-  background: #f2efde;
 }
 .material-art image.data-v-fc6387aa {
   width: 100%;
@@ -226,17 +224,8 @@ button[disabled].data-v-fc6387aa {
   border-radius: 50%;
   z-index: 1;
 }
-.quantity-input.data-v-fc6387aa {
-  font-size: 22rpx;
-  height: 62rpx;
-  border: 2rpx dashed #cbbba2;
-  border-radius: 12rpx;
-  margin-top: 10rpx;
-  background: #fffdf7;
-}
 .add-material.data-v-fc6387aa {
   width: 124rpx;
-  min-height: 190rpx;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;

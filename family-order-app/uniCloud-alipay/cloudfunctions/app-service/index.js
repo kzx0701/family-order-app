@@ -18,6 +18,7 @@
  *   - user-identity       身份与引导状态（getState / completeOnboarding / switchMode）
  *   - family-data         家庭信息（get / updateName）
  *   - categories-crud     分类 CRUD
+ *   - materials-crud      物料 CRUD（食材 / 调料共用一张表，靠 group 区分）
  *   - dishes-crud         菜品 CRUD
  *   - menu-list           菜单/分类查询（点单页）
  *   - home-data           首页聚合数据
@@ -31,6 +32,7 @@ const handlers = {
   'user-update-profile': require('./modules/user-update-profile.js'),
   'user-identity': require('./modules/user-identity.js'),
   'categories-crud': require('./modules/categories.js'),
+  'materials-crud': require('./modules/materials.js'),
   'dishes-crud': require('./modules/dishes.js'),
   'menu-list': require('./modules/menu-list.js'),
   'home-data': require('./modules/home-data.js'),

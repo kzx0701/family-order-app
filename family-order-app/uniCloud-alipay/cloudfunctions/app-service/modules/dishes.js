@@ -4,6 +4,35 @@ const { requireCook } = require('../utils/auth.js')
 // 辣度档位：与 mock/recipes.js 的 flavors 一致（不辣 / 微辣 / 中辣）
 const SPICY_LEVELS = ['none', 'mild', 'medium']
 
+// 单条配料用量的长度上限（自由文本，与 note 同思路做保护性截断）
+const MAX_QUANTITY_LENGTH = 40
+
+/**
+ * 归一化配料引用数组（ingredients / seasonings 共用）
+ *
+ * 入参形如 [{ materialId, quantity }]：
+ *   - materialId 必须是非空字符串，否则渲染时查不到物料、界面留空白，直接丢弃
+ *   - 同一物料在一道菜里只应出现一次，重复项去重（保留首次出现的用量）
+ *   - quantity 转字符串 + trim + 截断，防超长文本进库
+ *   - 入参不是数组时落回空数组 —— 保证 dishes 里始终有这个字段，前端不必判 undefined
+ */
+function normalizeMaterials(input) {
+  if (!Array.isArray(input)) return []
+  const seen = new Set()
+  const list = []
+  for (const item of input) {
+    if (!item || typeof item.materialId !== 'string') continue
+    const materialId = item.materialId.trim()
+    if (!materialId || seen.has(materialId)) continue
+    seen.add(materialId)
+    list.push({
+      materialId,
+      quantity: item.quantity ? String(item.quantity).trim().slice(0, MAX_QUANTITY_LENGTH) : ''
+    })
+  }
+  return list
+}
+
 /**
  * 菜品 CRUD 云函数
  *
@@ -152,7 +181,7 @@ async function listDishes({ type, categoryId, isOnSale } = {}, dishCol, catCol) 
  * 新增菜品
  * 必填：name、type
  */
-async function createDish({ name, image, description, spicy, note, type, categoryId, isOnSale, isRecommended, isSignature, sortOrder, temp } = {}, dishCol) {
+async function createDish({ name, image, description, spicy, note, ingredients, seasonings, type, categoryId, isOnSale, isRecommended, isSignature, sortOrder, temp } = {}, dishCol) {
   if (!name || !String(name).trim()) {
     return { code: 400, message: '菜品名称必填' }
   }
@@ -168,6 +197,10 @@ async function createDish({ name, image, description, spicy, note, type, categor
     // 辣度：不在档位内一律落回「不辣」，避免脏值进库
     spicy: SPICY_LEVELS.includes(spicy) ? spicy : 'none',
     note: note ? String(note).trim().slice(0, 200) : '',
+    // 配料：只存对 materials 集合的引用 + 本菜用量，名称与图片不落库
+    //（否则同一物料在 N 道菜里存 N 份，改一次图就要遍历所有菜品）
+    ingredients: normalizeMaterials(ingredients),
+    seasonings: normalizeMaterials(seasonings),
     type,
     categoryId: categoryId || '',
     isOnSale: isOnSale !== false,
@@ -209,6 +242,14 @@ async function updateDish({ _id, ...patch } = {}, dishCol) {
   }
   if (patch.note !== undefined) {
     patch.note = patch.note ? String(patch.note).trim().slice(0, 200) : ''
+  }
+  // 配料：整组替换而非合并 —— 编辑器提交的就是完整列表，
+  // 合并语义会让「删掉一个配料」这件事无法表达
+  if (patch.ingredients !== undefined) {
+    patch.ingredients = normalizeMaterials(patch.ingredients)
+  }
+  if (patch.seasonings !== undefined) {
+    patch.seasonings = normalizeMaterials(patch.seasonings)
   }
   if (patch.sortOrder !== undefined) {
     patch.sortOrder = Number(patch.sortOrder) || 0
