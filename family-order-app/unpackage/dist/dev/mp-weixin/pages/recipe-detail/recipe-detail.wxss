@@ -488,23 +488,69 @@ button[disabled].data-v-fc6387aa {
   justify-content: space-between;
   align-items: center;
 }
+.picker-search.data-v-fc6387aa {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+  height: 72rpx;
+  padding: 0 24rpx;
+  margin-top: 26rpx;
+  color: #8c725e;
+  background: #fffdf7;
+  border: 2rpx solid #765540;
+  border-radius: 20rpx 24rpx 19rpx 23rpx;
+  transition: border-color 140ms cubic-bezier(0.22, 0.75, 0.24, 1);
+}
+.picker-search.is-focused.data-v-fc6387aa {
+  border-color: #e97a69;
+}
+.picker-search-input.data-v-fc6387aa {
+  flex: 1;
+  min-width: 0;
+  height: 64rpx;
+  font-size: 32rpx;
+  color: #624735;
+}
+.picker-search-clear.data-v-fc6387aa {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56rpx;
+  height: 56rpx;
+  color: #8c725e;
+}
 .picker-scroll.data-v-fc6387aa {
-  max-height: 48vh;
-  margin: 24rpx 0;
+  max-height: 618rpx;
+  margin: 22rpx 0 24rpx;
+}
+.picker-blank.data-v-fc6387aa {
+  padding: 44rpx 6rpx;
+  text-align: center;
+  color: #8c725e;
+  font-size: 24rpx;
+  animation: picker-pop-fc6387aa 260ms cubic-bezier(0.22, 0.75, 0.24, 1) backwards;
+}
+.picker-blank text.data-v-fc6387aa {
+  display: block;
+  line-height: 1.9;
 }
 .picker-grid.data-v-fc6387aa {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
+  grid-auto-rows: 190rpx;
   gap: 18rpx;
   padding: 6rpx;
 }
 .picker-item.data-v-fc6387aa {
+  box-sizing: border-box;
+  height: 190rpx;
   position: relative;
   border: 2rpx solid #e1d8c5;
   padding: 15rpx;
   border-radius: 20rpx;
   font-size: 28rpx;
   background: #fffdf7;
+  animation: picker-pop-fc6387aa 260ms cubic-bezier(0.22, 0.75, 0.24, 1) backwards;
 }
 .picker-item image.data-v-fc6387aa {
   display: block;
@@ -515,6 +561,16 @@ button[disabled].data-v-fc6387aa {
 .picker-item.selected.data-v-fc6387aa {
   background: #eaf0db;
   border-color: #8b9e6a;
+}
+@keyframes picker-pop-fc6387aa {
+from {
+    opacity: 0;
+    transform: translateY(16rpx) scale(0.94);
+}
+to {
+    opacity: 1;
+    transform: none;
+}
 }
 .selection-dot.data-v-fc6387aa {
   position: absolute;
@@ -553,7 +609,7 @@ to {
 button.data-v-fc6387aa {
     transition: none;
 }
-.editor.data-v-fc6387aa, .sheet.data-v-fc6387aa {
+.editor.data-v-fc6387aa, .sheet.data-v-fc6387aa, .picker-item.data-v-fc6387aa, .picker-blank.data-v-fc6387aa {
     animation: none;
 }
 }

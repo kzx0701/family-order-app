@@ -31,11 +31,14 @@
             "defaultValue": "",
             "label": "图片"
         },
-        "defaultQuantity": {
+        "unit": {
             "bsonType": "string",
-            "description": "默认用量文本（新增到菜品时预填，如「300 g」）。用量按自由文本存，不做结构化 —— 将来若要做份量换算或采购汇总，需连同 dishes 侧的 quantity 一起迁移",
+            "description": "计量单位，常用值：g / ml / 个 / 只 / 条 / 根 / 片 / 瓣 / 朵 / 块 / 把 / 勺 / 适量。仅描述该物料惯用什么单位计量，具体用量仍按自由文本存在菜品对它的引用里（dishes.ingredients[].quantity），此处不做结构化与换算",
+            "trim": "both",
+            "maxLength": 8,
             "defaultValue": "",
-            "label": "默认用量"
+            "label": "单位",
+            "errorMessage": "单位最多 8 个字"
         },
         "sortOrder": {
             "bsonType": "int",

@@ -15,6 +15,12 @@ if (!Math) {
   (_easycom_Icon + _easycom_fo_dialog)();
 }
 const STORAGE_KEY = "fo_recipe_editor_demo_v2";
+const PLACEHOLDER_STYLE = "color: rgba(140, 114, 94, 0.55)";
+const PICKER_ROW_RPX = 190;
+const PICKER_GAP_RPX = 18;
+const PICKER_GRID_PAD_RPX = 12;
+const PICKER_COLS = 3;
+const PICKER_MAX_ROWS = 3;
 const _sfc_main = {
   __name: "recipe-detail",
   setup(__props) {
@@ -37,7 +43,17 @@ const _sfc_main = {
     const shown = common_vendor.computed(() => editing.value ? draft.value : saved.value);
     const dirty = common_vendor.computed(() => editing.value && JSON.stringify(draft.value) !== JSON.stringify(saved.value));
     const picker = common_vendor.ref(""), selection = common_vendor.ref([]), discardDialog = common_vendor.ref(false);
+    const pickerKeyword = common_vendor.ref(""), pickerFocused = common_vendor.ref(false);
     const CLOUD_GROUP = { ingredients: "ingredient", seasonings: "seasoning" };
+    const materialFromCloud = (item) => ({ id: item.materialId, quantity: item.quantity || "" });
+    const materialToCloud = (item) => ({ materialId: item.id, quantity: item.quantity });
+    const STEPS_STAMP = Date.now();
+    const stepFromCloud = (step, index) => ({
+      id: "s" + STEPS_STAMP + "-" + index,
+      title: step.title || "",
+      description: step.description || "",
+      tip: step.tip || ""
+    });
     const cloudMaterials = common_vendor.ref([]);
     const cloudMaterialMap = common_vendor.computed(() => {
       const map = {};
@@ -49,40 +65,58 @@ const _sfc_main = {
     const lookup = (id) => {
       const cloud = cloudMaterialMap.value[id];
       if (cloud)
-        return { name: cloud.name, image: cloud.image, quantity: cloud.defaultQuantity || "" };
+        return { name: cloud.name, image: cloud.image, quantity: "" };
       return mock_recipeEditor.pantry.find((item) => item.id === id) || { name: "食材", image: "", quantity: "" };
     };
-    const pickerOptions = common_vendor.computed(() => cloudMaterials.value.filter((m) => m.group === CLOUD_GROUP[picker.value] && m.isActive !== false).map((m) => ({ id: m._id, name: m.name, image: m.image, quantity: m.defaultQuantity || "" })));
+    const pickerGroupOptions = common_vendor.computed(() => cloudMaterials.value.filter((m) => m.group === CLOUD_GROUP[picker.value] && m.isActive !== false));
+    const pickerOptions = common_vendor.computed(() => {
+      const keyword = pickerKeyword.value.trim().toLocaleLowerCase();
+      return pickerGroupOptions.value.filter((m) => !keyword || String(m.name || "").toLocaleLowerCase().includes(keyword)).map((m) => ({ id: m._id, name: m.name, image: m.image }));
+    });
+    const pickerListHeight = common_vendor.computed(() => {
+      const rows = Math.min(Math.max(Math.ceil(pickerGroupOptions.value.length / PICKER_COLS), 1), PICKER_MAX_ROWS);
+      return rows * PICKER_ROW_RPX + (rows - 1) * PICKER_GAP_RPX + PICKER_GRID_PAD_RPX + "rpx";
+    });
     let leaveAfterDiscard = false, nextId = 0;
-    const loadCloudSeasonings = async () => {
+    const cloudDishId = common_vendor.ref("");
+    const loadCloudRecipe = async (id) => {
       try {
-        const [matRes, dishRes] = await Promise.all([
-          common_vendor.Vs.callFunction({ name: "app-service", data: { module: "materials-crud", action: "list" } }),
-          common_vendor.Vs.callFunction({ name: "app-service", data: { module: "dishes-crud", action: "list", type: "food" } })
-        ]);
+        const matRes = await common_vendor.Vs.callFunction({ name: "app-service", data: { module: "materials-crud", action: "list" } });
         const matResult = matRes.result || {};
         if (matResult.code === 0)
           cloudMaterials.value = matResult.list || [];
+        if (!id)
+          return;
+        const dishRes = await common_vendor.Vs.callFunction({ name: "app-service", data: { module: "dishes-crud", action: "detail", _id: id } });
         const dishResult = dishRes.result || {};
-        const dish = dishResult.code === 0 ? (dishResult.list || [])[0] : null;
-        if (dish && Array.isArray(dish.seasonings) && dish.seasonings.length) {
-          saved.value = {
-            ...saved.value,
-            seasonings: dish.seasonings.map((s) => ({ id: s.materialId, quantity: s.quantity || "" }))
-          };
-        }
+        if (dishResult.code !== 0 || !dishResult.dish)
+          return;
+        const dish = dishResult.dish;
+        const pick = (list) => (Array.isArray(list) ? list : []).filter((item) => item && item.materialId).map(materialFromCloud);
+        saved.value = {
+          ...saved.value,
+          name: dish.name || saved.value.name,
+          // description 为空串代表「用户清空了简介」，不能用 || 退回本地那份
+          subtitle: typeof dish.description === "string" ? dish.description : saved.value.subtitle,
+          ingredients: pick(dish.ingredients),
+          seasonings: pick(dish.seasonings),
+          // 步骤同样以云端为准。云端还没有这个字段时（旧数据、尚未录入步骤的菜谱）落回空数组，
+          // 页面显示「还没有记录步骤」，而不是继续展示本地演示数据里的那三步
+          steps: (Array.isArray(dish.steps) ? dish.steps : []).map(stepFromCloud)
+        };
+        cloudDishId.value = id;
       } catch (e) {
-        common_vendor.index.__f__("error", "at pages/recipe-detail/recipe-detail.vue:183", "[recipe-detail] 加载云端调料失败", e);
+        common_vendor.index.__f__("error", "at pages/recipe-detail/recipe-detail.vue:250", "[recipe-detail] 加载云端菜谱失败", e);
       }
     };
-    common_vendor.onLoad(async () => {
+    common_vendor.onLoad(async (options) => {
       try {
         const value = common_vendor.index.getStorageSync(STORAGE_KEY);
-        if ((value == null ? void 0 : value.version) === 1 && typeof value.name === "string" && typeof value.subtitle === "string" && ["ingredients", "seasonings"].every((group) => Array.isArray(value[group]) && value[group].every((item) => mock_recipeEditor.pantry.some((p) => p.id === item.id && p.group === group) && typeof item.quantity === "string")) && Array.isArray(value.steps) && value.steps.length > 0 && value.steps.every((step) => typeof step.id === "string" && ["title", "description", "tip"].every((key) => typeof step[key] === "string")) && !mock_recipeEditor.validateRecipe(value))
+        if ((value == null ? void 0 : value.version) === 1 && typeof value.name === "string" && typeof value.subtitle === "string" && ["ingredients", "seasonings"].every((group) => Array.isArray(value[group]) && value[group].every((item) => item && typeof item.id === "string" && typeof item.quantity === "string")) && Array.isArray(value.steps) && value.steps.every((step) => typeof step.id === "string" && ["title", "description", "tip"].every((key) => typeof step[key] === "string")) && !mock_recipeEditor.validateRecipe(value))
           saved.value = mock_recipeEditor.cloneRecipe(value);
       } catch {
       }
-      await loadCloudSeasonings();
+      await loadCloudRecipe(options && options.id || "");
     });
     const exitEditing = () => {
       editing.value = false;
@@ -146,6 +180,7 @@ const _sfc_main = {
       if (!editing.value || !canEdit.value)
         return;
       selection.value = draft.value[group].map((item) => item.id);
+      pickerKeyword.value = "";
       picker.value = group;
     };
     const toggleSelection = (id) => {
@@ -183,7 +218,7 @@ const _sfc_main = {
       const [step] = draft.value.steps.splice(index, 1);
       draft.value.steps.splice(target, 0, step);
     };
-    const save = () => {
+    const save = async () => {
       if (!canEdit.value || !editing.value || saving.value)
         return;
       attempted.value = true;
@@ -210,10 +245,35 @@ const _sfc_main = {
           for (const key of ["title", "description", "tip"])
             step[key] = step[key].trim();
         });
+        let toast = "菜谱已保存";
+        if (cloudDishId.value) {
+          const res = await common_vendor.Vs.callFunction({
+            name: "app-service",
+            data: {
+              module: "dishes-crud",
+              action: "update",
+              token: userStore.token,
+              _id: cloudDishId.value,
+              name: value.name,
+              description: value.subtitle,
+              ingredients: value.ingredients.map(materialToCloud),
+              seasonings: value.seasonings.map(materialToCloud),
+              // 步骤显式摘掉前端的 id（渲染标识，不进库）；顺序即数组顺序
+              steps: value.steps.map((step) => ({ title: step.title, description: step.description, tip: step.tip }))
+            }
+          });
+          const result = res.result || {};
+          if (result.code !== 0) {
+            common_vendor.index.showToast({ title: result.message || "保存到云端失败，请重试", icon: "none" });
+            return;
+          }
+        } else {
+          toast = "已存到本机（未连接云端菜谱）";
+        }
         common_vendor.index.setStorageSync(STORAGE_KEY, value);
         saved.value = value;
         exitEditing();
-        common_vendor.index.showToast({ title: "菜谱已保存到本机", icon: "none" });
+        common_vendor.index.showToast({ title: toast, icon: "none" });
       } catch {
         common_vendor.index.showToast({ title: "保存失败，修改仍在，请重试", icon: "none" });
       } finally {
@@ -245,7 +305,9 @@ const _sfc_main = {
       }, shown.value.subtitle ? {
         n: common_vendor.t(shown.value.subtitle)
       } : {}), {
-        o: common_vendor.f(sections, (section, index, i0) => {
+        o: !cloudDishId.value
+      }, !cloudDishId.value ? {} : {}, {
+        p: common_vendor.f(sections, (section, index, i0) => {
           return common_vendor.e({
             a: common_vendor.t(index + 1),
             b: common_vendor.n(section.key),
@@ -292,13 +354,13 @@ const _sfc_main = {
             p: section.key
           });
         }),
-        p: !editing.value,
-        q: editing.value,
+        q: !editing.value,
         r: editing.value,
-        s: common_vendor.t(shown.value.steps.length),
-        t: editing.value
+        s: editing.value,
+        t: common_vendor.t(shown.value.steps.length ? shown.value.steps.length + " 个小步骤" : "还没记录"),
+        v: editing.value
       }, editing.value ? {} : {}, {
-        v: common_vendor.f(shown.value.steps, (step, index, i0) => {
+        w: common_vendor.f(shown.value.steps, (step, index, i0) => {
           return common_vendor.e({
             a: common_vendor.t(index + 1)
           }, editing.value ? {
@@ -358,83 +420,114 @@ const _sfc_main = {
             K: editing.value && attempted.value && !step.title.trim() ? 1 : ""
           });
         }),
-        w: editing.value,
         x: editing.value,
-        y: editing.value ? 1 : "",
-        z: editing.value
+        y: editing.value,
+        z: editing.value ? 1 : "",
+        A: !shown.value.steps.length
+      }, !shown.value.steps.length ? {
+        B: common_vendor.t(editing.value ? "还没有步骤，点下面的「增加步骤」开始写" : "这道菜还没有记录步骤")
+      } : {}, {
+        C: editing.value
       }, editing.value ? {
-        A: common_vendor.p({
+        D: common_vendor.p({
           name: "plus",
           size: 19
         }),
-        B: common_vendor.t(draft.value.steps.length >= 30 ? "最多 30 个步骤" : "增加步骤"),
-        C: draft.value.steps.length >= 30,
-        D: common_vendor.o(addStep, "86")
+        E: common_vendor.t(draft.value.steps.length >= 30 ? "最多 30 个步骤" : "增加步骤"),
+        F: draft.value.steps.length >= 30,
+        G: common_vendor.o(addStep, "5a")
       } : {
-        E: common_vendor.p({
+        H: common_vendor.p({
           name: "food",
           size: 16
         })
       }, {
-        F: canEdit.value
+        I: canEdit.value
       }, canEdit.value ? common_vendor.e({
-        G: editing.value
+        J: editing.value
       }, editing.value ? {
-        H: common_vendor.o(cancelEditing, "6e"),
-        I: common_vendor.p({
+        K: common_vendor.o(cancelEditing, "bc"),
+        L: common_vendor.p({
           name: "check",
           size: 18
         }),
-        J: common_vendor.t(saving.value ? "正在保存…" : "保存菜谱"),
-        K: saving.value,
-        L: common_vendor.o(save, "c7")
+        M: common_vendor.t(saving.value ? "正在保存…" : "保存菜谱"),
+        N: saving.value,
+        O: common_vendor.o(save, "4c")
       } : {
-        M: common_vendor.p({
+        P: common_vendor.p({
           name: "edit",
           size: 18
         }),
-        N: common_vendor.o(startEditing, "c6"),
-        O: common_vendor.p({
+        Q: common_vendor.o(startEditing, "ce"),
+        R: common_vendor.p({
           name: "upload",
           size: 18
         })
       }) : {}, {
-        P: picker.value && editing.value && canEdit.value
-      }, picker.value && editing.value && canEdit.value ? {
-        Q: common_vendor.o(($event) => picker.value = "", "11"),
-        R: common_vendor.o(() => {
-        }, "fc"),
-        S: common_vendor.t(picker.value === "ingredients" ? "食材" : "调料"),
-        T: common_vendor.p({
-          name: "close",
-          size: 20
+        S: picker.value && editing.value && canEdit.value
+      }, picker.value && editing.value && canEdit.value ? common_vendor.e({
+        T: common_vendor.o(($event) => picker.value = "", "ce"),
+        U: common_vendor.o(() => {
+        }, "fd"),
+        V: common_vendor.t(picker.value === "ingredients" ? "食材" : "调料"),
+        W: common_vendor.p({
+          name: "search",
+          size: 16,
+          ["stroke-width"]: 2.2
         }),
-        U: common_vendor.o(($event) => picker.value = "", "93"),
-        V: common_vendor.f(pickerOptions.value, (item, k0, i0) => {
+        X: "搜一搜" + (picker.value === "ingredients" ? "食材" : "调料"),
+        Y: PLACEHOLDER_STYLE,
+        Z: "搜索" + (picker.value === "ingredients" ? "食材" : "调料"),
+        aa: common_vendor.o(($event) => pickerFocused.value = true, "5f"),
+        ab: common_vendor.o(($event) => pickerFocused.value = false, "0f"),
+        ac: pickerKeyword.value,
+        ad: common_vendor.o(($event) => pickerKeyword.value = $event.detail.value, "85"),
+        ae: pickerKeyword.value
+      }, pickerKeyword.value ? {
+        af: common_vendor.p({
+          name: "close",
+          size: 13
+        }),
+        ag: common_vendor.o(($event) => pickerKeyword.value = "", "0e")
+      } : {}, {
+        ah: pickerFocused.value ? 1 : "",
+        ai: !pickerOptions.value.length
+      }, !pickerOptions.value.length ? common_vendor.e({
+        aj: pickerKeyword.value.trim()
+      }, pickerKeyword.value.trim() ? {
+        ak: common_vendor.t(pickerKeyword.value.trim())
+      } : {
+        al: common_vendor.t(picker.value === "ingredients" ? "食材" : "调料"),
+        am: common_vendor.t(CLOUD_GROUP[picker.value])
+      }) : {}, {
+        an: common_vendor.f(pickerOptions.value, (item, index, i0) => {
           return common_vendor.e({
             a: item.image,
             b: common_vendor.t(item.name),
             c: selection.value.includes(item.id)
           }, selection.value.includes(item.id) ? {
-            d: "fc6387aa-14-" + i0,
+            d: "fc6387aa-15-" + i0,
             e: common_vendor.p({
               name: "check",
               size: 12
             })
           } : {}, {
-            f: item.id,
-            g: selection.value.includes(item.id) ? 1 : "",
-            h: "选择" + item.name,
-            i: selection.value.includes(item.id),
-            j: common_vendor.o(($event) => toggleSelection(item.id), item.id)
+            f: item.id + "-" + pickerKeyword.value,
+            g: Math.min(index, 6) * 20 + "ms",
+            h: selection.value.includes(item.id) ? 1 : "",
+            i: "选择" + item.name,
+            j: selection.value.includes(item.id),
+            k: common_vendor.o(($event) => toggleSelection(item.id), item.id + "-" + pickerKeyword.value)
           });
         }),
-        W: common_vendor.t(selection.value.length),
-        X: common_vendor.o(confirmPicker, "0b")
-      } : {}, {
-        Y: common_vendor.o(($event) => discardDialog.value = false, "b2"),
-        Z: common_vendor.o(discard, "d9"),
-        aa: common_vendor.p({
+        ao: pickerListHeight.value,
+        ap: common_vendor.t(selection.value.length),
+        aq: common_vendor.o(confirmPicker, "0a")
+      }) : {}, {
+        ar: common_vendor.o(($event) => discardDialog.value = false, "62"),
+        as: common_vendor.o(discard, "69"),
+        at: common_vendor.p({
           visible: discardDialog.value,
           title: "收起这次修改？",
           subtitle: "未保存的内容会丢失，原来的菜谱仍会保留。",

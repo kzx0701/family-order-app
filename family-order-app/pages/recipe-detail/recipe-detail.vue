@@ -17,7 +17,7 @@
           <input v-model="draft.subtitle" class="field subtitle-field" maxlength="60" placeholder="写一句小介绍（选填）" aria-label="菜谱简介" />
         </template>
         <template v-else><text class="title">{{ shown.name }}</text><text v-if="shown.subtitle" class="subtitle">{{ shown.subtitle }}</text></template>
-        <view class="meta"><view class="leaf" /><text>家常菜 · 不辣</text><text class="demo-label">本机体验菜谱</text></view>
+        <view class="meta"><view class="leaf" /><text>家常菜 · 不辣</text><text v-if="!cloudDishId" class="demo-label">本机体验菜谱</text></view>
       </view>
       <view v-for="(section, index) in sections" :key="section.key" class="material-section">
         <view class="section-head"><text class="number" :class="section.key">{{ index + 1 }}</text><text class="section-title">{{ section.title }}</text><text v-if="!editing" class="caption">{{ section.caption }}</text><button v-else class="text-button" :aria-label="'添加' + section.title" @tap="openPicker(section.key)"><Icon name="plus" :size="14" />添加</button></view>
@@ -33,7 +33,7 @@
         </scroll-view>
         <text v-if="!shown[section.key].length" class="empty">{{ editing ? '点「添加」，挑选需要的' + section.title : '暂未记录' + section.title }}</text>
       </view>
-      <view class="section-head steps-heading"><text class="number coral">3</text><text class="section-title">一起慢慢做</text><text class="caption">{{ shown.steps.length }} 个小步骤</text></view>
+      <view class="section-head steps-heading"><text class="number coral">3</text><text class="section-title">一起慢慢做</text><text class="caption">{{ shown.steps.length ? shown.steps.length + ' 个小步骤' : '还没记录' }}</text></view>
       <text v-if="editing" class="hint">步骤名称必填，详情和注意事项可以留空。</text>
       <view v-for="(step, index) in shown.steps" :id="'step-' + step.id" :key="step.id" class="step" :class="{ editor: editing, invalid: editing && attempted && !step.title.trim() }">
         <view class="step-top"><text class="step-index">步骤 {{ index + 1 }}</text><view v-if="editing" class="step-actions">
@@ -51,6 +51,7 @@
         </template>
         <template v-else><text class="step-title">{{ step.title }}</text><text v-if="step.description" class="description">{{ step.description }}</text><view v-if="step.tip" class="tip"><Icon name="note" :size="16" /><view><text class="tip-label">小小提醒</text><text>{{ step.tip }}</text></view></view></template>
       </view>
+      <text v-if="!shown.steps.length" class="empty">{{ editing ? '还没有步骤，点下面的「增加步骤」开始写' : '这道菜还没有记录步骤' }}</text>
       <button v-if="editing" class="add-step" :disabled="draft.steps.length >= 30" @tap="addStep"><Icon name="plus" :size="19" />{{ draft.steps.length >= 30 ? '最多 30 个步骤' : '增加步骤' }}<text>把好味道，接着往下记</text></button>
       <view v-else class="end-note"><Icon name="food" :size="16" /><text>认真做饭的人，也要好好吃饭呀。</text></view>
     </view>
@@ -60,8 +61,9 @@
     </view>
     <view v-if="picker && editing && canEdit" class="picker-layer">
       <view class="mask" @tap="picker = ''" @touchmove.stop.prevent />
-      <view class="sheet"><view class="handle" /><view class="picker-heading"><view><text class="section-title">挑一点{{ picker === 'ingredients' ? '食材' : '调料' }}</text><text class="subtitle">厨房的小伙伴，都在这里</text></view><button class="icon-button" aria-label="关闭选择" @tap="picker = ''"><Icon name="close" :size="20" /></button></view>
-        <scroll-view scroll-y class="picker-scroll"><view class="picker-grid"><button v-for="item in pickerOptions" :key="item.id" class="picker-item" :class="{ selected: selection.includes(item.id) }" :aria-label="'选择' + item.name" :aria-pressed="selection.includes(item.id)" @tap="toggleSelection(item.id)"><image :src="item.image" mode="aspectFit" /><text>{{ item.name }}</text><view class="selection-dot"><Icon v-if="selection.includes(item.id)" name="check" :size="12" /></view></button></view></scroll-view>
+      <view class="sheet"><view class="handle" /><view class="picker-heading"><view><text class="section-title">挑一点{{ picker === 'ingredients' ? '食材' : '调料' }}</text><text class="subtitle">厨房的小伙伴，都在这里</text></view></view>
+        <view class="picker-search" :class="{ 'is-focused': pickerFocused }"><Icon name="search" :size="16" :stroke-width="2.2" /><input v-model="pickerKeyword" class="picker-search-input" :placeholder="'搜一搜' + (picker === 'ingredients' ? '食材' : '调料')" :placeholder-style="PLACEHOLDER_STYLE" :maxlength="20" confirm-type="search" :aria-label="'搜索' + (picker === 'ingredients' ? '食材' : '调料')" @focus="pickerFocused = true" @blur="pickerFocused = false" /><button v-if="pickerKeyword" class="picker-search-clear" aria-label="清空搜索" @tap="pickerKeyword = ''"><Icon name="close" :size="13" /></button></view>
+        <scroll-view scroll-y class="picker-scroll" :style="{ height: pickerListHeight }"><view v-if="!pickerOptions.length" class="picker-blank"><template v-if="pickerKeyword.trim()"><text>没有找到「{{ pickerKeyword.trim() }}」</text><text>换个词试试</text></template><template v-else><text>这里还没有可选的{{ picker === 'ingredients' ? '食材' : '调料' }}</text><text>请先在云端的 materials 集合里添加，group 填 {{ CLOUD_GROUP[picker] }}</text></template></view><view class="picker-grid"><button v-for="(item, index) in pickerOptions" :key="item.id + '-' + pickerKeyword" class="picker-item" :style="{ animationDelay: Math.min(index, 6) * 20 + 'ms' }" :class="{ selected: selection.includes(item.id) }" :aria-label="'选择' + item.name" :aria-pressed="selection.includes(item.id)" @tap="toggleSelection(item.id)"><image :src="item.image" mode="aspectFit" /><text>{{ item.name }}</text><view class="selection-dot"><Icon v-if="selection.includes(item.id)" name="check" :size="12" /></view></button></view></scroll-view>
         <button class="primary confirm" @tap="confirmPicker">就选这些 · {{ selection.length }} 种</button>
       </view>
     </view>
@@ -111,6 +113,9 @@ const saved = ref(freshRecipe()), draft = ref(null), editing = ref(false), savin
 const shown = computed(() => editing.value ? draft.value : saved.value)
 const dirty = computed(() => editing.value && JSON.stringify(draft.value) !== JSON.stringify(saved.value))
 const picker = ref(''), selection = ref([]), discardDialog = ref(false)
+// 选择器的搜索：关键词与聚焦态（沿用菜谱页搜索框那套输入框规范）
+const PLACEHOLDER_STYLE = 'color: rgba(140, 114, 94, 0.55)'
+const pickerKeyword = ref(''), pickerFocused = ref(false)
 /**
  * 云端物料（materials 集合）
  *
@@ -118,6 +123,22 @@ const picker = ref(''), selection = ref([]), discardDialog = ref(false)
  * （ingredient / seasoning）—— 在这里做一次映射，不把两套命名混进模板。
  */
 const CLOUD_GROUP = { ingredients: 'ingredient', seasonings: 'seasoning' }
+
+// 配料在两个方向上换名：页面内部统一用 { id, quantity }，云端存 { materialId, quantity }。
+// 只在读、写云端的两处调用，模板与编辑器一律用页面内部的写法。
+const materialFromCloud = item => ({ id: item.materialId, quantity: item.quantity || '' })
+const materialToCloud = item => ({ materialId: item.id, quantity: item.quantity })
+
+// 步骤只做单向映射：云端存 { title, description, tip }，**不存 id** —— id 是前端渲染用的标识
+// （v-for 的 key、pageScrollTo 的锚点），不属于业务数据，读取时按位置生成、会话内保持稳定。
+// 步骤顺序即数组顺序，所以写回云端时不需要任何转换。
+const STEPS_STAMP = Date.now()
+const stepFromCloud = (step, index) => ({
+  id: 's' + STEPS_STAMP + '-' + index,
+  title: step.title || '',
+  description: step.description || '',
+  tip: step.tip || ''
+})
 const cloudMaterials = ref([])
 const cloudMaterialMap = computed(() => {
   const map = {}
@@ -133,12 +154,23 @@ const sections = [{ key: 'ingredients', title: '食材', caption: '新鲜一点�
  * 已入 materials 的物料（当前是调料）显示云端的真实名称与图片；
  * 尚未入库的（当前是食材）回退到内置 pantry —— 页面不会因此出现空白格。
  * 统一返回 { name, image, quantity }，调用方不必关心数据来自哪一侧。
+ * quantity 恒为空串：materials 已移除「默认用量」字段，新增物料不再预填用量，
+ * 仅在 confirmPicker 里作为 draft 项的初始值占位。
  */
 const lookup = id => {
   const cloud = cloudMaterialMap.value[id]
-  if (cloud) return { name: cloud.name, image: cloud.image, quantity: cloud.defaultQuantity || '' }
+  if (cloud) return { name: cloud.name, image: cloud.image, quantity: '' }
   return pantry.find(item => item.id === id) || { name: '食材', image: '', quantity: '' }
 }
+
+/**
+ * 当前分组的全部可用物料（**不受搜索词影响**）
+ *
+ * 单独抽出来是为了给列表定高：高度必须由它决定、而不是由搜索结果决定，
+ * 否则搜出 1 项时列表塌成一行、整个抽屉跟着跳一下。
+ */
+const pickerGroupOptions = computed(() => cloudMaterials.value
+  .filter(m => m.group === CLOUD_GROUP[picker.value] && m.isActive !== false))
 
 /**
  * 选择器选项：只读云端 materials 的真实数据
@@ -146,53 +178,91 @@ const lookup = id => {
  * 不再拼接本地 mock —— 两套数据的 id 体系不同（云端是物料 _id，本地是 'oil' / 'salt'），
  * 按 id 去重根本不成立，结果就是「同一个食用油出现两次」。取消本地补足后只剩一份数据源。
  * 已停用（isActive === false）的物料不出现在选择器里。
+ * 搜索按名称匹配（大小写不敏感），只在当前分组内过滤。
+ * 选项只带 { id, name, image }：模板仅消费这三项，且 materials 已无「默认用量」字段。
  */
-const pickerOptions = computed(() => cloudMaterials.value
-  .filter(m => m.group === CLOUD_GROUP[picker.value] && m.isActive !== false)
-  .map(m => ({ id: m._id, name: m.name, image: m.image, quantity: m.defaultQuantity || '' })))
+const pickerOptions = computed(() => {
+  const keyword = pickerKeyword.value.trim().toLocaleLowerCase()
+  return pickerGroupOptions.value
+    .filter(m => !keyword || String(m.name || '').toLocaleLowerCase().includes(keyword))
+    .map(m => ({ id: m._id, name: m.name, image: m.image }))
+})
+
+// 列表区高度：由分组内物料总数决定，最多三行 —— 搜索时不随结果的增减而变化。
+// 数值与样式一一对应：.picker-item 的 height 与 .picker-grid 的 grid-auto-rows = 190rpx、
+// .picker-grid 的 gap = 18rpx、上下 padding 合计 12rpx。改动样式需同步改这三个常量。
+const PICKER_ROW_RPX = 190
+const PICKER_GAP_RPX = 18
+const PICKER_GRID_PAD_RPX = 12
+const PICKER_COLS = 3
+const PICKER_MAX_ROWS = 3
+const pickerListHeight = computed(() => {
+  const rows = Math.min(Math.max(Math.ceil(pickerGroupOptions.value.length / PICKER_COLS), 1), PICKER_MAX_ROWS)
+  return rows * PICKER_ROW_RPX + (rows - 1) * PICKER_GAP_RPX + PICKER_GRID_PAD_RPX + 'rpx'
+})
 let leaveAfterDiscard = false, nextId = 0
 /**
- * 加载云端真实数据（当前只用于「调料」）
+ * 已成功加载的云端菜品 ID
  *
- * 两件事：
- *   1. 取 materials 全量，供 lookup() 与选择器把 materialId 翻译成名称与图片
- *   2. 取云端菜品的 seasonings 覆盖本地那一份 —— 调料以云端配置为准
- *
- * 页面尚未接入列表页传参，暂取 food 类型的第一条菜品；
- * 接口不通时整段静默降级为本地数据，页面照旧可看，不会白屏。
+ * **只在详情接口真正返回菜品后才赋值** —— 它是「能不能把修改写回云端」的开关。
+ * 若只有跳转参数、菜谱却没取到（接口失败 / 已被删除），就保持空串：
+ * 此时页面显示的是本地兜底数据，保存只能落在本机，绝不能把演示数据的 id 当成
+ * materialId 写进云端。
  */
-const loadCloudSeasonings = async () => {
+const cloudDishId = ref('')
+
+/**
+ * 加载云端真实数据
+ *
+ * 1. 取 materials 全量，供 lookup() 与选择器把 materialId 翻译成名称与图片
+ * 2. 按路由参数 id 取菜品详情，用云端的 name / description / ingredients / seasonings / steps
+ *    覆盖本地那一份 —— 配料与步骤走同一条路，一律以云端为准
+ *
+ * id 来自菜谱列表页的跳转（pages/recipe 的 openRecipe 会带 ?id=）。
+ * 接口不通或菜谱不存在时整段静默降级为本地数据，页面照旧可看，不会白屏。
+ */
+const loadCloudRecipe = async id => {
   try {
-    const [matRes, dishRes] = await Promise.all([
-      uniCloud.callFunction({ name: 'app-service', data: { module: 'materials-crud', action: 'list' } }),
-      uniCloud.callFunction({ name: 'app-service', data: { module: 'dishes-crud', action: 'list', type: 'food' } })
-    ])
+    const matRes = await uniCloud.callFunction({ name: 'app-service', data: { module: 'materials-crud', action: 'list' } })
     const matResult = matRes.result || {}
     if (matResult.code === 0) cloudMaterials.value = matResult.list || []
 
+    if (!id) return
+    const dishRes = await uniCloud.callFunction({ name: 'app-service', data: { module: 'dishes-crud', action: 'detail', _id: id } })
     const dishResult = dishRes.result || {}
-    const dish = dishResult.code === 0 ? (dishResult.list || [])[0] : null
-    if (dish && Array.isArray(dish.seasonings) && dish.seasonings.length) {
-      // 云端存的是 { materialId, quantity }，页面内部统一用 { id, quantity }
-      saved.value = {
-        ...saved.value,
-        seasonings: dish.seasonings.map(s => ({ id: s.materialId, quantity: s.quantity || '' }))
-      }
+    if (dishResult.code !== 0 || !dishResult.dish) return
+    const dish = dishResult.dish
+
+    const pick = list => (Array.isArray(list) ? list : []).filter(item => item && item.materialId).map(materialFromCloud)
+    saved.value = {
+      ...saved.value,
+      name: dish.name || saved.value.name,
+      // description 为空串代表「用户清空了简介」，不能用 || 退回本地那份
+      subtitle: typeof dish.description === 'string' ? dish.description : saved.value.subtitle,
+      ingredients: pick(dish.ingredients),
+      seasonings: pick(dish.seasonings),
+      // 步骤同样以云端为准。云端还没有这个字段时（旧数据、尚未录入步骤的菜谱）落回空数组，
+      // 页面显示「还没有记录步骤」，而不是继续展示本地演示数据里的那三步
+      steps: (Array.isArray(dish.steps) ? dish.steps : []).map(stepFromCloud)
     }
+    cloudDishId.value = id
   } catch (e) {
-    console.error('[recipe-detail] 加载云端调料失败', e)
+    console.error('[recipe-detail] 加载云端菜谱失败', e)
   }
 }
 
-onLoad(async () => {
+onLoad(async options => {
   try {
     const value = uni.getStorageSync(STORAGE_KEY)
+    // 只校验结构、不校验 id 归属：配料已改用云端的 materialId，
+    // 旧写法要求 id 必须存在于本地 pantry，会让云端数据一律校验失败、退回演示数据
     if (value?.version === 1 && typeof value.name === 'string' && typeof value.subtitle === 'string'
-      && ['ingredients', 'seasonings'].every(group => Array.isArray(value[group]) && value[group].every(item => pantry.some(p => p.id === item.id && p.group === group) && typeof item.quantity === 'string'))
-      && Array.isArray(value.steps) && value.steps.length > 0 && value.steps.every(step => typeof step.id === 'string' && ['title', 'description', 'tip'].every(key => typeof step[key] === 'string')) && !validateRecipe(value)) saved.value = cloneRecipe(value)
+      && ['ingredients', 'seasonings'].every(group => Array.isArray(value[group]) && value[group].every(item => item && typeof item.id === 'string' && typeof item.quantity === 'string'))
+      && Array.isArray(value.steps) && value.steps.every(step => typeof step.id === 'string' && ['title', 'description', 'tip'].every(key => typeof step[key] === 'string')) && !validateRecipe(value)) saved.value = cloneRecipe(value)
   } catch { /* Corrupted or unavailable local storage falls back to the demo. */ }
 
-  await loadCloudSeasonings()
+  // 云端数据放在最后覆盖：配料以云端为准，步骤等云端没有的字段仍沿用本地那份
+  await loadCloudRecipe((options && options.id) || '')
 })
 const exitEditing = () => { editing.value = false; draft.value = null; picker.value = ''; attempted.value = false }
 watch(canEdit, allowed => { if (!allowed) { exitEditing(); discardDialog.value = false } })
@@ -202,7 +272,7 @@ const cancelEditing = () => { leaveAfterDiscard = false; if (dirty.value) discar
 const requestBack = () => { if (picker.value) { picker.value = ''; return } if (dirty.value) { leaveAfterDiscard = true; discardDialog.value = true } else { exitEditing(); back() } }
 const discard = () => { discardDialog.value = false; exitEditing(); if (leaveAfterDiscard) back() }
 onBackPress(() => { if (picker.value) { picker.value = ''; return true } if (dirty.value) { leaveAfterDiscard = true; discardDialog.value = true; return true } return false })
-const openPicker = group => { if (!editing.value || !canEdit.value) return; selection.value = draft.value[group].map(item => item.id); picker.value = group }
+const openPicker = group => { if (!editing.value || !canEdit.value) return; selection.value = draft.value[group].map(item => item.id); pickerKeyword.value = ''; picker.value = group }
 const toggleSelection = id => { selection.value = selection.value.includes(id) ? selection.value.filter(value => value !== id) : [...selection.value, id] }
 const confirmPicker = () => {
   if (!canEdit.value || !editing.value || !picker.value) return
@@ -224,7 +294,7 @@ const moveStep = (index, direction) => {
   if (target < 0 || target >= draft.value.steps.length) return
   const [step] = draft.value.steps.splice(index, 1); draft.value.steps.splice(target, 0, step)
 }
-const save = () => {
+const save = async () => {
   if (!canEdit.value || !editing.value || saving.value) return
   attempted.value = true
   const error = validateRecipe(draft.value)
@@ -241,8 +311,37 @@ const save = () => {
     value.name = value.name.trim(); value.subtitle = value.subtitle.trim()
     for (const group of ['ingredients', 'seasonings']) value[group].forEach(item => { item.quantity = item.quantity.trim() })
     value.steps.forEach(step => { for (const key of ['title', 'description', 'tip']) step[key] = step[key].trim() })
+
+    // 配料（食材 / 调料）、名称与步骤写回云端 —— 这一步才是编辑真正生效的地方。
+    // 云端 update 对 ingredients / seasonings / steps 都是整组替换，
+    // 所以增、删、改、以及步骤排序都由同一次提交表达。
+    // 仅当详情接口成功加载过（cloudDishId 非空）才写云端，避免把本地演示数据的 id 写进去。
+    let toast = '菜谱已保存'
+    if (cloudDishId.value) {
+      const res = await uniCloud.callFunction({
+        name: 'app-service',
+        data: {
+          module: 'dishes-crud', action: 'update', token: userStore.token, _id: cloudDishId.value,
+          name: value.name,
+          description: value.subtitle,
+          ingredients: value.ingredients.map(materialToCloud),
+          seasonings: value.seasonings.map(materialToCloud),
+          // 步骤显式摘掉前端的 id（渲染标识，不进库）；顺序即数组顺序
+          steps: value.steps.map(step => ({ title: step.title, description: step.description, tip: step.tip }))
+        }
+      })
+      const result = res.result || {}
+      if (result.code !== 0) {
+        // 云端失败就不算保存成功：留在编辑态，用户的修改还在，可以直接重试
+        uni.showToast({ title: result.message || '保存到云端失败，请重试', icon: 'none' })
+        return
+      }
+    } else {
+      toast = '已存到本机（未连接云端菜谱）'
+    }
+
     uni.setStorageSync(STORAGE_KEY, value); saved.value = value; exitEditing()
-    uni.showToast({ title: '菜谱已保存到本机', icon: 'none' })
+    uni.showToast({ title: toast, icon: 'none' })
   } catch { uni.showToast({ title: '保存失败，修改仍在，请重试', icon: 'none' }) }
   finally { saving.value = false }
 }
@@ -343,11 +442,28 @@ button { margin:0; padding:0; background:transparent; color:inherit; font:inheri
 .picker-layer { position:fixed; inset:0; z-index:100; }.mask { position:absolute; inset:0; background:#3e301a66; }
 .sheet { position:absolute; bottom:0; left:0; right:0; padding:18rpx 34rpx calc(30rpx + env(safe-area-inset-bottom)); background:$p2-paper; border-radius:34rpx 38rpx 0 0; animation:slide-up 240ms $p2-ease; }
 .handle { width:65rpx; height:7rpx; background:#d0c4ac; border-radius:6rpx; margin:0 auto 25rpx; }
-.picker-heading { display:flex; justify-content:space-between; align-items:center; }.picker-scroll { max-height:48vh; margin:24rpx 0; }
-.picker-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:18rpx; padding:6rpx; }
-.picker-item { position:relative; border:2rpx solid #e1d8c5; padding:15rpx; border-radius:20rpx; font-size:$p2-fs-body; background:$p2-surface; image { display:block; width:110rpx; height:110rpx; margin:auto; } &.selected { background:#eaf0db; border-color:#8b9e6a; } }
+.picker-heading { display:flex; justify-content:space-between; align-items:center; }
+// 选择器最多显示三行：行高与间距都固定，max-height 由算式推出（+12rpx 是 .picker-grid 的上下 padding），
+// 超出三行由 scroll-view 内部滚动。原来用 48vh，可见行数随屏幕高度浮动，矮屏上第三行会被切掉一半。
+$picker-row: 190rpx;
+$picker-gap: 18rpx;
+// 搜索框：复用菜谱页 .search-box 的二期输入框规范（奶油底 + 实棕描边 + 聚焦转珊瑚色）
+.picker-search { display:flex; align-items:center; gap:14rpx; height:72rpx; padding:0 24rpx; margin-top:26rpx; color:$p2-ink-soft; background:$p2-surface; border:2rpx solid $p2-line; border-radius:20rpx 24rpx 19rpx 23rpx; transition:border-color $p2-dur-fast $p2-ease; &.is-focused { border-color:$p2-coral; } }
+.picker-search-input { flex:1; min-width:0; height:64rpx; font-size:$p2-fs-control; color:$p2-ink; }
+.picker-search-clear { display:flex; align-items:center; justify-content:center; width:56rpx; height:56rpx; color:$p2-ink-soft; }
+.picker-scroll { max-height: $picker-row * 3 + $picker-gap * 2 + 12rpx; margin:22rpx 0 24rpx; }
+// 选择器空态：materials 里还没有这个分组的物料时给出原因，避免看起来像功能坏了
+.picker-blank { padding:44rpx 6rpx; text-align:center; color:$p2-ink-soft; font-size:$p2-fs-caption; animation: picker-pop $p2-dur-base $p2-ease backwards; text { display:block; line-height:1.9; } }
+.picker-grid { display:grid; grid-template-columns:repeat(3,1fr); grid-auto-rows:$picker-row; gap:$picker-gap; padding:6rpx; }
+// 入场动效：关键词一变，:key 里带了关键词 → 列表节点整体重建，卡片依次淡入上浮，
+// 让「筛选」读起来是内容浮现、而不是硬切；配合固定高度的列表，抽屉在搜索全程不跳动。
+// fill-mode 用 backwards 而不是 both/forwards —— 那两个会在动画结束后继续锁定 to 段的
+// transform:none，把按下反馈（全局 button:active 的 scale(.96)）压掉；backwards 只在
+// 延迟期间维持 from，动画一结束就把属性交还给常规样式。
+.picker-item { box-sizing:border-box; height:$picker-row; position:relative; border:2rpx solid #e1d8c5; padding:15rpx; border-radius:20rpx; font-size:$p2-fs-body; background:$p2-surface; animation: picker-pop $p2-dur-base $p2-ease backwards; image { display:block; width:110rpx; height:110rpx; margin:auto; } &.selected { background:#eaf0db; border-color:#8b9e6a; } }
+@keyframes picker-pop { from { opacity:0; transform:translateY(16rpx) scale(.94); } to { opacity:1; transform:none; } }
 .selection-dot { position:absolute; top:10rpx; right:10rpx; width:28rpx; height:28rpx; border:2rpx solid #a9b695; border-radius:50%; display:flex; align-items:center; justify-content:center; }.confirm { width:100%; }
 @keyframes appear { from { opacity:0; transform:translateY(6rpx); } to { opacity:1; transform:translateY(0); } }
 @keyframes slide-up { from { transform:translateY(100%); } to { transform:translateY(0); } }
-@media (prefers-reduced-motion:reduce) { button { transition:none; }.editor,.sheet { animation:none; } }
+@media (prefers-reduced-motion:reduce) { button { transition:none; }.editor,.sheet,.picker-item,.picker-blank { animation:none; } }
 </style>

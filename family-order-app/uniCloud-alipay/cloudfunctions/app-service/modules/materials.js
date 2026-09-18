@@ -75,7 +75,7 @@ async function listMaterials({ group, isActive } = {}, materialCol) {
  * 新增物料
  * 必填：name、group
  */
-async function createMaterial({ name, group, image, defaultQuantity, sortOrder } = {}, materialCol) {
+async function createMaterial({ name, group, image, unit, sortOrder } = {}, materialCol) {
   if (!name || !String(name).trim()) {
     return { code: 400, message: '物料名称必填' }
   }
@@ -88,7 +88,7 @@ async function createMaterial({ name, group, image, defaultQuantity, sortOrder }
     name: String(name).trim(),
     group,
     image: image || '',
-    defaultQuantity: defaultQuantity ? String(defaultQuantity).trim() : '',
+    unit: unit ? String(unit).trim().slice(0, 8) : '',
     sortOrder: Number(sortOrder) || 0,
     isActive: true,
     createTime: now,
@@ -120,8 +120,8 @@ async function updateMaterial({ _id, ...patch } = {}, materialCol) {
   if (patch.image !== undefined) {
     patch.image = patch.image || ''
   }
-  if (patch.defaultQuantity !== undefined) {
-    patch.defaultQuantity = patch.defaultQuantity ? String(patch.defaultQuantity).trim() : ''
+  if (patch.unit !== undefined) {
+    patch.unit = patch.unit ? String(patch.unit).trim().slice(0, 8) : ''
   }
   if (patch.sortOrder !== undefined) {
     patch.sortOrder = Number(patch.sortOrder) || 0

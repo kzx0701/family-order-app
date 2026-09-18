@@ -33,6 +33,37 @@ function normalizeMaterials(input) {
   return list
 }
 
+// 步骤上限与前端 addStep 的 30 步限制一致；三个长度上限与模板里的 maxlength 一一对应，
+// 避免接口被直接调用时存进超过输入框允许长度的数据
+const MAX_STEPS = 30
+const MAX_STEP_TITLE_LENGTH = 50
+const MAX_STEP_DESCRIPTION_LENGTH = 1000
+const MAX_STEP_TIP_LENGTH = 300
+
+/**
+ * 归一化步骤数组
+ *
+ * 入参形如 [{ title, description, tip }]：
+ *   - **数组顺序即步骤顺序**，与前端 draft.steps 的顺序一一对应，故不存 order 字段
+ *   - **不存 id**：那是前端渲染用的标识（v-for 的 key、pageScrollTo 的锚点），
+ *     不属于业务数据，前端每次读取时按位置生成
+ *   - title 必填，为空的整条丢弃（前端 validateRecipe 已拦截，这里是防御）
+ *   - description / tip 选填，trim + 截断
+ *   - 元素数量上限 MAX_STEPS
+ *   - 入参不是数组时落回空数组 —— 保证 dishes 里始终有这个字段，前端不必判 undefined
+ */
+function normalizeSteps(input) {
+  if (!Array.isArray(input)) return []
+  return input
+    .filter(step => step && typeof step === 'object' && String(step.title || '').trim())
+    .slice(0, MAX_STEPS)
+    .map(step => ({
+      title: String(step.title).trim().slice(0, MAX_STEP_TITLE_LENGTH),
+      description: step.description ? String(step.description).trim().slice(0, MAX_STEP_DESCRIPTION_LENGTH) : '',
+      tip: step.tip ? String(step.tip).trim().slice(0, MAX_STEP_TIP_LENGTH) : ''
+    }))
+}
+
 /**
  * 菜品 CRUD 云函数
  *
@@ -181,7 +212,7 @@ async function listDishes({ type, categoryId, isOnSale } = {}, dishCol, catCol) 
  * 新增菜品
  * 必填：name、type
  */
-async function createDish({ name, image, description, spicy, note, ingredients, seasonings, type, categoryId, isOnSale, isRecommended, isSignature, sortOrder, temp } = {}, dishCol) {
+async function createDish({ name, image, description, spicy, note, ingredients, seasonings, steps, type, categoryId, isOnSale, isRecommended, isSignature, sortOrder, temp } = {}, dishCol) {
   if (!name || !String(name).trim()) {
     return { code: 400, message: '菜品名称必填' }
   }
@@ -201,6 +232,8 @@ async function createDish({ name, image, description, spicy, note, ingredients, 
     //（否则同一物料在 N 道菜里存 N 份，改一次图就要遍历所有菜品）
     ingredients: normalizeMaterials(ingredients),
     seasonings: normalizeMaterials(seasonings),
+    // 步骤：数组顺序即步骤顺序，元素不存 id / order（详见 normalizeSteps 的说明）
+    steps: normalizeSteps(steps),
     type,
     categoryId: categoryId || '',
     isOnSale: isOnSale !== false,
@@ -250,6 +283,10 @@ async function updateDish({ _id, ...patch } = {}, dishCol) {
   }
   if (patch.seasonings !== undefined) {
     patch.seasonings = normalizeMaterials(patch.seasonings)
+  }
+  // 步骤同样是整组替换 —— 编辑器提交的就是完整列表，步骤顺序也由它决定
+  if (patch.steps !== undefined) {
+    patch.steps = normalizeSteps(patch.steps)
   }
   if (patch.sortOrder !== undefined) {
     patch.sortOrder = Number(patch.sortOrder) || 0

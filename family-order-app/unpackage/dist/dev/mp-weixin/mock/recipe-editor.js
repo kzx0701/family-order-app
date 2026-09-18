@@ -31,8 +31,6 @@ const cloneRecipe = (value) => JSON.parse(JSON.stringify(value));
 function validateRecipe(value) {
   if (!value.name.trim())
     return "给这道菜起个名字吧";
-  if (!value.steps.length)
-    return "至少保留一个制作步骤";
   const emptyIndex = value.steps.findIndex((step) => !step.title.trim());
   return emptyIndex < 0 ? "" : `请填写步骤 ${emptyIndex + 1} 的名称`;
 }

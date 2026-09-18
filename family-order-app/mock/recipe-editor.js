@@ -28,7 +28,9 @@ export const freshRecipe = () => ({
 export const cloneRecipe = value => JSON.parse(JSON.stringify(value))
 export function validateRecipe(value) {
   if (!value.name.trim()) return '给这道菜起个名字吧'
-  if (!value.steps.length) return '至少保留一个制作步骤'
+  // 不再强制「至少一个步骤」：云端尚未录入步骤的菜谱进来就是 0 步，
+  // 若在此拦住，用户只想改配料或名称也无法保存。
+  // 「别把步骤删光」由编辑器兜底 —— removeStep 在只剩一步时就不允许再删。
   const emptyIndex = value.steps.findIndex(step => !step.title.trim())
   return emptyIndex < 0 ? '' : `请填写步骤 ${emptyIndex + 1} 的名称`
 }

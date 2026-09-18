@@ -62,7 +62,7 @@
                 },
                 "quantity": {
                     "bsonType": "string",
-                    "description": "本菜用量（自由文本，如「300 g」「4 瓣」）。用量随菜而异，故存在引用处而非物料表；物料表里的 defaultQuantity 只是新增时的预填值",
+                    "description": "本菜用量（自由文本，如「300 g」「4 瓣」）。用量随菜而异，故存在引用处而非物料表；物料表的 unit 只描述该物料惯用什么单位，可作书写参考",
                     "trim": "both",
                     "defaultValue": "",
                     "label": "用量"
@@ -87,6 +87,41 @@
                     "trim": "both",
                     "defaultValue": "",
                     "label": "用量"
+                }
+            }
+        },
+        "steps": {
+            "bsonType": "array",
+            "description": "制作步骤。数组顺序即步骤顺序（与详情页编辑器里 draft.steps 的顺序一致），故元素不存 order —— 数组本身有序，再加字段反而要额外维护一致性。元素也不存 id：那是前端渲染用的标识（v-for 的 key、scrollTo 的锚点），不属于业务数据，前端每次读取时按位置生成",
+            "arrayType": "object",
+            "label": "制作步骤",
+            "defaultValue": [],
+            "properties": {
+                "title": {
+                    "bsonType": "string",
+                    "description": "步骤名称（必填，如「洗洗青菜，切切蒜」）",
+                    "trim": "both",
+                    "maxLength": 50,
+                    "label": "步骤名称",
+                    "errorMessage": "步骤名称最多 50 字"
+                },
+                "description": {
+                    "bsonType": "string",
+                    "description": "步骤详情（选填：做法、火候、时间）",
+                    "trim": "both",
+                    "maxLength": 1000,
+                    "defaultValue": "",
+                    "label": "步骤详情",
+                    "errorMessage": "步骤详情最多 1000 字"
+                },
+                "tip": {
+                    "bsonType": "string",
+                    "description": "注意事项（选填：小诀窍、容易翻车的地方）",
+                    "trim": "both",
+                    "maxLength": 300,
+                    "defaultValue": "",
+                    "label": "注意事项",
+                    "errorMessage": "注意事项最多 300 字"
                 }
             }
         },
