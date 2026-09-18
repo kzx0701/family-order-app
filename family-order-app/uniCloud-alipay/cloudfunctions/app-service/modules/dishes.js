@@ -1,8 +1,10 @@
 'use strict'
 const { requireCook } = require('../utils/auth.js')
 
-// 辣度档位：与 mock/recipes.js 的 flavors 一致（不辣 / 微辣 / 中辣）
-const SPICY_LEVELS = ['none', 'mild', 'medium']
+// 辣度档位：四档（不辣 / 微辣 / 中辣 / 特辣）。不在档位内的值一律落回 none。
+// 注：不再与 mock/recipes.js 的 flavors 对齐 —— 那份演示数据里的「口味」是三档的（清淡/蒜香等），
+// 与辣度是两回事，不要混用
+const SPICY_LEVELS = ['none', 'mild', 'medium', 'hot']
 
 // 单条配料用量的长度上限（自由文本，与 note 同思路做保护性截断）
 const MAX_QUANTITY_LENGTH = 40
@@ -275,6 +277,11 @@ async function updateDish({ _id, ...patch } = {}, dishCol) {
   }
   if (patch.note !== undefined) {
     patch.note = patch.note ? String(patch.note).trim().slice(0, 200) : ''
+  }
+  // 分类：空串是合法值（菜品可以不归类）。只做字符串化 + trim，**不校验该分类是否存在** ——
+  // 分类被删掉后菜品里会留下一个查不到的 id，那种情况按「未分类」渲染即可，不该拦住保存
+  if (patch.categoryId !== undefined) {
+    patch.categoryId = patch.categoryId ? String(patch.categoryId).trim() : ''
   }
   // 配料：整组替换而非合并 —— 编辑器提交的就是完整列表，
   // 合并语义会让「删掉一个配料」这件事无法表达

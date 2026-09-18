@@ -15,8 +15,10 @@ export const pantry = [
   { id: 'soy', name: '生抽', group: 'seasonings', image: bottle('#a77b52', '#f6e7b0', '#db9380'), quantity: '1 小勺' },
   { id: 'dark-soy', name: '老抽', group: 'seasonings', image: bottle('#816044', '#dfe7c9', '#a0b187'), quantity: '半小勺' }
 ]
+// categoryId / spicy 是随菜品一起从云端读回的字段，本地兜底数据给出同样的形状，
+// 让两边在 dirty 比较（JSON.stringify 对比 draft 与 saved）下结构一致
 export const freshRecipe = () => ({
-  version: 1, name: '蒜蓉小青菜', subtitle: '给餐桌加一点绿意',
+  version: 1, name: '蒜蓉小青菜', subtitle: '给餐桌加一点绿意', categoryId: '', spicy: 'none',
   ingredients: pantry.filter(x => ['greens', 'garlic'].includes(x.id)).map(({ id, quantity }) => ({ id, quantity })),
   seasonings: pantry.filter(x => ['oil', 'salt', 'soy'].includes(x.id)).map(({ id, quantity }) => ({ id, quantity })),
   steps: [

@@ -19,6 +19,8 @@ const freshRecipe = () => ({
   version: 1,
   name: "蒜蓉小青菜",
   subtitle: "给餐桌加一点绿意",
+  categoryId: "",
+  spicy: "none",
   ingredients: pantry.filter((x) => ["greens", "garlic"].includes(x.id)).map(({ id, quantity }) => ({ id, quantity })),
   seasonings: pantry.filter((x) => ["oil", "salt", "soy"].includes(x.id)).map(({ id, quantity }) => ({ id, quantity })),
   steps: [

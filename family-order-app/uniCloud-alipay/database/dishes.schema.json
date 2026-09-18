@@ -33,10 +33,10 @@
         },
         "spicy": {
             "bsonType": "string",
-            "description": "辣度：none 不辣 / mild 微辣 / medium 中辣（菜品默认辣度；将来若要支持「一菜多口味」再另加字段）",
-            "enum": ["none", "mild", "medium"],
+            "description": "辣度：none 不辣 / mild 微辣 / medium 中辣 / hot 特辣。未设置或值非法时按 none 处理（详情页对 none 不显示辣度图标，微辣 1 根辣椒、中辣 2 根、特辣 3 根）",
+            "enum": ["none", "mild", "medium", "hot"],
             "label": "辣度",
-            "errorMessage": "辣度只能为 none / mild / medium",
+            "errorMessage": "辣度只能为 none / mild / medium / hot",
             "defaultValue": "none"
         },
         "note": {

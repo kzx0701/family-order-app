@@ -54,6 +54,23 @@ const _sfc_main = {
       description: step.description || "",
       tip: step.tip || ""
     });
+    const categories = common_vendor.ref([]);
+    const SPICY_OPTIONS = [
+      { value: "none", label: "不辣" },
+      { value: "mild", label: "微辣" },
+      { value: "medium", label: "中辣" },
+      { value: "hot", label: "特辣" }
+    ];
+    const SPICY_LEVELS = SPICY_OPTIONS.map((option) => option.value);
+    const spicyCount = common_vendor.computed(() => {
+      return Math.max(SPICY_LEVELS.indexOf(shown.value && shown.value.spicy), 0);
+    });
+    const currentCategoryName = common_vendor.computed(() => {
+      const id = shown.value && shown.value.categoryId;
+      if (!id)
+        return "";
+      return (categories.value.find((c) => c.id === id) || {}).name || "";
+    });
     const cloudMaterials = common_vendor.ref([]);
     const cloudMaterialMap = common_vendor.computed(() => {
       const map = {};
@@ -61,7 +78,7 @@ const _sfc_main = {
         map[m._id] = m;
       return map;
     });
-    const sections = [{ key: "ingredients", title: "食材", caption: "新鲜一点，好吃一点" }, { key: "seasonings", title: "调料", caption: "好味道的秘密" }];
+    const sections = [{ key: "ingredients", title: "食材" }, { key: "seasonings", title: "调料" }];
     const lookup = (id) => {
       const cloud = cloudMaterialMap.value[id];
       if (cloud)
@@ -81,10 +98,16 @@ const _sfc_main = {
     const cloudDishId = common_vendor.ref("");
     const loadCloudRecipe = async (id) => {
       try {
-        const matRes = await common_vendor.Vs.callFunction({ name: "app-service", data: { module: "materials-crud", action: "list" } });
+        const [matRes, catRes] = await Promise.all([
+          common_vendor.Vs.callFunction({ name: "app-service", data: { module: "materials-crud", action: "list" } }),
+          common_vendor.Vs.callFunction({ name: "app-service", data: { module: "categories-crud", action: "list", type: "food" } })
+        ]);
         const matResult = matRes.result || {};
         if (matResult.code === 0)
           cloudMaterials.value = matResult.list || [];
+        const catResult = catRes.result || {};
+        if (catResult.code === 0)
+          categories.value = (catResult.list || []).map((c) => ({ id: c._id, name: c.name }));
         if (!id)
           return;
         const dishRes = await common_vendor.Vs.callFunction({ name: "app-service", data: { module: "dishes-crud", action: "detail", _id: id } });
@@ -98,6 +121,10 @@ const _sfc_main = {
           name: dish.name || saved.value.name,
           // description 为空串代表「用户清空了简介」，不能用 || 退回本地那份
           subtitle: typeof dish.description === "string" ? dish.description : saved.value.subtitle,
+          // 分类与辣度：云端是旧数据、没有这两个字段时就落回本地那份，
+          // 不要在界面上把「本来就没有」显示成「被清空了」
+          categoryId: typeof dish.categoryId === "string" ? dish.categoryId : saved.value.categoryId,
+          spicy: SPICY_LEVELS.includes(dish.spicy) ? dish.spicy : saved.value.spicy,
           ingredients: pick(dish.ingredients),
           seasonings: pick(dish.seasonings),
           // 步骤同样以云端为准。云端还没有这个字段时（旧数据、尚未录入步骤的菜谱）落回空数组，
@@ -106,7 +133,7 @@ const _sfc_main = {
         };
         cloudDishId.value = id;
       } catch (e) {
-        common_vendor.index.__f__("error", "at pages/recipe-detail/recipe-detail.vue:250", "[recipe-detail] 加载云端菜谱失败", e);
+        common_vendor.index.__f__("error", "at pages/recipe-detail/recipe-detail.vue:305", "[recipe-detail] 加载云端菜谱失败", e);
       }
     };
     common_vendor.onLoad(async (options) => {
@@ -236,7 +263,7 @@ const _sfc_main = {
       try {
         const value = mock_recipeEditor.cloneRecipe(draft.value);
         value.name = value.name.trim();
-        value.subtitle = value.subtitle.trim();
+        value.subtitle = String(value.subtitle || "").trim();
         for (const group of ["ingredients", "seasonings"])
           value[group].forEach((item) => {
             item.quantity = item.quantity.trim();
@@ -255,7 +282,12 @@ const _sfc_main = {
               token: userStore.token,
               _id: cloudDishId.value,
               name: value.name,
+              // 简介已不在界面上编辑，但仍原样回传 —— 菜谱列表页卡片的副行在用它（note 为空时回退 description）
               description: value.subtitle,
+              // 分类：没选就是空串（合法状态 —— 菜品可以不归类）
+              categoryId: value.categoryId || "",
+              // 辣度：只有四档之内才写库，脏值落回不辣
+              spicy: SPICY_LEVELS.includes(value.spicy) ? value.spicy : "none",
               ingredients: value.ingredients.map(materialToCloud),
               seasonings: value.seasonings.map(materialToCloud),
               // 步骤显式摘掉前端的 id（渲染标识，不进库）；顺序即数组顺序
@@ -294,38 +326,73 @@ const _sfc_main = {
       } : {}, {
         f: common_assets._imports_0$1,
         g: editing.value
-      }, editing.value ? {
+      }, editing.value ? common_vendor.e({
         h: draft.value.name,
-        i: common_vendor.o(($event) => draft.value.name = $event.detail.value, "c1"),
-        j: draft.value.subtitle,
-        k: common_vendor.o(($event) => draft.value.subtitle = $event.detail.value, "d0")
-      } : common_vendor.e({
-        l: common_vendor.t(shown.value.name),
-        m: shown.value.subtitle
-      }, shown.value.subtitle ? {
-        n: common_vendor.t(shown.value.subtitle)
-      } : {}), {
-        o: !cloudDishId.value
-      }, !cloudDishId.value ? {} : {}, {
-        p: common_vendor.f(sections, (section, index, i0) => {
+        i: common_vendor.o(($event) => draft.value.name = $event.detail.value, "8b"),
+        j: common_vendor.f(categories.value, (c, k0, i0) => {
+          return {
+            a: common_vendor.t(c.name),
+            b: c.id,
+            c: draft.value.categoryId === c.id ? 1 : "",
+            d: draft.value.categoryId === c.id,
+            e: common_vendor.o(($event) => draft.value.categoryId = c.id, c.id)
+          };
+        }),
+        k: !categories.value.length
+      }, !categories.value.length ? {} : {}, {
+        l: common_vendor.f(SPICY_OPTIONS, (option, k0, i0) => {
+          return {
+            a: common_vendor.t(option.label),
+            b: option.value,
+            c: draft.value.spicy === option.value ? 1 : "",
+            d: draft.value.spicy === option.value,
+            e: common_vendor.o(($event) => draft.value.spicy = option.value, option.value)
+          };
+        })
+      }) : {
+        m: common_vendor.t(shown.value.name)
+      }, {
+        n: !editing.value && (currentCategoryName.value || spicyCount.value || !cloudDishId.value)
+      }, !editing.value && (currentCategoryName.value || spicyCount.value || !cloudDishId.value) ? common_vendor.e({
+        o: currentCategoryName.value
+      }, currentCategoryName.value ? {
+        p: common_vendor.t(currentCategoryName.value)
+      } : {}, {
+        q: currentCategoryName.value && spicyCount.value
+      }, currentCategoryName.value && spicyCount.value ? {} : {}, {
+        r: spicyCount.value
+      }, spicyCount.value ? {
+        s: common_vendor.f(spicyCount.value, (n, k0, i0) => {
+          return {
+            a: n,
+            b: "fc6387aa-1-" + i0
+          };
+        }),
+        t: common_vendor.p({
+          name: "chili",
+          size: "28rpx",
+          ["stroke-width"]: 2.4
+        })
+      } : {}, {
+        v: !cloudDishId.value
+      }, !cloudDishId.value ? {} : {}) : {}, {
+        w: common_vendor.f(sections, (section, index, i0) => {
           return common_vendor.e({
             a: common_vendor.t(index + 1),
             b: common_vendor.n(section.key),
             c: common_vendor.t(section.title)
-          }, !editing.value ? {
-            d: common_vendor.t(section.caption)
-          } : {
-            e: "fc6387aa-1-" + i0,
-            f: common_vendor.p({
+          }, editing.value ? {
+            d: "fc6387aa-2-" + i0,
+            e: common_vendor.p({
               name: "plus",
               size: 14
             }),
-            g: "添加" + section.title,
-            h: common_vendor.o(($event) => openPicker(section.key), section.key)
-          }, {
-            i: common_vendor.f(shown.value[section.key], (item, k1, i1) => {
+            f: "添加" + section.title,
+            g: common_vendor.o(($event) => openPicker(section.key), section.key)
+          } : {}, {
+            h: common_vendor.f(shown.value[section.key], (item, k1, i1) => {
               return common_vendor.e(editing.value ? {
-                a: "fc6387aa-2-" + i0 + "-" + i1,
+                a: "fc6387aa-3-" + i0 + "-" + i1,
                 b: common_vendor.p({
                   name: "minus",
                   size: 13
@@ -339,32 +406,31 @@ const _sfc_main = {
               });
             })
           }, editing.value ? {
-            j: "fc6387aa-3-" + i0,
-            k: common_vendor.p({
+            i: "fc6387aa-4-" + i0,
+            j: common_vendor.p({
               name: "plus",
               size: 23
             }),
-            l: "选择" + section.title,
-            m: common_vendor.o(($event) => openPicker(section.key), section.key)
+            k: "选择" + section.title,
+            l: common_vendor.o(($event) => openPicker(section.key), section.key)
           } : {}, {
-            n: !shown.value[section.key].length
+            m: !shown.value[section.key].length
           }, !shown.value[section.key].length ? {
-            o: common_vendor.t(editing.value ? "点「添加」，挑选需要的" + section.title : "暂未记录" + section.title)
+            n: common_vendor.t(editing.value ? "点「添加」，挑选需要的" + section.title : "暂未记录" + section.title)
           } : {}, {
-            p: section.key
+            o: section.key
           });
         }),
-        q: !editing.value,
-        r: editing.value,
-        s: editing.value,
-        t: common_vendor.t(shown.value.steps.length ? shown.value.steps.length + " 个小步骤" : "还没记录"),
-        v: editing.value
+        x: editing.value,
+        y: editing.value,
+        z: editing.value,
+        A: editing.value
       }, editing.value ? {} : {}, {
-        w: common_vendor.f(shown.value.steps, (step, index, i0) => {
+        B: common_vendor.f(shown.value.steps, (step, index, i0) => {
           return common_vendor.e({
             a: common_vendor.t(index + 1)
           }, editing.value ? {
-            b: "fc6387aa-4-" + i0,
+            b: "fc6387aa-5-" + i0,
             c: common_vendor.p({
               name: "chevron-up",
               size: 17
@@ -372,7 +438,7 @@ const _sfc_main = {
             d: index === 0,
             e: "上移步骤" + (index + 1),
             f: common_vendor.o(($event) => moveStep(index, -1), step.id),
-            g: "fc6387aa-5-" + i0,
+            g: "fc6387aa-6-" + i0,
             h: common_vendor.p({
               name: "chevron-down",
               size: 17
@@ -380,7 +446,7 @@ const _sfc_main = {
             i: index === draft.value.steps.length - 1,
             j: "下移步骤" + (index + 1),
             k: common_vendor.o(($event) => moveStep(index, 1), step.id),
-            l: "fc6387aa-6-" + i0,
+            l: "fc6387aa-7-" + i0,
             m: common_vendor.p({
               name: "trash",
               size: 16
@@ -408,7 +474,7 @@ const _sfc_main = {
           } : {}, {
             E: step.tip
           }, step.tip ? {
-            F: "fc6387aa-7-" + i0,
+            F: "fc6387aa-8-" + i0,
             G: common_vendor.p({
               name: "note",
               size: 16
@@ -420,94 +486,94 @@ const _sfc_main = {
             K: editing.value && attempted.value && !step.title.trim() ? 1 : ""
           });
         }),
-        x: editing.value,
-        y: editing.value,
-        z: editing.value ? 1 : "",
-        A: !shown.value.steps.length
+        C: editing.value,
+        D: editing.value,
+        E: editing.value ? 1 : "",
+        F: !shown.value.steps.length
       }, !shown.value.steps.length ? {
-        B: common_vendor.t(editing.value ? "还没有步骤，点下面的「增加步骤」开始写" : "这道菜还没有记录步骤")
+        G: common_vendor.t(editing.value ? "还没有步骤，点下面的「增加步骤」开始写" : "这道菜还没有记录步骤")
       } : {}, {
-        C: editing.value
+        H: editing.value
       }, editing.value ? {
-        D: common_vendor.p({
+        I: common_vendor.p({
           name: "plus",
           size: 19
         }),
-        E: common_vendor.t(draft.value.steps.length >= 30 ? "最多 30 个步骤" : "增加步骤"),
-        F: draft.value.steps.length >= 30,
-        G: common_vendor.o(addStep, "5a")
+        J: common_vendor.t(draft.value.steps.length >= 30 ? "最多 30 个步骤" : "增加步骤"),
+        K: draft.value.steps.length >= 30,
+        L: common_vendor.o(addStep, "1f")
       } : {
-        H: common_vendor.p({
+        M: common_vendor.p({
           name: "food",
           size: 16
         })
       }, {
-        I: canEdit.value
+        N: canEdit.value
       }, canEdit.value ? common_vendor.e({
-        J: editing.value
+        O: editing.value
       }, editing.value ? {
-        K: common_vendor.o(cancelEditing, "bc"),
-        L: common_vendor.p({
+        P: common_vendor.o(cancelEditing, "b6"),
+        Q: common_vendor.p({
           name: "check",
           size: 18
         }),
-        M: common_vendor.t(saving.value ? "正在保存…" : "保存菜谱"),
-        N: saving.value,
-        O: common_vendor.o(save, "4c")
+        R: common_vendor.t(saving.value ? "正在保存…" : "保存菜谱"),
+        S: saving.value,
+        T: common_vendor.o(save, "01")
       } : {
-        P: common_vendor.p({
+        U: common_vendor.p({
           name: "edit",
           size: 18
         }),
-        Q: common_vendor.o(startEditing, "ce"),
-        R: common_vendor.p({
+        V: common_vendor.o(startEditing, "1e"),
+        W: common_vendor.p({
           name: "upload",
           size: 18
         })
       }) : {}, {
-        S: picker.value && editing.value && canEdit.value
+        X: picker.value && editing.value && canEdit.value
       }, picker.value && editing.value && canEdit.value ? common_vendor.e({
-        T: common_vendor.o(($event) => picker.value = "", "ce"),
-        U: common_vendor.o(() => {
-        }, "fd"),
-        V: common_vendor.t(picker.value === "ingredients" ? "食材" : "调料"),
-        W: common_vendor.p({
+        Y: common_vendor.o(($event) => picker.value = "", "2a"),
+        Z: common_vendor.o(() => {
+        }, "f1"),
+        aa: common_vendor.t(picker.value === "ingredients" ? "食材" : "调料"),
+        ab: common_vendor.p({
           name: "search",
           size: 16,
           ["stroke-width"]: 2.2
         }),
-        X: "搜一搜" + (picker.value === "ingredients" ? "食材" : "调料"),
-        Y: PLACEHOLDER_STYLE,
-        Z: "搜索" + (picker.value === "ingredients" ? "食材" : "调料"),
-        aa: common_vendor.o(($event) => pickerFocused.value = true, "5f"),
-        ab: common_vendor.o(($event) => pickerFocused.value = false, "0f"),
-        ac: pickerKeyword.value,
-        ad: common_vendor.o(($event) => pickerKeyword.value = $event.detail.value, "85"),
-        ae: pickerKeyword.value
+        ac: "搜一搜" + (picker.value === "ingredients" ? "食材" : "调料"),
+        ad: PLACEHOLDER_STYLE,
+        ae: "搜索" + (picker.value === "ingredients" ? "食材" : "调料"),
+        af: common_vendor.o(($event) => pickerFocused.value = true, "fe"),
+        ag: common_vendor.o(($event) => pickerFocused.value = false, "17"),
+        ah: pickerKeyword.value,
+        ai: common_vendor.o(($event) => pickerKeyword.value = $event.detail.value, "0e"),
+        aj: pickerKeyword.value
       }, pickerKeyword.value ? {
-        af: common_vendor.p({
+        ak: common_vendor.p({
           name: "close",
           size: 13
         }),
-        ag: common_vendor.o(($event) => pickerKeyword.value = "", "0e")
+        al: common_vendor.o(($event) => pickerKeyword.value = "", "e8")
       } : {}, {
-        ah: pickerFocused.value ? 1 : "",
-        ai: !pickerOptions.value.length
+        am: pickerFocused.value ? 1 : "",
+        an: !pickerOptions.value.length
       }, !pickerOptions.value.length ? common_vendor.e({
-        aj: pickerKeyword.value.trim()
+        ao: pickerKeyword.value.trim()
       }, pickerKeyword.value.trim() ? {
-        ak: common_vendor.t(pickerKeyword.value.trim())
+        ap: common_vendor.t(pickerKeyword.value.trim())
       } : {
-        al: common_vendor.t(picker.value === "ingredients" ? "食材" : "调料"),
-        am: common_vendor.t(CLOUD_GROUP[picker.value])
+        aq: common_vendor.t(picker.value === "ingredients" ? "食材" : "调料"),
+        ar: common_vendor.t(CLOUD_GROUP[picker.value])
       }) : {}, {
-        an: common_vendor.f(pickerOptions.value, (item, index, i0) => {
+        as: common_vendor.f(pickerOptions.value, (item, index, i0) => {
           return common_vendor.e({
             a: item.image,
             b: common_vendor.t(item.name),
             c: selection.value.includes(item.id)
           }, selection.value.includes(item.id) ? {
-            d: "fc6387aa-15-" + i0,
+            d: "fc6387aa-16-" + i0,
             e: common_vendor.p({
               name: "check",
               size: 12
@@ -521,13 +587,13 @@ const _sfc_main = {
             k: common_vendor.o(($event) => toggleSelection(item.id), item.id + "-" + pickerKeyword.value)
           });
         }),
-        ao: pickerListHeight.value,
-        ap: common_vendor.t(selection.value.length),
-        aq: common_vendor.o(confirmPicker, "0a")
+        at: pickerListHeight.value,
+        av: common_vendor.t(selection.value.length),
+        aw: common_vendor.o(confirmPicker, "f1")
       }) : {}, {
-        ar: common_vendor.o(($event) => discardDialog.value = false, "62"),
-        as: common_vendor.o(discard, "69"),
-        at: common_vendor.p({
+        ax: common_vendor.o(($event) => discardDialog.value = false, "3f"),
+        ay: common_vendor.o(discard, "cd"),
+        az: common_vendor.p({
           visible: discardDialog.value,
           title: "收起这次修改？",
           subtitle: "未保存的内容会丢失，原来的菜谱仍会保留。",

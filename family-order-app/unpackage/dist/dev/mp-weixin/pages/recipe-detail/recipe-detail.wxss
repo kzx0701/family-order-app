@@ -90,16 +90,6 @@ button[disabled].data-v-fc6387aa {
   width: 500rpx;
   height: 500rpx;
 }
-.scribble.data-v-fc6387aa {
-  position: absolute;
-  right: 0;
-  bottom: 20rpx;
-  color: #8c725e;
-  font-size: 20rpx;
-  transform: rotate(-7deg);
-  border-bottom: 3rpx solid #f2c65d;
-  padding-bottom: 5rpx;
-}
 .body.data-v-fc6387aa {
   padding: 0 38rpx;
 }
@@ -134,9 +124,52 @@ button[disabled].data-v-fc6387aa {
   background: #85a96f;
   transform: rotate(30deg);
 }
+.category-pill.data-v-fc6387aa {
+  display: inline-flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 6rpx 15rpx 6rpx 12rpx;
+  border-radius: 12rpx 15rpx 11rpx 14rpx;
+  background: #dbe8c8;
+  color: #624735;
+  font-size: 20rpx;
+}
+.meta-dot.data-v-fc6387aa {
+  color: #bdaa94;
+}
+.spicy.data-v-fc6387aa {
+  display: inline-flex;
+  align-items: center;
+  gap: 3rpx;
+  color: #e97a69;
+}
 .demo-label.data-v-fc6387aa {
   margin-left: auto;
   font-size: 18rpx;
+}
+.chip-scroll.data-v-fc6387aa {
+  width: 100%;
+}
+.chip-row.data-v-fc6387aa {
+  display: inline-flex;
+  vertical-align: top;
+  gap: 16rpx;
+  padding: 4rpx 0 10rpx;
+}
+.chip.data-v-fc6387aa {
+  flex-shrink: 0;
+  padding: 14rpx 26rpx;
+  border: 2rpx solid #e1d8c5;
+  border-radius: 18rpx 22rpx 17rpx 21rpx;
+  background: #fffdf7;
+  color: #8c725e;
+  font-size: 28rpx;
+  transition: background 140ms cubic-bezier(0.22, 0.75, 0.24, 1), border-color 140ms cubic-bezier(0.22, 0.75, 0.24, 1), color 140ms cubic-bezier(0.22, 0.75, 0.24, 1), transform 110ms cubic-bezier(0.22, 0.75, 0.24, 1);
+}
+.chip.selected.data-v-fc6387aa {
+  background: #dbe8c8;
+  border-color: #765540;
+  color: #624735;
 }
 .material-section.data-v-fc6387aa {
   padding: 24rpx 0 26rpx;
@@ -168,11 +201,6 @@ button[disabled].data-v-fc6387aa {
 .section-title.data-v-fc6387aa {
   font-size: 36rpx;
   font-weight: 600;
-}
-.caption.data-v-fc6387aa {
-  margin-left: auto;
-  font-size: 21rpx;
-  color: #8c725e;
 }
 .text-button.data-v-fc6387aa {
   display: flex;
@@ -385,9 +413,6 @@ button[disabled].data-v-fc6387aa {
 .title-field.data-v-fc6387aa {
   font-size: 36rpx;
 }
-.subtitle-field.data-v-fc6387aa {
-  margin-top: 16rpx;
-}
 .area.data-v-fc6387aa {
   width: 100%;
   min-height: 124rpx;
@@ -451,10 +476,6 @@ button[disabled].data-v-fc6387aa {
   color: #63784f;
   font-size: 28rpx;
   margin: 26rpx 0 20rpx;
-}
-.add-step text.data-v-fc6387aa {
-  font-size: 20rpx;
-  color: #8c725e;
 }
 .picker-layer.data-v-fc6387aa {
   position: fixed;

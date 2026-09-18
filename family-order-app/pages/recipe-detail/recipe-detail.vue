@@ -7,20 +7,23 @@
     <view class="hero">
       <view class="hero-wash" />
       <image class="dish-art" src="/static/images/recipes/dishes/garlic-bok-choy-v1.png" mode="aspectFit" aria-label="蒜蓉小青菜" />
-      <text class="scribble">一盘绿意，一点蒜香</text>
     </view>
     <view class="body">
       <view class="intro">
         <template v-if="editing">
           <text class="field-label">菜谱名称 · 必填</text>
           <input v-model="draft.name" class="field title-field" maxlength="24" placeholder="给这道菜起个名字" aria-label="菜谱名称" />
-          <input v-model="draft.subtitle" class="field subtitle-field" maxlength="60" placeholder="写一句小介绍（选填）" aria-label="菜谱简介" />
+          <text class="field-label">菜品分类 <text>选填</text></text>
+          <scroll-view scroll-x class="chip-scroll" :show-scrollbar="false"><view class="chip-row"><button v-for="c in categories" :key="c.id" class="chip" :class="{ selected: draft.categoryId === c.id }" :aria-pressed="draft.categoryId === c.id" @tap="draft.categoryId = c.id">{{ c.name }}</button></view></scroll-view>
+          <text v-if="!categories.length" class="empty">还没有分类可选，请先在云端的 categories 集合里添加（type 填 food）</text>
+          <text class="field-label">辣度 <text>选填</text></text>
+          <scroll-view scroll-x class="chip-scroll" :show-scrollbar="false"><view class="chip-row"><button v-for="option in SPICY_OPTIONS" :key="option.value" class="chip" :class="{ selected: draft.spicy === option.value }" :aria-pressed="draft.spicy === option.value" @tap="draft.spicy = option.value">{{ option.label }}</button></view></scroll-view>
         </template>
-        <template v-else><text class="title">{{ shown.name }}</text><text v-if="shown.subtitle" class="subtitle">{{ shown.subtitle }}</text></template>
-        <view class="meta"><view class="leaf" /><text>家常菜 · 不辣</text><text v-if="!cloudDishId" class="demo-label">本机体验菜谱</text></view>
+        <template v-else><text class="title">{{ shown.name }}</text></template>
+        <view v-if="!editing && (currentCategoryName || spicyCount || !cloudDishId)" class="meta"><view v-if="currentCategoryName" class="category-pill"><view class="leaf" />{{ currentCategoryName }}</view><text v-if="currentCategoryName && spicyCount" class="meta-dot">·</text><view v-if="spicyCount" class="spicy"><Icon v-for="n in spicyCount" :key="n" name="chili" size="28rpx" :stroke-width="2.4" /></view><text v-if="!cloudDishId" class="demo-label">本机体验菜谱</text></view>
       </view>
       <view v-for="(section, index) in sections" :key="section.key" class="material-section">
-        <view class="section-head"><text class="number" :class="section.key">{{ index + 1 }}</text><text class="section-title">{{ section.title }}</text><text v-if="!editing" class="caption">{{ section.caption }}</text><button v-else class="text-button" :aria-label="'添加' + section.title" @tap="openPicker(section.key)"><Icon name="plus" :size="14" />添加</button></view>
+        <view class="section-head"><text class="number" :class="section.key">{{ index + 1 }}</text><text class="section-title">{{ section.title }}</text><button v-if="editing" class="text-button" :aria-label="'添加' + section.title" @tap="openPicker(section.key)"><Icon name="plus" :size="14" />添加</button></view>
         <scroll-view scroll-x class="material-scroll" :show-scrollbar="false">
           <view class="material-row">
             <view v-for="item in shown[section.key]" :key="item.id" class="material">
@@ -33,7 +36,7 @@
         </scroll-view>
         <text v-if="!shown[section.key].length" class="empty">{{ editing ? '点「添加」，挑选需要的' + section.title : '暂未记录' + section.title }}</text>
       </view>
-      <view class="section-head steps-heading"><text class="number coral">3</text><text class="section-title">一起慢慢做</text><text class="caption">{{ shown.steps.length ? shown.steps.length + ' 个小步骤' : '还没记录' }}</text></view>
+      <view class="section-head steps-heading"><text class="number coral">3</text><text class="section-title">一起慢慢做</text></view>
       <text v-if="editing" class="hint">步骤名称必填，详情和注意事项可以留空。</text>
       <view v-for="(step, index) in shown.steps" :id="'step-' + step.id" :key="step.id" class="step" :class="{ editor: editing, invalid: editing && attempted && !step.title.trim() }">
         <view class="step-top"><text class="step-index">步骤 {{ index + 1 }}</text><view v-if="editing" class="step-actions">
@@ -52,7 +55,7 @@
         <template v-else><text class="step-title">{{ step.title }}</text><text v-if="step.description" class="description">{{ step.description }}</text><view v-if="step.tip" class="tip"><Icon name="note" :size="16" /><view><text class="tip-label">小小提醒</text><text>{{ step.tip }}</text></view></view></template>
       </view>
       <text v-if="!shown.steps.length" class="empty">{{ editing ? '还没有步骤，点下面的「增加步骤」开始写' : '这道菜还没有记录步骤' }}</text>
-      <button v-if="editing" class="add-step" :disabled="draft.steps.length >= 30" @tap="addStep"><Icon name="plus" :size="19" />{{ draft.steps.length >= 30 ? '最多 30 个步骤' : '增加步骤' }}<text>把好味道，接着往下记</text></button>
+      <button v-if="editing" class="add-step" :disabled="draft.steps.length >= 30" @tap="addStep"><Icon name="plus" :size="19" />{{ draft.steps.length >= 30 ? '最多 30 个步骤' : '增加步骤' }}</button>
       <view v-else class="end-note"><Icon name="food" :size="16" /><text>认真做饭的人，也要好好吃饭呀。</text></view>
     </view>
     <view v-if="canEdit" class="footer">
@@ -139,6 +142,47 @@ const stepFromCloud = (step, index) => ({
   description: step.description || '',
   tip: step.tip || ''
 })
+
+/**
+ * 菜品分类（categories 集合里 type=food 的那些）
+ *
+ * 分类是**预置**的：不提供增删改，只让用户给菜品选一个，所以这里只读不写。
+ * 与菜谱列表页的分类筛选共用同一份数据 —— 在详情页选好分类，列表页的筛选栏就会跟着有它。
+ */
+const categories = ref([])
+
+/**
+ * 辣度：四档，两处用同一份定义。
+ * 浏览态用**辣椒图标的数量**表达 —— none 不显示、mild 1 根、medium 2 根、hot 3 根
+ * （餐饮品牌通用的表达法，也比文字更省横向空间）；编辑态用文字选项，选档位时文字最明确。
+ * 档位高低即数组顺序，所以浏览态直接用 SPICY_LEVELS.indexOf 取根数，不需要额外映射表。
+ */
+const SPICY_OPTIONS = [
+  { value: 'none', label: '不辣' },
+  { value: 'mild', label: '微辣' },
+  { value: 'medium', label: '中辣' },
+  { value: 'hot', label: '特辣' }
+]
+/** 档位值数组：编辑态选项、保存校验、浏览态根数三处共用，避免多份定义走偏 */
+const SPICY_LEVELS = SPICY_OPTIONS.map(option => option.value)
+
+/** 当前菜品要显示几根辣椒：0 = 不辣（完全不显示），1/2/3 = 微辣 / 中辣 / 特辣 */
+const spicyCount = computed(() => {
+  // 未设置、空值、非法值一律按「不辣」处理 —— indexOf 返回 -1 时被 Math.max 收到 0
+  return Math.max(SPICY_LEVELS.indexOf(shown.value && shown.value.spicy), 0)
+})
+
+/**
+ * 当前菜品的分类名
+ *
+ * 从分类列表里查、而不把 categoryName 一起塞进 saved —— 否则 draft 里没有这个字段，
+ * dirty 比较（JSON.stringify 全等）会永远为真、导致每次进编辑态都算「有改动」。
+ */
+const currentCategoryName = computed(() => {
+  const id = shown.value && shown.value.categoryId
+  if (!id) return ''
+  return (categories.value.find(c => c.id === id) || {}).name || ''
+})
 const cloudMaterials = ref([])
 const cloudMaterialMap = computed(() => {
   const map = {}
@@ -146,7 +190,7 @@ const cloudMaterialMap = computed(() => {
   return map
 })
 
-const sections = [{ key: 'ingredients', title: '食材', caption: '新鲜一点，好吃一点' }, { key: 'seasonings', title: '调料', caption: '好味道的秘密' }]
+const sections = [{ key: 'ingredients', title: '食材' }, { key: 'seasonings', title: '调料' }]
 
 /**
  * 按 id 取物料的名称与图片：**云端优先、本地兜底**
@@ -223,9 +267,16 @@ const cloudDishId = ref('')
  */
 const loadCloudRecipe = async id => {
   try {
-    const matRes = await uniCloud.callFunction({ name: 'app-service', data: { module: 'materials-crud', action: 'list' } })
+    // 物料与分类都是与具体菜品无关的基础数据，并行取；且**不管有没有 id 都要拉** ——
+    // 分类没拿到就没法显示、也没法选。分类只取 type=food 的（coffee 那些不属于菜品）。
+    const [matRes, catRes] = await Promise.all([
+      uniCloud.callFunction({ name: 'app-service', data: { module: 'materials-crud', action: 'list' } }),
+      uniCloud.callFunction({ name: 'app-service', data: { module: 'categories-crud', action: 'list', type: 'food' } })
+    ])
     const matResult = matRes.result || {}
     if (matResult.code === 0) cloudMaterials.value = matResult.list || []
+    const catResult = catRes.result || {}
+    if (catResult.code === 0) categories.value = (catResult.list || []).map(c => ({ id: c._id, name: c.name }))
 
     if (!id) return
     const dishRes = await uniCloud.callFunction({ name: 'app-service', data: { module: 'dishes-crud', action: 'detail', _id: id } })
@@ -239,6 +290,10 @@ const loadCloudRecipe = async id => {
       name: dish.name || saved.value.name,
       // description 为空串代表「用户清空了简介」，不能用 || 退回本地那份
       subtitle: typeof dish.description === 'string' ? dish.description : saved.value.subtitle,
+      // 分类与辣度：云端是旧数据、没有这两个字段时就落回本地那份，
+      // 不要在界面上把「本来就没有」显示成「被清空了」
+      categoryId: typeof dish.categoryId === 'string' ? dish.categoryId : saved.value.categoryId,
+      spicy: SPICY_LEVELS.includes(dish.spicy) ? dish.spicy : saved.value.spicy,
       ingredients: pick(dish.ingredients),
       seasonings: pick(dish.seasonings),
       // 步骤同样以云端为准。云端还没有这个字段时（旧数据、尚未录入步骤的菜谱）落回空数组，
@@ -308,7 +363,7 @@ const save = async () => {
   saving.value = true
   try {
     const value = cloneRecipe(draft.value)
-    value.name = value.name.trim(); value.subtitle = value.subtitle.trim()
+    value.name = value.name.trim(); value.subtitle = String(value.subtitle || '').trim()
     for (const group of ['ingredients', 'seasonings']) value[group].forEach(item => { item.quantity = item.quantity.trim() })
     value.steps.forEach(step => { for (const key of ['title', 'description', 'tip']) step[key] = step[key].trim() })
 
@@ -323,7 +378,12 @@ const save = async () => {
         data: {
           module: 'dishes-crud', action: 'update', token: userStore.token, _id: cloudDishId.value,
           name: value.name,
+          // 简介已不在界面上编辑，但仍原样回传 —— 菜谱列表页卡片的副行在用它（note 为空时回退 description）
           description: value.subtitle,
+          // 分类：没选就是空串（合法状态 —— 菜品可以不归类）
+          categoryId: value.categoryId || '',
+          // 辣度：只有四档之内才写库，脏值落回不辣
+          spicy: SPICY_LEVELS.includes(value.spicy) ? value.spicy : 'none',
           ingredients: value.ingredients.map(materialToCloud),
           seasonings: value.seasonings.map(materialToCloud),
           // 步骤显式摘掉前端的 id（渲染标识，不进库）；顺序即数组顺序
@@ -370,28 +430,42 @@ button { margin:0; padding:0; background:transparent; color:inherit; font:inheri
 // 主图区两次放大：图片 395×330 → 480×400 → 500×500rpx，装饰色块 340×220 → 420×272 → 525×340rpx。
 // 素材是 1:1 透明抠图、主体几乎占满画幅（alpha 包围盒实测 100%×99.3%），aspectFit 按框「短边」铺满，
 // 故 1:1 素材放进 500×500 的框即得 500×500 内容 —— 盘子直径 330 → 500rpx（累计 +51%，占屏宽 66.7%）。
-// hero 同步加高；装饰文字 .scribble 仍落在圆的右下角之外（其纵向带 y=464 处圆右缘仅 489rpx，
-// 而文字左缘在 500rpx），不会压到盘子。
+// hero 同步加高以容纳放大后的图片。
 // margin-top 64rpx（32px）：导航改绝对定位后主图直接顶到内容区顶部 —— 实测盘子顶端距顶部仅
 // 10.4px，与微信胶囊（占屏幕顶下方 47~83px）齐平、观感很挤。下移 28px 后盘子顶端约在屏幕
 // y=85px，正好落在胶囊下方；留白仍远小于原来 nav 占的 135px，不会回到「上方大片空白」。
 .hero { position:relative; height:520rpx; margin:64rpx 30rpx 6rpx; display:flex; justify-content:center; align-items:center; }
 .hero-wash { position:absolute; width:525rpx; height:340rpx; background:#ebeed7; border-radius:51% 49% 44% 56%; transform:rotate(-9deg); opacity:.65; }
 .dish-art { position:relative; width:500rpx; height:500rpx; }
-.scribble { position:absolute; right:0; bottom:20rpx; color:$p2-ink-soft; font-size:20rpx; transform:rotate(-7deg); border-bottom:3rpx solid $p2-butter; padding-bottom:5rpx; }
 .body { padding:0 38rpx; }
 .intro { padding:5rpx 0 30rpx; }
 .title { display:block; font-family:RecipeMaoken,$p2-font-fallback; font-size:$p2-fs-display; line-height:1.35; }
 .subtitle { display:block; font-size:$p2-fs-body; color:$p2-ink-soft; margin-top:10rpx; line-height:1.7; }
 .meta { display:flex; align-items:center; gap:12rpx; font-size:21rpx; color:$p2-ink-soft; margin-top:18rpx; }
 .leaf { width:12rpx; height:18rpx; border-radius:70% 20%; background:$p2-leaf; transform:rotate(30deg); }
+// 分类徽标：形制对齐页面里已有的「浅底小标签」—— 同页的 ①②③ 序号方块、列表页的卡片角标、
+// 「正在编辑」徽标，三者都是**浅绿底 + 无描边 + 手绘圆角**。
+// 刻意不用描边：全页带 2rpx 实棕描边的都是**可交互控件**（.back / .primary / .ghost /
+// .picker-search），分类是不可点的元信息，套上"控件级"的边框会让层级错乱、观感像贴上去的。
+// 底色取 $p2-leaf-soft，与紧邻下方的序号方块同色，视觉上能连成一套。
+.category-pill { display:inline-flex; align-items:center; gap:8rpx; padding:6rpx 15rpx 6rpx 12rpx; border-radius:12rpx 15rpx 11rpx 14rpx; background:$p2-leaf-soft; color:$p2-ink; font-size:20rpx; }
+.meta-dot { color:#bdaa94; }
+// 辣度：用辣椒的根数表达档位（不辣时整块都不渲染）。取 $p2-coral —— 既是「辣」的自然语义，
+// 也是页面既有的强调色；gap 收窄到 3rpx，让多根辣椒读起来是一组而不是散开的几个图标。
+.spicy { display:inline-flex; align-items:center; gap:3rpx; color:$p2-coral; }
 .demo-label { margin-left:auto; font-size:18rpx; }
+// 选项行（菜品分类 / 辣度共用）：横向滚动的 chip 行。两项都是预置的少量固定值，直接平铺出来
+// 比再开一层弹窗更快（一次点击即选中），也与「食材 / 调料」的横滑模式一致。
+// inline-flex 让行宽由内容决定，溢出必然可滚（同 .material-row）。
+// transition 里带上 transform —— 否则会覆盖全局 button 的按下缩放过渡（button:active 的 scale(.96)）。
+.chip-scroll { width:100%; }
+.chip-row { display:inline-flex; vertical-align:top; gap:16rpx; padding:4rpx 0 10rpx; }
+.chip { flex-shrink:0; padding:14rpx 26rpx; border:2rpx solid #e1d8c5; border-radius:18rpx 22rpx 17rpx 21rpx; background:$p2-surface; color:$p2-ink-soft; font-size:$p2-fs-body; transition: background $p2-dur-fast $p2-ease, border-color $p2-dur-fast $p2-ease, color $p2-dur-fast $p2-ease, transform $p2-dur-tap $p2-ease; &.selected { background:$p2-leaf-soft; border-color:$p2-line; color:$p2-ink; } }
 .material-section { padding:24rpx 0 26rpx; border-top:2rpx dashed #e1d6c3; }
 .section-head { display:flex; align-items:center; gap:13rpx; margin-bottom:20rpx; }
 .number { display:flex; justify-content:center; align-items:center; width:38rpx; height:40rpx; font-size:21rpx; background:$p2-leaf-soft; border-radius:10rpx 13rpx 8rpx 12rpx; transform:rotate(-7deg); }
 .seasonings { background:$p2-butter-soft; }.coral { background:$p2-coral-soft; }
 .section-title { font-size:$p2-fs-title; font-weight:600; }
-.caption { margin-left:auto; font-size:21rpx; color:$p2-ink-soft; }
 .text-button { display:flex; align-items:center; gap:7rpx; margin-left:auto; font-size:$p2-fs-caption; color:#65794f; min-height:58rpx; }
 // 横向滚动：scroll-view 内部的列表行必须用 inline-flex —— 容器宽度由内容决定，内容一多
 // 就必然溢出容器、必然产生可滚动区域。块级 flex 的宽度恒等于父容器宽（内容再多它也不变宽），
@@ -433,12 +507,12 @@ button { margin:0; padding:0; background:transparent; color:inherit; font:inheri
 .cancel { min-width:155rpx; padding:24rpx; font-size:$p2-fs-control; }.save { flex:1; }
 .field-label { display:block; font-size:$p2-fs-caption; color:$p2-ink-soft; margin:20rpx 0 12rpx; text { font-size:20rpx; opacity:.8; margin-left:8rpx; } }
 .field { height:88rpx; padding:0 22rpx; border:2rpx solid #d5c8b5; border-radius:15rpx 19rpx 14rpx 17rpx; background:$p2-surface; font-size:$p2-fs-body; box-sizing:border-box; }
-.title-field { font-size:$p2-fs-title; }.subtitle-field { margin-top:16rpx; }
+.title-field { font-size:$p2-fs-title; }
 .area { width:100%; min-height:124rpx; padding:18rpx 22rpx; background:$p2-surface; border:2rpx solid #d5c8b5; border-radius:16rpx; font-size:$p2-fs-body; line-height:1.8; box-sizing:border-box; }.tip-area { background:#fffaf0; }
 .hint { display:block; font-size:22rpx; color:$p2-ink-soft; }
 .editor { border:2rpx solid #d9cbb5; border-radius:22rpx 26rpx 19rpx 24rpx; padding:20rpx 22rpx 26rpx; margin:20rpx 0; background:#fcf5e6; animation:appear 180ms $p2-ease; }
 .step-actions { display:flex; margin-left:auto; gap:4rpx; }.small-icon { width:58rpx; height:58rpx; display:flex; align-items:center; justify-content:center; }.danger { color:$p2-danger; }.invalid { border-color:$p2-danger; }.error { display:block; color:$p2-danger; font-size:22rpx; margin-top:10rpx; }
-.add-step { width:100%; display:flex; align-items:center; justify-content:center; gap:12rpx; padding:26rpx 12rpx; border:2rpx dashed #a8b68b; border-radius:20rpx; color:#63784f; font-size:$p2-fs-body; margin:26rpx 0 20rpx; text { font-size:20rpx; color:$p2-ink-soft; } }
+.add-step { width:100%; display:flex; align-items:center; justify-content:center; gap:12rpx; padding:26rpx 12rpx; border:2rpx dashed #a8b68b; border-radius:20rpx; color:#63784f; font-size:$p2-fs-body; margin:26rpx 0 20rpx; }
 .picker-layer { position:fixed; inset:0; z-index:100; }.mask { position:absolute; inset:0; background:#3e301a66; }
 .sheet { position:absolute; bottom:0; left:0; right:0; padding:18rpx 34rpx calc(30rpx + env(safe-area-inset-bottom)); background:$p2-paper; border-radius:34rpx 38rpx 0 0; animation:slide-up 240ms $p2-ease; }
 .handle { width:65rpx; height:7rpx; background:#d0c4ac; border-radius:6rpx; margin:0 auto 25rpx; }
