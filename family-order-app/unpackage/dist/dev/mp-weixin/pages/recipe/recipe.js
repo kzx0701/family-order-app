@@ -2,16 +2,18 @@
 const common_vendor = require("../../common/vendor.js");
 const composables_useSafeArea = require("../../composables/useSafeArea.js");
 const store_user = require("../../store/user.js");
-const mock_recipes = require("../../mock/recipes.js");
+const utils_image = require("../../utils/image.js");
 if (!Array) {
   const _easycom_Icon2 = common_vendor.resolveComponent("Icon");
+  const _easycom_skeleton2 = common_vendor.resolveComponent("skeleton");
   const _easycom_custom_tabbar2 = common_vendor.resolveComponent("custom-tabbar");
-  (_easycom_Icon2 + _easycom_custom_tabbar2)();
+  (_easycom_Icon2 + _easycom_skeleton2 + _easycom_custom_tabbar2)();
 }
 const _easycom_Icon = () => "../../components/icons/Icon.js";
+const _easycom_skeleton = () => "../../components/skeleton/skeleton.js";
 const _easycom_custom_tabbar = () => "../../components/custom-tabbar/custom-tabbar.js";
 if (!Math) {
-  (_easycom_Icon + RecipeArt + _easycom_custom_tabbar)();
+  (_easycom_Icon + _easycom_skeleton + RecipeArt + _easycom_custom_tabbar)();
 }
 const RecipeArt = () => "../../components/recipe-art/recipe-art.js";
 const PLACEHOLDER_STYLE = "color: rgba(140, 114, 94, 0.55)";
@@ -26,17 +28,67 @@ const _sfc_main = {
     });
     const search = common_vendor.ref("");
     const searchFocused = common_vendor.ref(false);
+    const SPICY_TEXT = { none: "不辣", mild: "微辣", medium: "中辣" };
+    const categories = common_vendor.ref([]);
+    const dishes = common_vendor.ref([]);
+    const loading = common_vendor.ref(false);
+    const loaded = common_vendor.ref(false);
     const activeCategory = common_vendor.ref("all");
+    const photoReady = common_vendor.reactive({});
+    const markPhotoReady = (id) => {
+      photoReady[id] = true;
+    };
+    const loadRecipes = async () => {
+      if (loading.value)
+        return;
+      loading.value = true;
+      try {
+        const dishRes = await common_vendor.Vs.callFunction({ name: "app-service", data: { module: "dishes-crud", action: "list" } });
+        const dishResult = dishRes.result || {};
+        if (dishResult.code !== 0) {
+          common_vendor.index.showToast({ title: dishResult.message || "菜谱加载失败", icon: "none" });
+          return;
+        }
+        dishes.value = (dishResult.list || []).map((d) => ({
+          id: d._id,
+          name: d.name,
+          image: d.image || "",
+          spicy: SPICY_TEXT[d.spicy] || SPICY_TEXT.none,
+          isSignature: !!d.isSignature,
+          categoryId: d.categoryId || "",
+          // 卡片副行：优先备注（做饭人的经验），没有就退回描述
+          tip: d.note || d.description || ""
+        }));
+        let catList = dishResult.categories;
+        if (!Array.isArray(catList)) {
+          const catRes = await common_vendor.Vs.callFunction({ name: "app-service", data: { module: "categories-crud", action: "list" } });
+          const catResult = catRes.result || {};
+          catList = (catResult.code === 0 ? catResult.list || [] : []).map((c) => ({ id: c._id, name: c.name }));
+        }
+        categories.value = catList.map((c) => ({ id: c.id || c._id, name: c.name }));
+        if (activeCategory.value !== "all" && !categories.value.some((c) => c.id === activeCategory.value)) {
+          activeCategory.value = "all";
+        }
+      } catch (e) {
+        common_vendor.index.__f__("error", "at pages/recipe/recipe.vue:136", "[recipe] loadRecipes error", e);
+        common_vendor.index.showToast({ title: "网络不太好，稍后再试", icon: "none" });
+      } finally {
+        loading.value = false;
+        loaded.value = true;
+      }
+    };
+    common_vendor.onShow(loadRecipes);
+    const categoryTabs = common_vendor.computed(() => [{ id: "all", name: "全部" }, ...categories.value]);
     const filtered = common_vendor.computed(() => {
       const keyword = search.value.trim().toLocaleLowerCase();
-      return mock_recipes.recipes.filter((recipe) => (activeCategory.value === "all" || recipe.category === activeCategory.value) && (!keyword || [recipe.name, recipe.subtitle, ...recipe.ingredients.map((item) => item.name)].some((value) => value.toLocaleLowerCase().includes(keyword))));
+      return dishes.value.filter((dish) => (activeCategory.value === "all" || dish.categoryId === activeCategory.value) && (!keyword || [dish.name, dish.tip].some((value) => String(value).toLocaleLowerCase().includes(keyword))));
     });
     const openRecipe = (recipe) => common_vendor.index.navigateTo({ url: "/pages/recipe-detail/recipe-detail?id=" + recipe.id, animationType: "slide-in-right", animationDuration: 260 });
     const resetFilters = () => {
       search.value = "";
       activeCategory.value = "all";
     };
-    const showConfigurationScope = () => common_vendor.index.showModal({ title: "菜谱配置", content: "当前是菜谱浏览体验版。后续可在这里维护配料、口味规则和步骤；完整菜谱才能加入菜单。", showCancel: false, confirmText: "知道啦", confirmColor: "#624735" });
+    const showConfigurationScope = () => common_vendor.index.showModal({ title: "菜谱配置", content: "名称、图片、辣度、招牌与备注已在云端维护；配料、口味和步骤还没接入，补齐后才是完整菜谱、才能加入菜单。", showCancel: false, confirmText: "知道啦", confirmColor: "#624735" });
     return (_ctx, _cache) => {
       return common_vendor.e({
         a: headerTop.value + "px",
@@ -46,8 +98,8 @@ const _sfc_main = {
           ["stroke-width"]: 2.2
         }),
         c: PLACEHOLDER_STYLE,
-        d: common_vendor.o(($event) => searchFocused.value = true, "d2"),
-        e: common_vendor.o(($event) => searchFocused.value = false, "c2"),
+        d: common_vendor.o(($event) => searchFocused.value = true, "f6"),
+        e: common_vendor.o(($event) => searchFocused.value = false, "3e"),
         f: search.value,
         g: common_vendor.o(($event) => search.value = $event.detail.value, "f0"),
         h: search.value
@@ -56,10 +108,10 @@ const _sfc_main = {
           name: "close",
           size: 16
         }),
-        j: common_vendor.o(($event) => search.value = "", "04")
+        j: common_vendor.o(($event) => search.value = "", "d6")
       } : {}, {
         k: searchFocused.value ? 1 : "",
-        l: common_vendor.f(common_vendor.unref(mock_recipes.recipeCategories), (category, k0, i0) => {
+        l: common_vendor.f(categoryTabs.value, (category, k0, i0) => {
           return {
             a: common_vendor.t(category.name),
             b: category.id,
@@ -68,56 +120,71 @@ const _sfc_main = {
             e: common_vendor.o(($event) => activeCategory.value = category.id, category.id)
           };
         }),
-        m: filtered.value.length
-      }, filtered.value.length ? {
-        n: common_vendor.f(filtered.value, (recipe, index, i0) => {
-          return {
-            a: "fb437fc6-2-" + i0,
-            b: common_vendor.p({
-              index: recipe.art,
-              label: recipe.name
+        m: loading.value && !dishes.value.length
+      }, loading.value && !dishes.value.length ? {
+        n: common_vendor.p({
+          type: "dish",
+          count: 4
+        })
+      } : filtered.value.length ? {
+        p: common_vendor.f(filtered.value, (recipe, index, i0) => {
+          return common_vendor.e({
+            a: recipe.image
+          }, recipe.image ? {
+            b: photoReady[recipe.id] ? 1 : "",
+            c: common_vendor.unref(utils_image.imgUrl)(recipe.image, {
+              w: 480
             }),
-            c: common_vendor.t(recipe.label),
-            d: !recipe.complete ? 1 : "",
-            e: common_vendor.t(recipe.name),
+            d: common_vendor.o(($event) => markPhotoReady(recipe.id), recipe.id),
+            e: common_vendor.o(($event) => markPhotoReady(recipe.id), recipe.id)
+          } : {
             f: "fb437fc6-3-" + i0,
-            g: common_vendor.t(recipe.minutes),
-            h: common_vendor.t(recipe.difficulty),
-            i: "fb437fc6-4-" + i0,
-            j: recipe.id,
-            k: Math.min(index, 5) * 35 + "ms",
-            l: "查看" + recipe.name + "菜谱",
-            m: common_vendor.o(($event) => openRecipe(recipe), recipe.id)
-          };
+            g: common_vendor.p({
+              index: index % 6,
+              label: recipe.name
+            })
+          }, {
+            h: common_vendor.t(recipe.isSignature ? "家的拿手菜" : recipe.spicy),
+            i: recipe.isSignature ? 1 : "",
+            j: common_vendor.t(recipe.name),
+            k: common_vendor.t(recipe.tip || "做法还在记"),
+            l: "fb437fc6-4-" + i0,
+            m: recipe.id,
+            n: Math.min(index, 5) * 35 + "ms",
+            o: "查看" + recipe.name + "菜谱",
+            p: common_vendor.o(($event) => openRecipe(recipe), recipe.id)
+          });
         }),
-        o: common_vendor.p({
-          name: "clock",
-          size: 12
-        }),
-        p: common_vendor.p({
+        q: common_vendor.p({
           name: "chevron-right",
           size: 15
         }),
-        q: activeCategory.value
-      } : {
-        r: common_vendor.p({
+        r: activeCategory.value
+      } : loaded.value ? common_vendor.e({
+        t: common_vendor.p({
           name: "book-open",
           size: 42,
           ["stroke-width"]: 1.3
         }),
-        s: common_vendor.o(resetFilters, "32")
-      }, {
-        t: common_vendor.p({
+        v: common_vendor.t(dishes.value.length ? "这道味道，还没翻到" : "第一道菜，还等你记下来"),
+        w: common_vendor.t(dishes.value.length ? "试试其他菜名、备注，或放宽筛选吧。" : "饲养员添几道拿手菜，就会出现在这里。"),
+        x: dishes.value.length
+      }, dishes.value.length ? {
+        y: common_vendor.o(resetFilters, "57")
+      } : {}) : {}, {
+        o: filtered.value.length,
+        s: loaded.value,
+        z: common_vendor.p({
           name: "food",
           size: 14
         }),
-        v: common_vendor.unref(userStore).isCook
+        A: common_vendor.unref(userStore).isCook
       }, common_vendor.unref(userStore).isCook ? {
-        w: common_vendor.p({
+        B: common_vendor.p({
           name: "edit",
           size: 13
         }),
-        x: common_vendor.o(showConfigurationScope, "2b")
+        C: common_vendor.o(showConfigurationScope, "c1")
       } : {});
     };
   }

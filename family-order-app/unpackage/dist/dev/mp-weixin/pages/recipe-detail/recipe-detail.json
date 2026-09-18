@@ -3,6 +3,6 @@
   "navigationBarTitleText": "菜谱详情",
   "usingComponents": {
     "icon": "../../components/icons/Icon",
-    "recipe-art": "../../components/recipe-art/recipe-art"
+    "fo-dialog": "../../components/fo-dialog/fo-dialog"
   }
 }

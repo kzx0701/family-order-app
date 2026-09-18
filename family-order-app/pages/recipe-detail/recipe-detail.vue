@@ -2,8 +2,8 @@
   <view class="detail-page">
     <view class="nav" :style="{ paddingTop: navTop + 'px' }">
       <button class="icon-button back" aria-label="返回菜谱" @tap="requestBack"><Icon name="arrow-left" :size="20" /></button>
-      <text>家庭小食谱</text><text class="badge">{{ editing ? '正在编辑' : '家的拿手菜' }}</text>
     </view>
+    <text v-if="editing" class="badge" :style="{ top: badgeTop + 'px' }">正在编辑</text>
     <view class="hero">
       <view class="hero-wash" />
       <image class="dish-art" src="/static/images/recipes/dishes/garlic-bok-choy-v1.png" mode="aspectFit" aria-label="蒜蓉小青菜" />
@@ -28,7 +28,6 @@
               <view class="material-art"><image :src="lookup(item.id).image" mode="aspectFit" /></view>
               <text class="material-name">{{ lookup(item.id).name }}</text>
               <input v-if="editing" v-model="item.quantity" class="quantity-input" maxlength="20" placeholder="用量（选填）" :aria-label="lookup(item.id).name + '用量'" />
-              <text v-else-if="item.quantity" class="quantity">{{ item.quantity }}</text>
             </view>
             <button v-if="editing" class="add-material" :aria-label="'选择' + section.title" @tap="openPicker(section.key)"><Icon name="plus" :size="23" /><text>加一点</text></button>
           </view>
@@ -58,7 +57,7 @@
     </view>
     <view v-if="canEdit" class="footer">
       <template v-if="editing"><button class="cancel" @tap="cancelEditing">取消</button><button class="primary save" :disabled="saving" @tap="save"><Icon name="check" :size="18" />{{ saving ? '正在保存…' : '保存菜谱' }}</button></template>
-      <template v-else><view class="footer-copy"><text>家的味道，由你记录</text><text>添一点用心，多一点好吃</text></view><button class="primary" @tap="startEditing"><Icon name="edit" :size="18" />编辑菜谱</button></template>
+      <template v-else><button class="ghost" @tap="startEditing"><Icon name="edit" :size="18" />编辑菜谱</button><button class="primary grow"><Icon name="upload" :size="18" />发布菜品</button></template>
     </view>
     <view v-if="picker && editing && canEdit" class="picker-layer">
       <view class="mask" @tap="picker = ''" @touchmove.stop.prevent />
@@ -80,8 +79,35 @@ import { pantry, freshRecipe, cloneRecipe, validateRecipe } from '@/mock/recipe-
 const STORAGE_KEY = 'fo_recipe_editor_demo_v2'
 const userStore = useUserStore()
 const canEdit = computed(() => userStore.isCook)
-const { statusBarHeight, menuButton } = useSafeArea()
-const navTop = computed(() => menuButton.value?.bottom ? menuButton.value.bottom + 8 : statusBarHeight.value + 10)
+const { statusBarHeight, menuButton, windowWidth } = useSafeArea()
+/**
+ * 返回按钮的纵向位置（.nav 的 paddingTop）
+ *
+ * 与微信胶囊**垂直居中对齐** —— 小程序自定义导航栏的标准位置。原来是 `menuButton.bottom + 8`，
+ * 即把按钮放在胶囊**下方**；主图放大后，按钮就悬在盘子左侧半空、看着没有归属。
+ *
+ * 页面是自定义导航（内容区从屏幕顶起算），故直接用胶囊的 top/height 即可，无需再减状态栏高度。
+ * 按钮高 72rpx 必须按屏宽换算成 px —— rpx 随屏宽自适应，硬编码 36px 在 430pt 屏上会偏约 4px。
+ * 兜底：拿不到胶囊信息时（非微信端）退回状态栏下方 10px。
+ */
+const navTop = computed(() => {
+  const btn = menuButton.value
+  if (btn?.top != null && btn.height) {
+    const btnPx = (72 / 750) * windowWidth.value
+    return Math.round(btn.top + (btn.height - btnPx) / 2)
+  }
+  return statusBarHeight.value + 10
+})
+/**
+ * 「正在编辑」徽标的纵向位置
+ *
+ * 必须留在胶囊**下方**：徽标靠右，与胶囊横向重叠，而胶囊是原生 UI、恒在最上层 ——
+ * 一旦跟着返回按钮上移到与胶囊齐平，就会被整个盖住。所以两者分开定位。
+ */
+const badgeTop = computed(() => {
+  const btn = menuButton.value
+  return btn?.bottom ? Math.round(btn.bottom + 8) : statusBarHeight.value + 10
+})
 const saved = ref(freshRecipe()), draft = ref(null), editing = ref(false), saving = ref(false), attempted = ref(false)
 const shown = computed(() => editing.value ? draft.value : saved.value)
 const dirty = computed(() => editing.value && JSON.stringify(draft.value) !== JSON.stringify(saved.value))
@@ -154,15 +180,35 @@ const save = () => {
 
 <style lang="scss" scoped>
 @import '@/scss/font-recipe.scss';
-.detail-page { min-height:100vh; background:$p2-paper; color:$p2-ink; padding-bottom:calc(170rpx + env(safe-area-inset-bottom)); }
+// position:relative 作为 .nav 绝对定位的参照（参照的是页面内容区顶部，与原来 paddingTop
+// 的起算点一致，所以按钮的绝对位置不变，变的只是它不再占据文档流。
+.detail-page { position:relative; min-height:100vh; background:$p2-paper; color:$p2-ink; padding-bottom:calc(170rpx + env(safe-area-inset-bottom)); }
 button { margin:0; padding:0; background:transparent; color:inherit; font:inherit; line-height:inherit; border-radius:0; &::after { border:0; } transition:transform 110ms $p2-ease; &:active:not([disabled]) { transform:scale(.96); } &[disabled] { opacity:.35; } }
-.nav { display:flex; align-items:center; gap:16rpx; padding:0 34rpx; font-size:$p2-fs-caption; }
+// 返回按钮浮在主图上、不再独占一行：绝对定位后脱离文档流，原来 nav 占的纵向空间
+// （paddingTop 99px + 按钮 36px ≈ 135px）全部释放，主图随之上移同量。
+// paddingTop 仍由模板内联传入（用于避开状态栏与微信胶囊），只是不再撑高页面。
+// z-index:10 保证按钮浮在图片之上；做法与 pages/dish-detail 的 .back-btn 同源。
+.nav { position:absolute; top:0; left:0; right:0; z-index:10; display:flex; align-items:center; padding:0 34rpx; font-size:$p2-fs-caption; }
 .icon-button { width:72rpx; height:72rpx; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-.back { border:2rpx solid #d4c4af; background:$p2-surface; border-radius:20rpx 17rpx 22rpx 18rpx; }
-.badge { margin-left:auto; color:#738060; background:#e8edda; padding:9rpx 16rpx; border-radius:16rpx 12rpx; font-size:20rpx; }
-.hero { position:relative; height:340rpx; margin:8rpx 30rpx 6rpx; display:flex; justify-content:center; align-items:center; }
-.hero-wash { position:absolute; width:340rpx; height:220rpx; background:#ebeed7; border-radius:51% 49% 44% 56%; transform:rotate(-9deg); opacity:.65; }
-.dish-art { position:relative; width:395rpx; height:330rpx; }
+// 返回按钮：形态对齐项目统一的圆形图标按钮（scss/mixins.scss 的 btn-icon —— 72rpx、
+// 图标居中、按下缩放），质感改用二期语言 —— 手绘圆（同 .hero-wash / .material-art 的
+// 不规则圆角手法）+ 实棕描边 + 硬投影，与页面 .primary 按钮同一套「贴纸」语汇。
+// 原来是一个 #d4c4af 浅描边的方角块、且无投影，与页面其它元素不是同一套语言。
+.back { border:2rpx solid $p2-line; background:$p2-surface; border-radius:48% 52% 47% 53%; box-shadow:3rpx 4rpx 0 #62473518; }
+// 徽标独立绝对定位（top 由模板内联传入）：靠右与胶囊横向重叠，必须留在胶囊下方，
+// 不能跟返回按钮一起上移，否则被原生胶囊盖住。
+.badge { position:absolute; right:34rpx; z-index:10; color:#738060; background:#e8edda; padding:9rpx 16rpx; border-radius:16rpx 12rpx; font-size:20rpx; }
+// 主图区两次放大：图片 395×330 → 480×400 → 500×500rpx，装饰色块 340×220 → 420×272 → 525×340rpx。
+// 素材是 1:1 透明抠图、主体几乎占满画幅（alpha 包围盒实测 100%×99.3%），aspectFit 按框「短边」铺满，
+// 故 1:1 素材放进 500×500 的框即得 500×500 内容 —— 盘子直径 330 → 500rpx（累计 +51%，占屏宽 66.7%）。
+// hero 同步加高；装饰文字 .scribble 仍落在圆的右下角之外（其纵向带 y=464 处圆右缘仅 489rpx，
+// 而文字左缘在 500rpx），不会压到盘子。
+// margin-top 64rpx（32px）：导航改绝对定位后主图直接顶到内容区顶部 —— 实测盘子顶端距顶部仅
+// 10.4px，与微信胶囊（占屏幕顶下方 47~83px）齐平、观感很挤。下移 28px 后盘子顶端约在屏幕
+// y=85px，正好落在胶囊下方；留白仍远小于原来 nav 占的 135px，不会回到「上方大片空白」。
+.hero { position:relative; height:520rpx; margin:64rpx 30rpx 6rpx; display:flex; justify-content:center; align-items:center; }
+.hero-wash { position:absolute; width:525rpx; height:340rpx; background:#ebeed7; border-radius:51% 49% 44% 56%; transform:rotate(-9deg); opacity:.65; }
+.dish-art { position:relative; width:500rpx; height:500rpx; }
 .scribble { position:absolute; right:0; bottom:20rpx; color:$p2-ink-soft; font-size:20rpx; transform:rotate(-7deg); border-bottom:3rpx solid $p2-butter; padding-bottom:5rpx; }
 .body { padding:0 38rpx; }
 .intro { padding:5rpx 0 30rpx; }
@@ -178,10 +224,18 @@ button { margin:0; padding:0; background:transparent; color:inherit; font:inheri
 .section-title { font-size:$p2-fs-title; font-weight:600; }
 .caption { margin-left:auto; font-size:21rpx; color:$p2-ink-soft; }
 .text-button { display:flex; align-items:center; gap:7rpx; margin-left:auto; font-size:$p2-fs-caption; color:#65794f; min-height:58rpx; }
-.material-scroll { width:100%; }.material-row { display:flex; gap:19rpx; padding:12rpx 0 6rpx; }
+// 横向滚动：scroll-view 内部的列表行必须用 inline-flex —— 容器宽度由内容决定，内容一多
+// 就必然溢出容器、必然产生可滚动区域。块级 flex 的宽度恒等于父容器宽（内容再多它也不变宽），
+// 其子项的溢出行不行要依赖基础库对 scroll-width 的实现，不可靠：官方文档横向滚动只给了
+// 「scroll-x + enable-flex」与「white-space:nowrap + inline-block」两种写法，都没有块级 flex。
+// 不加 white-space:nowrap：它会连带禁用食材名的自动换行，长名字会横溢到相邻卡片上。
+// vertical-align:top 用于消除 inline 元素固有的基线间隙。
+.material-scroll { width:100%; }.material-row { display:inline-flex; vertical-align:top; gap:19rpx; padding:12rpx 0 6rpx; }
 .material { width:140rpx; flex-shrink:0; text-align:center; position:relative; }
 .material-art { width:120rpx; height:116rpx; border-radius:48% 52% 47% 53%; margin:0 auto 8rpx; background:#f2efde; image { width:100%; height:100%; } }
-.material-name { display:block; font-size:$p2-fs-body; }.quantity { display:block; font-size:21rpx; color:$p2-ink-soft; margin-top:6rpx; min-height:30rpx; }
+// 浏览态卡片只保留「图标 + 名称」：名称下方不再渲染用量，原 `.quantity` 样式随之移除。
+// 用量数据本身仍在（pantry / storage 的 item.quantity），编辑态仍可填写、保存时仍会 trim 保留。
+.material-name { display:block; font-size:$p2-fs-body; }
 .remove { position:absolute; top:-8rpx; right:2rpx; width:48rpx; height:48rpx; display:flex; align-items:center; justify-content:center; background:#fae4d9; border-radius:50%; z-index:1; }
 .quantity-input { font-size:22rpx; height:62rpx; border:2rpx dashed #cbbba2; border-radius:12rpx; margin-top:10rpx; background:$p2-surface; }
 .add-material { width:124rpx; min-height:190rpx; flex-shrink:0; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:12rpx; color:#879172; border:2rpx dashed #c3c9ac; border-radius:20rpx 24rpx 19rpx 23rpx; font-size:$p2-fs-caption; }
@@ -195,8 +249,13 @@ button { margin:0; padding:0; background:transparent; color:inherit; font:inheri
 .tip { display:flex; align-items:flex-start; gap:14rpx; background:#f7edca; border-radius:6rpx 18rpx 14rpx 17rpx; margin-top:22rpx; padding:20rpx; font-size:$p2-fs-caption; line-height:1.85; white-space:pre-wrap; }.tip-label { display:block; font-weight:600; margin-bottom:4rpx; }
 .end-note { display:flex; align-items:center; justify-content:center; gap:12rpx; font-size:22rpx; color:$p2-ink-soft; padding:45rpx 0; }
 .footer { position:fixed; bottom:0; left:0; right:0; display:flex; align-items:center; gap:22rpx; justify-content:space-between; padding:22rpx 34rpx calc(22rpx + env(safe-area-inset-bottom)); background:$p2-paper; border-top:2rpx solid #e8dfcd; z-index:30; }
-.footer-copy { text { display:block; font-size:$p2-fs-body; } text + text { color:$p2-ink-soft; font-size:20rpx; margin-top:7rpx; } }
+// 底栏按钮：主次只靠「实底 vs 描边」区分，不引入第二套颜色（同 fo-dialog 的主次按钮规范）。
+// 发布菜品 = 主（.primary：浅绿实底 + 实棕描边 + 硬投影）；编辑菜谱 = 次（.ghost：只留实棕描边、
+// 无底色无投影）。浏览态两个按钮各 flex:1 等宽平分底栏。
+.ghost { display:flex; align-items:center; justify-content:center; gap:12rpx; background:transparent; border:2rpx solid $p2-line; border-radius:19rpx 23rpx 16rpx 20rpx; padding:22rpx 32rpx; min-height:88rpx; font-size:$p2-fs-control; flex:1; }
 .primary { display:flex; align-items:center; justify-content:center; gap:12rpx; background:$p2-leaf-soft; border:2rpx solid $p2-line; border-radius:19rpx 23rpx 16rpx 20rpx; padding:22rpx 32rpx; min-height:88rpx; font-size:$p2-fs-control; box-shadow:3rpx 4rpx 0 #62473518; }
+.grow { flex:1; }
+// 编辑态沿用原布局：取消固定宽 + 保存占满剩余
 .cancel { min-width:155rpx; padding:24rpx; font-size:$p2-fs-control; }.save { flex:1; }
 .field-label { display:block; font-size:$p2-fs-caption; color:$p2-ink-soft; margin:20rpx 0 12rpx; text { font-size:20rpx; opacity:.8; margin-left:8rpx; } }
 .field { height:88rpx; padding:0 22rpx; border:2rpx solid #d5c8b5; border-radius:15rpx 19rpx 14rpx 17rpx; background:$p2-surface; font-size:$p2-fs-body; box-sizing:border-box; }

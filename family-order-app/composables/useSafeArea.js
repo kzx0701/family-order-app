@@ -11,6 +11,9 @@ const statusBarHeight = ref(0)
 // 微信胶囊按钮位置（··· 与 ⊙）：自定义导航栏下它固定悬浮在右上角，
 // 页面内容需要避让，否则右侧元素会与胶囊重叠
 const menuButton = ref(null)
+// 屏幕宽度（px）：rpx 随屏宽自适应，把 rpx 换算成 px 时（如让按钮与胶囊垂直居中对齐）必须用它，
+// 硬编码 375 基准值在 430pt 大屏上会差 4~5px
+const windowWidth = ref(375)
 let initialized = false
 
 export function useSafeArea() {
@@ -20,6 +23,7 @@ export function useSafeArea() {
       const info = uni.getSystemInfoSync()
       // statusBarHeight 单位为 px，iPhone 有灵动岛时约 59px，普通约 44px，Android 约 24px
       statusBarHeight.value = info.statusBarHeight || 20
+      windowWidth.value = info.windowWidth || 375
     } catch (e) {
       statusBarHeight.value = 20
     }
@@ -30,5 +34,5 @@ export function useSafeArea() {
       menuButton.value = null
     }
   }
-  return { statusBarHeight, menuButton }
+  return { statusBarHeight, menuButton, windowWidth }
 }

@@ -185,7 +185,11 @@ button { padding: 0; margin: 0; background: none; color: inherit; font: inherit;
 // 去掉原来的圆角方块（描边 + 实底 + 硬投影），一屏六类共 564rpx，宽 686rpx 放得下、不再被右边缘裁切。
 // 行高由 108rpx 收到 85rpx；未选中为次要文字色，选中转主文字色 + 叶片色标记线。
 .category-scroll { width: 100%; white-space: nowrap; }
-.categories { display: flex; gap: 16rpx; padding: 10rpx 0 14rpx; }
+// 与详情页食材行同一处理：横向滚动列表必须用 inline-flex —— 容器宽度由内容决定，
+// 分类一多必然溢出容器、必然可滚。块级 flex 的宽度恒等于父容器宽，靠子项溢出不可靠。
+// vertical-align:top 消除 inline 元素固有的基线间隙（本行已有 white-space:nowrap，
+// 分类名短、不涉及长文本折行问题，故保留）。
+.categories { display: inline-flex; vertical-align: top; gap: 16rpx; padding: 10rpx 0 14rpx; }
 .category { position: relative; flex-shrink: 0; padding: 8rpx 10rpx 14rpx; font-size: $p2-fs-body; line-height: 1.4; color: $p2-ink-soft; transition: color $p2-dur-fast $p2-ease; &:active { opacity: .55; } &.selected { color: $p2-ink; .category-mark { opacity: 1; transform: rotate(-2deg) scaleX(1); } } }
 .category-mark { position: absolute; left: 10rpx; right: 10rpx; bottom: 3rpx; height: 6rpx; border-radius: 55% 45% 60% 40%; background: $p2-leaf; opacity: 0; transform: rotate(-2deg) scaleX(.5); transition: opacity $p2-dur-fast $p2-ease, transform $p2-dur-settle $p2-ease; }
 .section-title { font-family: RecipeMaoken, $p2-font-fallback; font-size: $p2-fs-title; }

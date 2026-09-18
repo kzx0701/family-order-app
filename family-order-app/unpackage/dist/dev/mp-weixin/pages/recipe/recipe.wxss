@@ -93,7 +93,8 @@ button.data-v-fb437fc6::after {
   white-space: nowrap;
 }
 .categories.data-v-fb437fc6 {
-  display: flex;
+  display: inline-flex;
+  vertical-align: top;
   gap: 16rpx;
   padding: 10rpx 0 14rpx;
 }
@@ -132,6 +133,9 @@ button.data-v-fb437fc6::after {
   font-family: RecipeMaoken, -apple-system, "PingFang SC", "Helvetica Neue", sans-serif;
   font-size: 36rpx;
 }
+.recipe-skeleton.data-v-fb437fc6 {
+  padding-top: 24rpx;
+}
 .recipe-grid.data-v-fb437fc6 {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -160,6 +164,23 @@ button.data-v-fb437fc6::after {
   position: relative;
   overflow: hidden;
 }
+.card-photo-box.data-v-fb437fc6 {
+  position: relative;
+  width: 100%;
+  padding-top: 75%;
+}
+.card-photo.data-v-fb437fc6 {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 260ms cubic-bezier(0.22, 0.75, 0.24, 1);
+}
+.card-photo.is-loaded.data-v-fb437fc6 {
+  opacity: 1;
+}
 .card-label.data-v-fb437fc6 {
   position: absolute;
   bottom: 12rpx;
@@ -170,7 +191,7 @@ button.data-v-fb437fc6::after {
   border-radius: 7rpx 10rpx 7rpx 9rpx;
   color: #536844;
 }
-.card-label.unfinished.data-v-fb437fc6 {
+.card-label.signature.data-v-fb437fc6 {
   background: #f9e8aa;
   color: #624735;
 }
@@ -186,19 +207,18 @@ button.data-v-fb437fc6::after {
 .card-meta.data-v-fb437fc6 {
   display: flex;
   justify-content: space-between;
-  gap: 2rpx;
+  gap: 16rpx;
   align-items: center;
   margin-top: 22rpx;
   color: #8c725e;
   font-size: 19rpx;
 }
-.card-meta > view.data-v-fb437fc6 {
-  display: flex;
-  align-items: center;
-  gap: 6rpx;
-}
-.meta-dot.data-v-fb437fc6 {
-  color: #bdaa94;
+.card-tip.data-v-fb437fc6 {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 .page-footnote.data-v-fb437fc6 {
   display: flex;
@@ -264,7 +284,7 @@ to {
 .recipe-card.data-v-fb437fc6 {
     animation: none;
 }
-.recipe-card.data-v-fb437fc6, .category.data-v-fb437fc6 {
+.recipe-card.data-v-fb437fc6, .category.data-v-fb437fc6, .card-photo.data-v-fb437fc6 {
     transition: none;
 }
 }

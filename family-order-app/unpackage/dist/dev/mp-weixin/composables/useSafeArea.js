@@ -2,6 +2,7 @@
 const common_vendor = require("../common/vendor.js");
 const statusBarHeight = common_vendor.ref(0);
 const menuButton = common_vendor.ref(null);
+const windowWidth = common_vendor.ref(375);
 let initialized = false;
 function useSafeArea() {
   var _a, _b;
@@ -10,6 +11,7 @@ function useSafeArea() {
     try {
       const info = common_vendor.index.getSystemInfoSync();
       statusBarHeight.value = info.statusBarHeight || 20;
+      windowWidth.value = info.windowWidth || 375;
     } catch (e) {
       statusBarHeight.value = 20;
     }
@@ -19,7 +21,7 @@ function useSafeArea() {
       menuButton.value = null;
     }
   }
-  return { statusBarHeight, menuButton };
+  return { statusBarHeight, menuButton, windowWidth };
 }
 exports.useSafeArea = useSafeArea;
 //# sourceMappingURL=../../.sourcemap/mp-weixin/composables/useSafeArea.js.map
