@@ -43,7 +43,6 @@
       <button v-if="dishes.length" class="reset-button" @tap="resetFilters">看看全部菜谱</button>
     </view>
     <view class="page-footnote"><text>—</text><Icon name="food" :size="14" /><text>好好吃饭，就是日常的小浪漫</text><text>—</text></view>
-    <view class="preview-note"><text>家里的味道，慢慢记下来</text><button v-if="userStore.isCook" class="manage-button" @tap="showConfigurationScope"><Icon name="edit" :size="13" />菜谱配置</button></view>
     <custom-tabbar />
   </view>
 </template>
@@ -52,10 +51,9 @@
 import { ref, computed, reactive } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { useSafeArea } from '@/composables/useSafeArea.js'
-import { useUserStore } from '@/store/user.js'
 import { imgUrl } from '@/utils/image.js'
+import { SPICY_TEXT } from '@/utils/spicy.js'
 import RecipeArt from '@/components/recipe-art/recipe-art.vue'
-const userStore = useUserStore()
 const { statusBarHeight, menuButton } = useSafeArea()
 const headerTop = computed(() => menuButton.value?.bottom ? Math.round(menuButton.value.bottom + 12) : statusBarHeight.value + 26)
 const search = ref('')
@@ -64,8 +62,9 @@ const searchFocused = ref(false)
 // 渲染的 placeholder 不生效，必须用内联 placeholder-style；
 // 色值 = $p2-ink-soft(#8c725e) 的 55% 透明版
 const PLACEHOLDER_STYLE = 'color: rgba(140, 114, 94, 0.55)'
-// 辣度：云端存英文枚举（dishes.schema.json），展示层映射成中文
-const SPICY_TEXT = { none: '不辣', mild: '微辣', medium: '中辣' }
+// 辣度文案来自 utils/spicy.js —— 本页不要再维护一份映射：四档曾在列表页与详情页
+// 各存一份，扩档时只改了一处，「特辣」就被这里的 `|| 默认值` 吃成了「不辣」，
+// 而且页面毫无报错（2026-09-18 的实际事故）。
 
 const categories = ref([])
 const dishes = ref([])
@@ -97,6 +96,10 @@ const markPhotoReady = (id) => {
  * 降级：云函数尚未重新上传时拿不到 categories 字段，此时回退调一次
  * categories-crud / list，保证分类栏不会空（不依赖云函数先更新）。
  *
+ * 口径：本页只取 `type: 'food'` 的菜谱与分类。详情页的分类选择同样只取 food
+ * （categories-crud/list 带 type），两处必须一致 —— 否则会出现「列表多出一个
+ * 永远点不出菜的 tab」或「详情页能选、列表页筛不到」。咖啡（coffee）属点单页范畴。
+ *
  * 云端字段 → 视图模型在这一层收敛，模板不直接碰原始文档，
  * 后续字段调整只改这里。
  */
@@ -104,7 +107,7 @@ const loadRecipes = async () => {
   if (loading.value) return
   loading.value = true
   try {
-    const dishRes = await uniCloud.callFunction({ name: 'app-service', data: { module: 'dishes-crud', action: 'list' } })
+    const dishRes = await uniCloud.callFunction({ name: 'app-service', data: { module: 'dishes-crud', action: 'list', type: 'food' } })
     const dishResult = dishRes.result || {}
     if (dishResult.code !== 0) {
       uni.showToast({ title: dishResult.message || '菜谱加载失败', icon: 'none' })
@@ -123,11 +126,13 @@ const loadRecipes = async () => {
     // 分类优先取 list 顺带返回的（形状为 { id, name }）；旧版云函数无此字段则回退
     let catList = dishResult.categories
     if (!Array.isArray(catList)) {
-      const catRes = await uniCloud.callFunction({ name: 'app-service', data: { module: 'categories-crud', action: 'list' } })
+      const catRes = await uniCloud.callFunction({ name: 'app-service', data: { module: 'categories-crud', action: 'list', type: 'food' } })
       const catResult = catRes.result || {}
       catList = (catResult.code === 0 ? catResult.list || [] : []).map((c) => ({ id: c._id, name: c.name }))
     }
-    categories.value = catList.map((c) => ({ id: c.id || c._id, name: c.name }))
+    // 只保留 food 分类：新版权云函数已按 type 过滤，但**没重传时返回的仍是全类型**
+    // （与本页既有的「旧版云函数则回退」同一思路），兜一道才不会多出咖啡 tab。
+    categories.value = catList.filter((c) => !c.type || c.type === 'food').map((c) => ({ id: c.id || c._id, name: c.name }))
     // 选中的分类被删掉时退回「全部」，避免停在空列表
     if (activeCategory.value !== 'all' && !categories.value.some((c) => c.id === activeCategory.value)) {
       activeCategory.value = 'all'
@@ -154,7 +159,6 @@ const filtered = computed(() => {
 })
 const openRecipe = recipe => uni.navigateTo({ url: '/pages/recipe-detail/recipe-detail?id=' + recipe.id, animationType: 'slide-in-right', animationDuration: 260 })
 const resetFilters = () => { search.value = ''; activeCategory.value = 'all' }
-const showConfigurationScope = () => uni.showModal({ title: '菜谱配置', content: '名称、图片、辣度、招牌与备注已在云端维护；配料、口味和步骤还没接入，补齐后才是完整菜谱、才能加入菜单。', showCancel: false, confirmText: '知道啦', confirmColor: '#624735' })
 </script>
 
 <style lang="scss" scoped>
@@ -210,8 +214,6 @@ button { padding: 0; margin: 0; background: none; color: inherit; font: inherit;
 .card-meta { display: flex; justify-content: space-between; gap: 16rpx; align-items: center; margin-top: 22rpx; color: $p2-ink-soft; font-size: 19rpx; }
 .card-tip { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .page-footnote { display: flex; align-items: center; justify-content: center; gap: 13rpx; color: $p2-ink-soft; font-size: 21rpx; margin: 46rpx 0 22rpx; }
-.preview-note { display: flex; justify-content: center; align-items: center; gap: 20rpx; font-size: 19rpx; color: $p2-ink-soft; }
-.manage-button { display: flex; align-items: center; gap: 6rpx; text-decoration: underline; min-height: 60rpx; }
 .empty-state { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 94rpx 16rpx 70rpx; }
 .empty-book { display: flex; align-items: center; justify-content: center; width: 140rpx; height: 140rpx; border-radius: 50%; background: $p2-butter-soft; margin-bottom: 28rpx; transform: rotate(-8deg); }
 .reset-button { background: $p2-leaf-soft; border: 2rpx solid $p2-line; padding: 20rpx 32rpx; margin-top: 30rpx; border-radius: 18rpx; font-size: $p2-fs-body; }

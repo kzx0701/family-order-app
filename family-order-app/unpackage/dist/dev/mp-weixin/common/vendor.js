@@ -12332,6 +12332,11 @@ const onShow = /* @__PURE__ */ createLifeCycleHook(
   2
   /* HookFlags.PAGE */
 );
+const onHide = /* @__PURE__ */ createLifeCycleHook(
+  ON_HIDE,
+  2
+  /* HookFlags.PAGE */
+);
 const onLoad = /* @__PURE__ */ createLifeCycleHook(
   ON_LOAD,
   2
@@ -12371,6 +12376,7 @@ exports.n = n$1;
 exports.nextTick$1 = nextTick$1;
 exports.o = o$1;
 exports.onBackPress = onBackPress;
+exports.onHide = onHide;
 exports.onLoad = onLoad;
 exports.onMounted = onMounted;
 exports.onPageScroll = onPageScroll;

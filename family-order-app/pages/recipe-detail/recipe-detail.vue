@@ -14,10 +14,9 @@
           <text class="field-label">菜谱名称 · 必填</text>
           <input v-model="draft.name" class="field title-field" maxlength="24" placeholder="给这道菜起个名字" aria-label="菜谱名称" />
           <text class="field-label">菜品分类 <text>选填</text></text>
-          <scroll-view scroll-x class="chip-scroll" :show-scrollbar="false"><view class="chip-row"><button v-for="c in categories" :key="c.id" class="chip" :class="{ selected: draft.categoryId === c.id }" :aria-pressed="draft.categoryId === c.id" @tap="draft.categoryId = c.id">{{ c.name }}</button></view></scroll-view>
-          <text v-if="!categories.length" class="empty">还没有分类可选，请先在云端的 categories 集合里添加（type 填 food）</text>
+          <button class="field picker-field" aria-label="选择菜品分类" @tap="openPicker('category')"><image v-if="currentCategoryImage" class="picker-field-art" :src="currentCategoryImage" mode="aspectFit" /><text class="picker-field-value" :class="{ 'is-empty': !currentCategoryName }">{{ currentCategoryName || '还没选分类' }}</text><Icon name="chevron-right" :size="15" /></button>
           <text class="field-label">辣度 <text>选填</text></text>
-          <scroll-view scroll-x class="chip-scroll" :show-scrollbar="false"><view class="chip-row"><button v-for="option in SPICY_OPTIONS" :key="option.value" class="chip" :class="{ selected: draft.spicy === option.value }" :aria-pressed="draft.spicy === option.value" @tap="draft.spicy = option.value">{{ option.label }}</button></view></scroll-view>
+          <button class="field picker-field" aria-label="选择辣度" @tap="openPicker('spicy')"><image class="picker-field-art" :src="currentSpicy.image" mode="aspectFit" /><text class="picker-field-value">{{ currentSpicy.label }}</text><Icon name="chevron-right" :size="15" /></button>
         </template>
         <template v-else><text class="title">{{ shown.name }}</text></template>
         <view v-if="!editing && (currentCategoryName || spicyCount || !cloudDishId)" class="meta"><view v-if="currentCategoryName" class="category-pill"><view class="leaf" />{{ currentCategoryName }}</view><text v-if="currentCategoryName && spicyCount" class="meta-dot">·</text><view v-if="spicyCount" class="spicy"><Icon v-for="n in spicyCount" :key="n" name="chili" size="28rpx" :stroke-width="2.4" /></view><text v-if="!cloudDishId" class="demo-label">本机体验菜谱</text></view>
@@ -64,10 +63,10 @@
     </view>
     <view v-if="picker && editing && canEdit" class="picker-layer">
       <view class="mask" @tap="picker = ''" @touchmove.stop.prevent />
-      <view class="sheet"><view class="handle" /><view class="picker-heading"><view><text class="section-title">挑一点{{ picker === 'ingredients' ? '食材' : '调料' }}</text><text class="subtitle">厨房的小伙伴，都在这里</text></view></view>
-        <view class="picker-search" :class="{ 'is-focused': pickerFocused }"><Icon name="search" :size="16" :stroke-width="2.2" /><input v-model="pickerKeyword" class="picker-search-input" :placeholder="'搜一搜' + (picker === 'ingredients' ? '食材' : '调料')" :placeholder-style="PLACEHOLDER_STYLE" :maxlength="20" confirm-type="search" :aria-label="'搜索' + (picker === 'ingredients' ? '食材' : '调料')" @focus="pickerFocused = true" @blur="pickerFocused = false" /><button v-if="pickerKeyword" class="picker-search-clear" aria-label="清空搜索" @tap="pickerKeyword = ''"><Icon name="close" :size="13" /></button></view>
-        <scroll-view scroll-y class="picker-scroll" :style="{ height: pickerListHeight }"><view v-if="!pickerOptions.length" class="picker-blank"><template v-if="pickerKeyword.trim()"><text>没有找到「{{ pickerKeyword.trim() }}」</text><text>换个词试试</text></template><template v-else><text>这里还没有可选的{{ picker === 'ingredients' ? '食材' : '调料' }}</text><text>请先在云端的 materials 集合里添加，group 填 {{ CLOUD_GROUP[picker] }}</text></template></view><view class="picker-grid"><button v-for="(item, index) in pickerOptions" :key="item.id + '-' + pickerKeyword" class="picker-item" :style="{ animationDelay: Math.min(index, 6) * 20 + 'ms' }" :class="{ selected: selection.includes(item.id) }" :aria-label="'选择' + item.name" :aria-pressed="selection.includes(item.id)" @tap="toggleSelection(item.id)"><image :src="item.image" mode="aspectFit" /><text>{{ item.name }}</text><view class="selection-dot"><Icon v-if="selection.includes(item.id)" name="check" :size="12" /></view></button></view></scroll-view>
-        <button class="primary confirm" @tap="confirmPicker">就选这些 · {{ selection.length }} 种</button>
+      <view class="sheet"><view class="handle" /><view class="picker-heading"><view><text class="section-title">{{ pickerKind.title }}</text><text class="subtitle">{{ pickerKind.subtitle }}</text></view></view>
+        <view v-if="pickerKind.searchable" class="picker-search" :class="{ 'is-focused': pickerFocused }"><Icon name="search" :size="16" :stroke-width="2.2" /><input v-model="pickerKeyword" class="picker-search-input" :placeholder="'搜一搜' + pickerKind.noun" :placeholder-style="PLACEHOLDER_STYLE" :maxlength="20" confirm-type="search" :aria-label="'搜索' + pickerKind.noun" @focus="pickerFocused = true" @blur="pickerFocused = false" /><button v-if="pickerKeyword" class="picker-search-clear" aria-label="清空搜索" @tap="pickerKeyword = ''"><Icon name="close" :size="13" /></button></view>
+        <scroll-view scroll-y class="picker-scroll" :style="{ height: pickerListHeight }"><view v-if="!pickerOptions.length" class="picker-blank"><template v-if="pickerKind.searchable && pickerKeyword.trim()"><text>没有找到「{{ pickerKeyword.trim() }}」</text><text>换个词试试</text></template><template v-else><text>{{ pickerKind.emptyTitle }}</text><text>{{ pickerKind.emptyHint }}</text></template></view><view class="picker-grid"><button v-for="(item, index) in pickerOptions" :key="item.id + '-' + pickerKeyword" class="picker-item" :style="{ animationDelay: Math.min(index, 6) * 20 + 'ms' }" :class="{ selected: selection.includes(item.id) }" :aria-label="'选择' + item.name" :aria-pressed="selection.includes(item.id)" @tap="toggleSelection(item.id)"><image :src="item.image" mode="aspectFit" /><text>{{ item.name }}</text><view class="selection-dot"><Icon v-if="selection.includes(item.id)" name="check" :size="12" /></view></button></view></scroll-view>
+        <button class="primary confirm" @tap="confirmPicker">{{ pickerConfirmText }}</button>
       </view>
     </view>
     <fo-dialog :visible="discardDialog" title="收起这次修改？" subtitle="未保存的内容会丢失，原来的菜谱仍会保留。" cancel-text="继续编辑" confirm-text="放弃修改" @close="discardDialog = false" @confirm="discard" />
@@ -80,6 +79,7 @@ import { onLoad, onBackPress } from '@dcloudio/uni-app'
 import { useSafeArea } from '@/composables/useSafeArea.js'
 import { useUserStore } from '@/store/user.js'
 import { pantry, freshRecipe, cloneRecipe, validateRecipe } from '@/mock/recipe-editor.js'
+import { SPICY_OPTIONS, SPICY_LEVELS } from '@/utils/spicy.js'
 const STORAGE_KEY = 'fo_recipe_editor_demo_v2'
 const userStore = useUserStore()
 const canEdit = computed(() => userStore.isCook)
@@ -151,20 +151,32 @@ const stepFromCloud = (step, index) => ({
  */
 const categories = ref([])
 
-/**
- * 辣度：四档，两处用同一份定义。
- * 浏览态用**辣椒图标的数量**表达 —— none 不显示、mild 1 根、medium 2 根、hot 3 根
- * （餐饮品牌通用的表达法，也比文字更省横向空间）；编辑态用文字选项，选档位时文字最明确。
- * 档位高低即数组顺序，所以浏览态直接用 SPICY_LEVELS.indexOf 取根数，不需要额外映射表。
- */
-const SPICY_OPTIONS = [
-  { value: 'none', label: '不辣' },
-  { value: 'mild', label: '微辣' },
-  { value: 'medium', label: '中辣' },
-  { value: 'hot', label: '特辣' }
-]
-/** 档位值数组：编辑态选项、保存校验、浏览态根数三处共用，避免多份定义走偏 */
-const SPICY_LEVELS = SPICY_OPTIONS.map(option => option.value)
+// 分类选项的占位图（临时）：等 categories.image 在云端填好后这里的映射会自动让位。
+// 按名称匹配、命中不了回退 __default，所以云端分类叫什么名字都不会出现空图。
+const CATEGORY_ART = {
+  炒菜: '/static/images/recipes/categories/stir-fry-v1.png',
+  蒸菜: '/static/images/recipes/categories/steam-v1.png',
+  烧菜: '/static/images/recipes/categories/braise-v1.png',
+  汤类: '/static/images/recipes/categories/soup-v1.png',
+  汤: '/static/images/recipes/categories/soup-v1.png',
+  炖汤: '/static/images/recipes/categories/soup-v1.png',
+  凉菜: '/static/images/recipes/categories/cold-v1.png',
+  凉拌: '/static/images/recipes/categories/cold-v1.png',
+  主食: '/static/images/recipes/categories/staple-v1.png',
+  主: '/static/images/recipes/categories/staple-v1.png',
+  __default: '/static/images/recipes/categories/default-v1.png'
+}
+
+/** 分类选项：云端填了图标就用云端的，没填用上表的占位图 */
+const categoryOptions = computed(() => categories.value.map(c => ({
+  id: c.id, name: c.name, image: c.image || CATEGORY_ART[c.name] || CATEGORY_ART.__default
+})))
+
+// 辣度档位（SPICY_OPTIONS / SPICY_LEVELS）来自 utils/spicy.js —— 与列表页共用一份定义。
+// 浏览态用**辣椒图标的数量**表达 —— none 不显示、mild 1 根、medium 2 根、hot 3 根
+// （餐饮品牌通用的表达法，也比文字更省横向空间）；编辑态在抽屉里用图标 + 文字选，
+// 与「食材 / 调料」同一个抽屉模式。
+// 档位高低即数组顺序，所以浏览态直接用 SPICY_LEVELS.indexOf 取根数，不需要额外映射表。
 
 /** 当前菜品要显示几根辣椒：0 = 不辣（完全不显示），1/2/3 = 微辣 / 中辣 / 特辣 */
 const spicyCount = computed(() => {
@@ -173,16 +185,17 @@ const spicyCount = computed(() => {
 })
 
 /**
- * 当前菜品的分类名
+ * 当前菜品的分类（编辑态取 draft、浏览态取 saved）
  *
- * 从分类列表里查、而不把 categoryName 一起塞进 saved —— 否则 draft 里没有这个字段，
+ * 从分类列表里查、而不把分类名一起塞进 saved —— 否则 draft 里没有这个字段，
  * dirty 比较（JSON.stringify 全等）会永远为真、导致每次进编辑态都算「有改动」。
  */
-const currentCategoryName = computed(() => {
-  const id = shown.value && shown.value.categoryId
-  if (!id) return ''
-  return (categories.value.find(c => c.id === id) || {}).name || ''
-})
+const currentCategory = computed(() => categoryOptions.value.find(o => o.id === (shown.value && shown.value.categoryId)) || null)
+const currentCategoryName = computed(() => (currentCategory.value || {}).name || '')
+const currentCategoryImage = computed(() => (currentCategory.value || {}).image || '')
+
+/** 当前辣度档位（未设置 / 脏值一律按「不辣」处理，与浏览态的辣椒根数同一套规则） */
+const currentSpicy = computed(() => SPICY_OPTIONS.find(o => o.value === (shown.value && shown.value.spicy)) || SPICY_OPTIONS[0])
 const cloudMaterials = ref([])
 const cloudMaterialMap = computed(() => {
   const map = {}
@@ -208,31 +221,76 @@ const lookup = id => {
 }
 
 /**
- * 当前分组的全部可用物料（**不受搜索词影响**）
+ * 选择抽屉的四种用途
+ *
+ * 「食材 / 调料」是多选（一道菜可以有很多配料）且带搜索；「分类 / 辣度」是单选、
+ * 选项少而固定，不需要搜索框 —— 这些差异全部收敛到这张表里，模板只读它，
+ * 不再散落一堆 `picker === 'ingredients' ? … : …` 的三元判断。
+ */
+const PICKER_KINDS = {
+  ingredients: {
+    noun: '食材', title: '挑一点食材', subtitle: '厨房的小伙伴，都在这里',
+    searchable: true, multiple: true,
+    emptyTitle: '这里还没有可选的食材',
+    emptyHint: '请先在云端的 materials 集合里添加，group 填 ingredient'
+  },
+  seasonings: {
+    noun: '调料', title: '挑一点调料', subtitle: '好味道的秘密，都在这里',
+    searchable: true, multiple: true,
+    emptyTitle: '这里还没有可选的调料',
+    emptyHint: '请先在云端的 materials 集合里添加，group 填 seasoning'
+  },
+  category: {
+    noun: '分类', title: '挑一个最像它的', subtitle: '先归好类，翻菜谱时更好找',
+    searchable: false, multiple: false,
+    emptyTitle: '这里还没有可选的分类',
+    emptyHint: '请先在云端的 categories 集合里添加，type 填 food'
+  },
+  spicy: {
+    noun: '辣度', title: '这道菜有多辣', subtitle: '挑一档，做的时候照着来',
+    searchable: false, multiple: false,
+    emptyTitle: '', emptyHint: ''
+  }
+}
+/** 当前抽屉的配置（picker 为空时给个安全默认，避免模板读到 undefined） */
+const pickerKind = computed(() => PICKER_KINDS[picker.value] || PICKER_KINDS.ingredients)
+
+/**
+ * 当前抽屉的全部选项（**不受搜索词影响**）
  *
  * 单独抽出来是为了给列表定高：高度必须由它决定、而不是由搜索结果决定，
  * 否则搜出 1 项时列表塌成一行、整个抽屉跟着跳一下。
+ * 四种用途各有来源：食材/调料读 materials（已停用的过滤掉）、分类读 categories、辣度是本地常量。
  */
-const pickerGroupOptions = computed(() => cloudMaterials.value
-  .filter(m => m.group === CLOUD_GROUP[picker.value] && m.isActive !== false))
-
-/**
- * 选择器选项：只读云端 materials 的真实数据
- *
- * 不再拼接本地 mock —— 两套数据的 id 体系不同（云端是物料 _id，本地是 'oil' / 'salt'），
- * 按 id 去重根本不成立，结果就是「同一个食用油出现两次」。取消本地补足后只剩一份数据源。
- * 已停用（isActive === false）的物料不出现在选择器里。
- * 搜索按名称匹配（大小写不敏感），只在当前分组内过滤。
- * 选项只带 { id, name, image }：模板仅消费这三项，且 materials 已无「默认用量」字段。
- */
-const pickerOptions = computed(() => {
-  const keyword = pickerKeyword.value.trim().toLocaleLowerCase()
-  return pickerGroupOptions.value
-    .filter(m => !keyword || String(m.name || '').toLocaleLowerCase().includes(keyword))
+const pickerAllOptions = computed(() => {
+  if (picker.value === 'category') return categoryOptions.value
+  if (picker.value === 'spicy') return SPICY_OPTIONS.map(o => ({ id: o.value, name: o.label, image: o.image }))
+  return cloudMaterials.value
+    .filter(m => m.group === CLOUD_GROUP[picker.value] && m.isActive !== false)
     .map(m => ({ id: m._id, name: m.name, image: m.image }))
 })
 
-// 列表区高度：由分组内物料总数决定，最多三行 —— 搜索时不随结果的增减而变化。
+/**
+ * 抽屉里实际渲染的选项
+ *
+ * 食材/调料按名称过滤（大小写不敏感、只在当前分组内）；分类与辣度不搜索、原样返回。
+ * 选项统一为 { id, name, image } 三字段 —— 模板只消费这三项。
+ */
+const pickerOptions = computed(() => {
+  if (!pickerKind.value.searchable) return pickerAllOptions.value
+  const keyword = pickerKeyword.value.trim().toLocaleLowerCase()
+  if (!keyword) return pickerAllOptions.value
+  return pickerAllOptions.value.filter(o => String(o.name || '').toLocaleLowerCase().includes(keyword))
+})
+
+/** 确认按钮文案：多选报数量，单选说「就选这个」（什么都没选就是「先不选」） */
+const pickerConfirmText = computed(() => {
+  if (!picker.value) return ''
+  if (!pickerKind.value.multiple) return selection.value.length ? '就选这个' : '先不选'
+  return `就选这些 · ${selection.value.length} 种`
+})
+
+// 列表区高度：由当前抽屉的选项总数决定，最多三行 —— 搜索时不随结果的增减而变化。
 // 数值与样式一一对应：.picker-item 的 height 与 .picker-grid 的 grid-auto-rows = 190rpx、
 // .picker-grid 的 gap = 18rpx、上下 padding 合计 12rpx。改动样式需同步改这三个常量。
 const PICKER_ROW_RPX = 190
@@ -241,7 +299,7 @@ const PICKER_GRID_PAD_RPX = 12
 const PICKER_COLS = 3
 const PICKER_MAX_ROWS = 3
 const pickerListHeight = computed(() => {
-  const rows = Math.min(Math.max(Math.ceil(pickerGroupOptions.value.length / PICKER_COLS), 1), PICKER_MAX_ROWS)
+  const rows = Math.min(Math.max(Math.ceil(pickerAllOptions.value.length / PICKER_COLS), 1), PICKER_MAX_ROWS)
   return rows * PICKER_ROW_RPX + (rows - 1) * PICKER_GAP_RPX + PICKER_GRID_PAD_RPX + 'rpx'
 })
 let leaveAfterDiscard = false, nextId = 0
@@ -276,7 +334,7 @@ const loadCloudRecipe = async id => {
     const matResult = matRes.result || {}
     if (matResult.code === 0) cloudMaterials.value = matResult.list || []
     const catResult = catRes.result || {}
-    if (catResult.code === 0) categories.value = (catResult.list || []).map(c => ({ id: c._id, name: c.name }))
+    if (catResult.code === 0) categories.value = (catResult.list || []).map(c => ({ id: c._id, name: c.name, image: c.image || '' }))
 
     if (!id) return
     const dishRes = await uniCloud.callFunction({ name: 'app-service', data: { module: 'dishes-crud', action: 'detail', _id: id } })
@@ -327,12 +385,31 @@ const cancelEditing = () => { leaveAfterDiscard = false; if (dirty.value) discar
 const requestBack = () => { if (picker.value) { picker.value = ''; return } if (dirty.value) { leaveAfterDiscard = true; discardDialog.value = true } else { exitEditing(); back() } }
 const discard = () => { discardDialog.value = false; exitEditing(); if (leaveAfterDiscard) back() }
 onBackPress(() => { if (picker.value) { picker.value = ''; return true } if (dirty.value) { leaveAfterDiscard = true; discardDialog.value = true; return true } return false })
-const openPicker = group => { if (!editing.value || !canEdit.value) return; selection.value = draft.value[group].map(item => item.id); pickerKeyword.value = ''; picker.value = group }
-const toggleSelection = id => { selection.value = selection.value.includes(id) ? selection.value.filter(value => value !== id) : [...selection.value, id] }
+const openPicker = kind => {
+  if (!editing.value || !canEdit.value || !PICKER_KINDS[kind]) return
+  // 打开时把当前值带进去 —— 单选带一个、多选带上已有的全部
+  if (kind === 'category') selection.value = draft.value.categoryId ? [draft.value.categoryId] : []
+  else if (kind === 'spicy') selection.value = [SPICY_LEVELS.includes(draft.value.spicy) ? draft.value.spicy : 'none']
+  else selection.value = draft.value[kind].map(item => item.id)
+  // 关键词清在打开时而不是关闭时：四条关闭路径（点遮罩、返回键、确认、取消）就不必各自清理
+  pickerKeyword.value = ''
+  picker.value = kind
+}
+const toggleSelection = id => {
+  // 多选：点一下加/减；单选：点已选中的即取消（分类允许不选，辣度取消则按「不辣」处理）
+  if (pickerKind.value.multiple) selection.value = selection.value.includes(id) ? selection.value.filter(value => value !== id) : [...selection.value, id]
+  else selection.value = selection.value.includes(id) ? [] : [id]
+}
 const confirmPicker = () => {
   if (!canEdit.value || !editing.value || !picker.value) return
-  const group = picker.value
-  draft.value[group] = selection.value.map(id => draft.value[group].find(item => item.id === id) || { id, quantity: lookup(id).quantity })
+  const kind = picker.value
+  if (kind === 'category') {
+    draft.value.categoryId = selection.value[0] || ''
+  } else if (kind === 'spicy') {
+    draft.value.spicy = selection.value[0] || 'none'
+  } else {
+    draft.value[kind] = selection.value.map(id => draft.value[kind].find(item => item.id === id) || { id, quantity: lookup(id).quantity })
+  }
   picker.value = ''
 }
 const removeMaterial = (group, id) => { if (canEdit.value && editing.value) draft.value[group] = draft.value[group].filter(item => item.id !== id) }
@@ -454,13 +531,13 @@ button { margin:0; padding:0; background:transparent; color:inherit; font:inheri
 // 也是页面既有的强调色；gap 收窄到 3rpx，让多根辣椒读起来是一组而不是散开的几个图标。
 .spicy { display:inline-flex; align-items:center; gap:3rpx; color:$p2-coral; }
 .demo-label { margin-left:auto; font-size:18rpx; }
-// 选项行（菜品分类 / 辣度共用）：横向滚动的 chip 行。两项都是预置的少量固定值，直接平铺出来
-// 比再开一层弹窗更快（一次点击即选中），也与「食材 / 调料」的横滑模式一致。
-// inline-flex 让行宽由内容决定，溢出必然可滚（同 .material-row）。
-// transition 里带上 transform —— 否则会覆盖全局 button 的按下缩放过渡（button:active 的 scale(.96)）。
-.chip-scroll { width:100%; }
-.chip-row { display:inline-flex; vertical-align:top; gap:16rpx; padding:4rpx 0 10rpx; }
-.chip { flex-shrink:0; padding:14rpx 26rpx; border:2rpx solid #e1d8c5; border-radius:18rpx 22rpx 17rpx 21rpx; background:$p2-surface; color:$p2-ink-soft; font-size:$p2-fs-body; transition: background $p2-dur-fast $p2-ease, border-color $p2-dur-fast $p2-ease, color $p2-dur-fast $p2-ease, transform $p2-dur-tap $p2-ease; &.selected { background:$p2-leaf-soft; border-color:$p2-line; color:$p2-ink; } }
+// 分类 / 辣度的编辑入口：与名称输入框同形的**整行控件**，点它开抽屉去挑。
+// 形制直接落在 .field 上（描边 + 手绘圆角 + 奶油底），本类只负责内容的两端对齐 ——
+// 这样两行选择器与上方的名称输入框读起来是同一组表单。
+.picker-field { display:flex; align-items:center; gap:14rpx; width:100%; text-align:left; }
+.picker-field-art { width:44rpx; height:44rpx; flex-shrink:0; }
+.picker-field-value { flex:1; min-width:0; color:$p2-ink; }
+.picker-field-value.is-empty { color:$p2-ink-soft; }
 .material-section { padding:24rpx 0 26rpx; border-top:2rpx dashed #e1d6c3; }
 .section-head { display:flex; align-items:center; gap:13rpx; margin-bottom:20rpx; }
 .number { display:flex; justify-content:center; align-items:center; width:38rpx; height:40rpx; font-size:21rpx; background:$p2-leaf-soft; border-radius:10rpx 13rpx 8rpx 12rpx; transform:rotate(-7deg); }

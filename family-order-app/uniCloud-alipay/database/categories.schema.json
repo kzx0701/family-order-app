@@ -25,6 +25,13 @@
             "label": "类型",
             "errorMessage": "类型必填且只能为 coffee 或 food"
         },
+        "image": {
+            "bsonType": "string",
+            "description": "分类图标（云存储地址或本地素材路径）。选择抽屉与菜品分类徽标用它展示；留空时页面回退到内置占位图，所以可以先不填",
+            "trim": "both",
+            "defaultValue": "",
+            "label": "图标"
+        },
         "sortOrder": {
             "bsonType": "int",
             "description": "排序值（越小越靠前）",

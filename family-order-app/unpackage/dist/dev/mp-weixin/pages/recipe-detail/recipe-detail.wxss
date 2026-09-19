@@ -147,29 +147,25 @@ button[disabled].data-v-fc6387aa {
   margin-left: auto;
   font-size: 18rpx;
 }
-.chip-scroll.data-v-fc6387aa {
+.picker-field.data-v-fc6387aa {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
   width: 100%;
+  text-align: left;
 }
-.chip-row.data-v-fc6387aa {
-  display: inline-flex;
-  vertical-align: top;
-  gap: 16rpx;
-  padding: 4rpx 0 10rpx;
-}
-.chip.data-v-fc6387aa {
+.picker-field-art.data-v-fc6387aa {
+  width: 44rpx;
+  height: 44rpx;
   flex-shrink: 0;
-  padding: 14rpx 26rpx;
-  border: 2rpx solid #e1d8c5;
-  border-radius: 18rpx 22rpx 17rpx 21rpx;
-  background: #fffdf7;
-  color: #8c725e;
-  font-size: 28rpx;
-  transition: background 140ms cubic-bezier(0.22, 0.75, 0.24, 1), border-color 140ms cubic-bezier(0.22, 0.75, 0.24, 1), color 140ms cubic-bezier(0.22, 0.75, 0.24, 1), transform 110ms cubic-bezier(0.22, 0.75, 0.24, 1);
 }
-.chip.selected.data-v-fc6387aa {
-  background: #dbe8c8;
-  border-color: #765540;
+.picker-field-value.data-v-fc6387aa {
+  flex: 1;
+  min-width: 0;
   color: #624735;
+}
+.picker-field-value.is-empty.data-v-fc6387aa {
+  color: #8c725e;
 }
 .material-section.data-v-fc6387aa {
   padding: 24rpx 0 26rpx;

@@ -1,910 +1,239 @@
 <template>
-  <view class="page-order page-enter" :class="themeClass">
-    <!-- 页面头部 -->
-    <view class="header" :style="{ paddingTop: statusBarHeight + 32 + 'px' }">
-      <view class="back-btn" @tap="goHome">
-        <Icon name="arrow-left" :size="20" />
+  <view class="order-page" :class="'mode-' + mode">
+    <view class="top-area" :style="{ paddingTop: headerTop + 'px' }">
+      <view class="heading">
+        <view><text class="page-title">{{ mode === 'food' ? '今天，想吃点什么？' : '给今天，加点咖啡香' }}</text><text class="subtitle">{{ mode === 'food' ? '你负责好好吃，我负责用心做。' : '忙里偷个闲，喝杯喜欢的。' }}</text></view>
+        <image class="heading-art" :src="mode === 'food' ? bowlArt : menuItems[4].image" mode="aspectFit" />
       </view>
-      <text class="title">{{ pageTitle }}</text>
+      <view class="mode-tabs" role="tablist" aria-label="点单类型">
+        <view class="mode-slider" :class="{ coffee: mode === 'coffee' }" />
+        <button v-for="type in types" :key="type.id" role="tab" :aria-selected="mode === type.id" :aria-label="type.label" class="mode-tab" :class="{ active: mode === type.id }" @tap="switchMode(type.id)">
+          <Icon :name="type.icon" :size="20" :stroke-width="1.6" /><text>{{ type.label }}</text><text v-if="countFor(type.id)" class="tab-count">{{ countFor(type.id) }}</text>
+        </button>
+      </view>
+      <view class="filter-row">
+        <scroll-view scroll-x class="category-scroll" :show-scrollbar="false">
+          <view class="category-list"><button v-for="category in menuCategories[mode]" :key="category.id" class="category" :class="{ selected: categories[mode] === category.id }" :aria-pressed="categories[mode] === category.id" @tap="categories[mode] = category.id"><text>{{ category.name }}</text><view class="category-underline" /></button></view>
+        </scroll-view>
+        <button class="search-toggle" :class="{ active: searchOpen }" aria-label="搜索菜单" :aria-expanded="searchOpen" @tap="toggleSearch"><view class="search-glass" /></button>
+      </view>
+      <view v-if="searchOpen" class="search-box"><view class="search-glass" /><input v-model="queries[mode]" placeholder="找找今天想吃的…" maxlength="40" confirm-type="search" aria-label="搜索菜品或咖啡" /><button v-if="queries[mode]" class="round-button" aria-label="清空搜索" @tap="queries[mode] = ''"><Icon name="close" :size="17" /></button></view>
     </view>
 
-    <!-- 主体：左侧分类 + 右侧菜品 -->
-    <view class="content">
-      <!-- 左侧分类导航 -->
-      <scroll-view
-        class="sidebar"
-        scroll-y
-        :scroll-with-animation="true"
-        :scroll-top="sidebarScrollTop"
-      >
-        <view
-          v-for="cat in categories"
-          :key="cat.id"
-          :id="`cat-${cat.id}`"
-          class="cat-item"
-          :class="{ active: activeCategory === cat.id }"
-          @tap="onCategoryTap(cat.id)"
-        >
-          <view class="cat-indicator" />
-          <text class="cat-name">{{ cat.name }}</text>
-        </view>
-      </scroll-view>
-
-      <!-- 右侧菜品列表 -->
-      <scroll-view
-        class="dish-list"
-        scroll-y
-        :scroll-top="dishScrollTop"
-        :scroll-with-animation="true"
-        :refresher-enabled="true"
-        :refresher-triggered="refreshing"
-        @refresherrefresh="onRefresh"
-        @scroll="onScroll"
-      >
-        <!-- 加载中：骨架屏占位（替代三点动效，更直观的菜品卡片占位） -->
-        <view v-if="loading && dishes.length === 0" class="dish-skeleton">
-          <skeleton type="dish" :count="4" />
-        </view>
-
-        <!-- 空状态 -->
-        <view v-else-if="dishes.length === 0" class="state-block animate-fade-in">
-          <text class="state-emoji">{{ emptyEmoji }}</text>
-          <text class="state-text">{{ emptyText }}</text>
-          <view class="state-action" @tap="loadMenu">
-            <text class="state-action-text">刷新看看</text>
-          </view>
-        </view>
-
-        <!-- 菜品区段列表 -->
-        <template v-else>
-          <view
-            v-for="cat in categories"
-            :key="cat.id"
-            :id="`section-${cat.id}`"
-            class="dish-section"
-          >
-            <view class="section-header">
-              <text class="section-title">{{ cat.name }}</text>
-              <text v-if="cat.id === 'recommend'" class="section-deco">✨</text>
-            </view>
-            <view v-if="(dishesByCategory[cat.id] || []).length > 0" class="dish-grid">
-              <dish-card
-                v-for="(dish, idx) in dishesByCategory[cat.id] || []"
-                :key="dish.dishId"
-                :dish="dish"
-                :index="idx"
-                @add-to-cart="onAddToCart"
-                @tap="onDishTap"
-              />
-            </view>
-            <view v-else class="section-empty">
-              <text class="section-empty-text">暂无菜品</text>
+    <scroll-view :key="mode + categories[mode]" scroll-y class="menu-scroll" :show-scrollbar="false">
+      <view class="list-inner">
+        <view class="little-note"><Icon :name="mode === 'food' ? 'note' : 'coffee'" :size="17" :stroke-width="1.6" /><text>{{ mode === 'food' ? '家里的拿手菜，今天也为你留了一份。' : '冷热与甜度，都按你的心情来。' }}</text><text class="note-spark">✧</text></view>
+        <view :key="mode + categories[mode]" class="menu-list">
+          <view v-for="item in visibleItems" :key="item.id" class="dish-row" :class="{ chosen: itemCount(item.id) > 0 }">
+            <button class="art-button" :aria-label="'查看' + item.name" @tap="openDish(item)"><view class="art-wash" :class="item.tone" /><image class="dish-image" :src="item.image" mode="aspectFit" /></button>
+            <view class="dish-copy">
+              <button class="dish-title-button" :aria-label="'选择' + item.name + '口味'" @tap="openDish(item)"><text class="dish-name">{{ item.name }}</text><Icon name="chevron-right" :size="14" /></button>
+              <text class="dish-description">{{ item.subtitle }}</text>
+              <text class="dish-tag" :class="item.tone">{{ item.tag }}</text>
+              <view class="dish-bottom">
+                <button class="flavor-button" :aria-label="item.name + '选口味'" @tap="openDish(item)"><text>选口味</text><Icon name="chevron-down" :size="12" /></button>
+                <view class="counter">
+                  <button v-if="itemCount(item.id)" class="quantity-button minus" :aria-label="'减少' + item.name" @tap="removeLatest(item.id)"><Icon name="minus" :size="15" /></button>
+                  <text v-if="itemCount(item.id)" class="quantity-value">{{ itemCount(item.id) }}</text>
+                  <button class="quantity-button plus" :aria-label="'添加' + item.name" @tap="quickAdd(item)"><Icon name="plus" :size="18" /></button>
+                </view>
+              </view>
             </view>
           </view>
-          <!-- 底部留白 -->
-          <view class="list-bottom-spacer" />
-        </template>
-      </scroll-view>
-    </view>
-
-    <!-- 底部购物车条：悬浮圆角卡片，购物车汇总 + 去下单 -->
-    <view class="cart-bar">
-      <view class="cart-summary" @tap="onCartClick">
-        <view
-          class="cart-icon-circle"
-          :class="{ active: cartTotal > 0, 'animate-bounce': cartBarBounce }"
-        >
-          <Icon name="shopping-bag" :size="22" />
-          <view v-if="cartTotal > 0" class="cart-count-badge">{{ cartTotal }}</view>
         </view>
-        <view class="cart-summary-text">
-          <text class="cart-summary-main">{{ cartTotal > 0 ? `已选 ${cartTotal} 件` : '购物车是空的' }}</text>
-          <text class="cart-summary-sub">{{ cartTotal > 0 ? '点击查看已选菜品' : '快去挑选喜欢的菜品吧' }}</text>
-        </view>
+        <view v-if="!visibleItems.length" class="empty-list"><image :src="bowlArt" mode="aspectFit" /><text class="empty-title">这口快乐，还没找到</text><text>换个关键词或分类试试看吧。</text><button class="light-button" @tap="resetFilters">看看全部</button></view>
+        <view class="list-end"><text>—</text><text>{{ mode === 'food' ? '好好吃饭，是今天的小正事' : '日子慢慢过，咖啡慢慢喝' }}</text><text>—</text></view>
+        <text class="mock-label">菜单体验 · 示例数据</text>
       </view>
-      <view
-        class="submit-btn"
-        :class="{ disabled: cartTotal === 0 }"
-        @tap="goSubmit"
-      >
-        <text class="submit-text">去下单</text>
-      </view>
-    </view>
+    </scroll-view>
 
-    <!-- 飞入动效层 -->
-    <view class="fly-layer">
-      <view
-        v-for="fly in flyingItems"
-        :key="fly.id"
-        class="fly-item"
-        :style="fly.style"
-        @animationend="onFlyEnd(fly.id)"
-      >
-        <image v-if="fly.image" :src="fly.image" class="fly-img" mode="aspectFill" />
-        <view v-else class="fly-emoji">{{ fly.emoji }}</view>
+    <view class="cart-dock">
+      <view class="cart-bar" :class="{ filled: total > 0 }">
+        <button class="cart-summary" aria-label="查看已选清单" @tap="openCart">
+          <view class="basket-icon"><Icon :name="mode === 'food' ? 'shopping-bag' : 'coffee'" :size="24" :stroke-width="1.6" /><text v-if="total" :key="total" class="basket-count">{{ total }}</text></view>
+          <view><text class="cart-title">{{ total ? '已选 ' + total + (mode === 'food' ? ' 份好味道' : ' 杯小快乐') : '今天的快乐，还差一口' }}</text><text class="cart-subtitle">{{ total ? '点这里，看看你的小清单' : mode === 'food' ? '挑几道喜欢的，开饭啦' : '选一杯喜欢的，歇一歇' }}</text></view>
+          <Icon v-if="total" name="chevron-up" :size="14" />
+        </button>
+        <button class="checkout-button" :disabled="!total" @tap="openReview"><text>去点单</text><Icon name="chevron-right" :size="16" /></button>
       </view>
     </view>
-
-    <!-- 购物车浮层 -->
-    <cart-popup
-      :visible="cartVisible"
-      :theme="orderType"
-      @close="onPopupClose"
-      @submit="onPopupSubmit"
-    />
-
     <custom-tabbar />
+
+    <view v-if="panel" class="sheet-layer">
+      <view class="sheet-mask" :class="{ closing }" @tap="closePanel" @touchmove.stop.prevent />
+      <view class="sheet" :class="{ closing, 'success-sheet': panel === 'success' }" role="dialog" aria-modal="true" :aria-label="panelTitle">
+        <view class="sheet-handle" />
+        <view class="sheet-heading"><view><text class="sheet-title">{{ panelTitle }}</text><text class="sheet-subtitle">{{ panelSubtitle }}</text></view><button class="close-button" aria-label="关闭弹层" @tap="closePanel"><Icon name="close" :size="20" /></button></view>
+        <scroll-view scroll-y class="sheet-scroll" :show-scrollbar="false">
+          <view v-if="panel === 'dish' && selected" class="dish-detail">
+            <image class="detail-image" :src="selected.image" mode="aspectFit" />
+            <text class="detail-description">{{ selected.description }}</text>
+            <view v-for="(option, index) in selected.options" :key="option.name" class="option-group"><text class="option-label">{{ option.name }}</text><view class="option-values"><button v-for="value in option.values" :key="value" class="option-button" :class="{ selected: selectedOptions[index] === value }" :aria-pressed="selectedOptions[index] === value" @tap="selectedOptions[index] = value">{{ value }}</button></view></view>
+            <view class="portion-row"><text>来{{ mode === 'food' ? '几份' : '几杯' }}？</text><view class="counter"><button class="quantity-button minus" aria-label="减少选购数量" :disabled="selectedQuantity <= 1" @tap="selectedQuantity--"><Icon name="minus" :size="16" /></button><text class="quantity-value">{{ selectedQuantity }}</text><button class="quantity-button plus" aria-label="增加选购数量" :disabled="selectedQuantity >= 20" @tap="selectedQuantity++"><Icon name="plus" :size="18" /></button></view></view>
+          </view>
+          <template v-else-if="panel === 'cart' || panel === 'review'">
+            <view v-if="total" class="cart-content">
+              <view v-if="panel === 'cart'" class="cart-toolbar"><text>{{ cart.length }} 种{{ mode === 'food' ? '好味道' : '小快乐' }}</text><button class="clear-cart" @tap="confirmClear = true"><Icon name="trash" :size="14" />清空清单</button></view>
+              <view v-for="line in cart" :key="line.key" class="cart-line"><image :src="line.image" mode="aspectFit" /><view class="line-copy"><text class="line-title">{{ line.name }}</text><text class="line-options">{{ line.options.join(' · ') }}</text></view>
+                <view v-if="panel === 'cart'" class="counter"><button class="quantity-button minus" :aria-label="'清单减少' + line.name + line.options.join('')" @tap="decreaseLine(cart, line.key)"><Icon name="minus" :size="14" /></button><text class="quantity-value">{{ line.quantity }}</text><button class="quantity-button plus" :aria-label="'清单增加' + line.name + line.options.join('')" @tap="incrementLine(line)"><Icon name="plus" :size="16" /></button></view>
+                <text v-else class="review-quantity">× {{ line.quantity }}</text>
+              </view>
+              <view v-if="panel === 'review'" class="order-notes"><text class="option-label">给{{ mode === 'food' ? '做饭人' : '咖啡师' }}的小纸条 <text>选填</text></text><textarea v-model="notes[mode]" class="note-input" placeholder="比如少一点葱，或者想晚一点吃…" maxlength="120" :show-confirm-bar="false" /><text class="note-counter">{{ notes[mode].length }}/120</text><view class="demo-notice"><Icon name="note" :size="14" /><text>这是模拟点单，不会发送给家人。</text></view></view>
+            </view>
+            <view v-else class="empty-cart"><image :src="bowlArt" mode="aspectFit" /><text class="empty-title">清单还空着呢</text><text>先挑一点喜欢的吧。</text></view>
+          </template>
+          <view v-else-if="panel === 'success'" class="success-content"><view class="success-stamp"><Icon name="check" :size="35" :stroke-width="1.7" /></view><text class="success-title">小纸条，写好啦！</text><text class="success-caption">好味道，值得慢慢等。</text><view class="receipt"><text class="receipt-label">本次模拟点单 · {{ submitted.type === 'food' ? '菜品' : '咖啡' }}</text><view v-for="line in submitted.lines" :key="line.key" class="receipt-line"><view><text>{{ line.name }}</text><text class="receipt-options">{{ line.options.join(' · ') }}</text></view><text>× {{ line.quantity }}</text></view><text v-if="submitted.note" class="receipt-note">小纸条：{{ submitted.note }}</text><text class="receipt-total">一共 {{ submitted.count }} {{ submitted.type === 'food' ? '份' : '杯' }} · 满满心意</text></view><text class="demo-notice">仅完成本地演示，没有创建真实订单。</text></view>
+        </scroll-view>
+        <view class="sheet-footer">
+          <button v-if="panel === 'dish'" class="primary-button" @tap="addSelected"><Icon name="plus" :size="18" />加入清单 · {{ selectedQuantity }} {{ mode === 'food' ? '份' : '杯' }}</button>
+          <button v-else-if="panel === 'cart'" class="primary-button" @tap="total ? openReview() : closePanel()">{{ total ? '选好了，去点单 · ' + total + (mode === 'food' ? ' 份' : ' 杯') : '去挑点好吃的' }}<Icon name="chevron-right" :size="17" /></button>
+          <template v-else-if="panel === 'review'"><button class="back-to-cart" @tap="panel = 'cart'">再看看</button><button class="primary-button" :disabled="!total || submitting" @tap="submitMock">{{ submitting ? '正在写小纸条…' : '确认点单' }}<Icon name="check" :size="17" /></button></template>
+          <button v-else class="primary-button" @tap="closePanel">收好，继续逛逛<Icon name="check" :size="17" /></button>
+        </view>
+      </view>
+    </view>
+    <fo-dialog :visible="confirmClear" title="清空这份小清单？" subtitle="只清空当前分类的已选内容。" cancel-text="再想想" confirm-text="清空" @close="confirmClear = false" @confirm="clearCart" />
+    <view v-if="feedback" class="feedback" role="status"><Icon name="check" :size="15" /><text>{{ feedback }}</text></view>
   </view>
 </template>
 
 <script setup>
-import { ref, computed, getCurrentInstance, nextTick } from 'vue'
-import { onLoad, onShow } from '@dcloudio/uni-app'
-import { useCartStore } from '@/store/cart.js'
-import { useUserStore } from '@/store/user.js'
+import { ref, reactive, computed, onUnmounted } from 'vue'
+import { onLoad, onShow, onHide, onBackPress } from '@dcloudio/uni-app'
 import { useSafeArea } from '@/composables/useSafeArea.js'
-
-const { statusBarHeight } = useSafeArea()
-
-const cartStore = useCartStore()
-const userStore = useUserStore()
-const instance = getCurrentInstance()
-
-/* === 点单类型与主题 === */
-const orderType = ref('coffee')
-const themeClass = computed(() => `theme-${orderType.value}`)
-const pageTitle = computed(() => (orderType.value === 'coffee' ? '咖啡点单' : '美食点单'))
-
-/* === 菜单数据 === */
-const categories = ref([])
-const dishes = ref([])
-const activeCategory = ref('recommend')
-const loading = ref(false)
-const refreshing = ref(false)
-const loaded = ref(false)
-
-/* === 滚动联动（测量偏移 + scroll-top 方案） === */
-// 右侧列表滚动位置（px），绑定 scroll-view 的 scroll-top
-const dishScrollTop = ref(0)
-// 左侧分类栏滚动位置（px），激活项自动跟随到可视区
-const sidebarScrollTop = ref(0)
-// 各区段相对滚动内容顶部的偏移量（px），数据渲染后测量一次
-const sectionTops = ref([])
-// 滚动动画期间屏蔽 scroll 事件回写高亮，避免与点击目标打架
-let suppressScrollSync = false
-let suppressTimer = null
-let scrollThrottleTimer = null
-// 记录最近一次手动滚动位置与最新 scrollTop（供节流计算使用）
-let lastDishScrollTop = -1
-let lastSidebarScrollTop = -1
-let latestScrollTop = 0
-
-/* === 飞入动效 === */
-const flyingItems = ref([])
-
-/* === 购物车 === */
-const cartTotal = computed(() => cartStore.totalCount)
-
-/* === 购物车浮层 === */
-const cartVisible = ref(false)
-
-/* === 按分类分组的菜品（computed 缓存，避免模板内重复 filter） === */
-const dishesByCategory = computed(() => {
-  const map = {}
-  for (const cat of categories.value) {
-    if (cat.id === 'recommend') {
-      map[cat.id] = dishes.value.filter((d) => d.isRecommended)
-    } else {
-      map[cat.id] = dishes.value.filter((d) => d.categoryId === cat.id)
-    }
-  }
-  return map
-})
-
-/* === 空状态文案 === */
-const emptyEmoji = computed(() => (orderType.value === 'food' ? '🍽️' : '☕'))
-const emptyText = computed(() =>
-  orderType.value === 'food' ? '暂无美食菜品\n管理员赶紧上架吧~' : '暂无咖啡菜品\n管理员赶紧上架吧~'
-)
-
-/**
- * 加载菜单数据
- * 调用 menu-list 云函数，返回分类与菜品
- */
-const loadMenu = async () => {
-  if (loading.value) return
-  loading.value = true
-  try {
-    const res = await uniCloud.callFunction({
-      name: 'app-service',
-      data: { module: 'menu-list', type: orderType.value }
-    })
-    if (res.result.code === 0) {
-      categories.value = res.result.categories || []
-      dishes.value = res.result.dishes || []
-      // 默认选中首项（推荐）
-      if (categories.value.length > 0) {
-        activeCategory.value = categories.value[0].id
-      }
-      // 内容整体替换：右侧列表先回顶（微扰法确保 scroll-view 响应），
-      // 回顶动画结束后再测量各区段偏移量，保证位置基准准确
-      suppressScrollSync = true
-      clearTimeout(suppressTimer)
-      dishScrollTop.value = lastDishScrollTop === 0 ? 0.1 : 0
-      lastDishScrollTop = dishScrollTop.value
-      nextTick(() => {
-        setTimeout(() => {
-          measureSections()
-          suppressTimer = setTimeout(() => {
-            suppressScrollSync = false
-          }, 200)
-        }, 350)
-      })
-    } else {
-      uni.showToast({ title: res.result.message || '加载失败', icon: 'none' })
-    }
-  } catch (e) {
-    console.error('[order] loadMenu error', e)
-    uni.showToast({ title: '加载失败，下拉刷新重试', icon: 'none' })
-  } finally {
-    loading.value = false
-    loaded.value = true
-  }
+import { useCartStore } from '@/store/cart.js'
+import { bowlArt, menuItems, menuCategories, addToCart, decreaseLine } from '@/mock/order-menu.js'
+const { statusBarHeight, menuButton } = useSafeArea()
+const headerTop = computed(() => menuButton.value?.bottom ? menuButton.value.bottom + 12 : statusBarHeight.value + 16)
+const types = [{id:'food',label:'吃点好的',icon:'food'},{id:'coffee',label:'喝杯咖啡',icon:'coffee'}]
+const mode = ref('food'), categories = reactive({food:'all',coffee:'all'}), queries = reactive({food:'',coffee:''})
+const carts = reactive({food:[],coffee:[]}), notes = reactive({food:'',coffee:''})
+const cart = computed(() => carts[mode.value])
+const countFor = type => carts[type].reduce((sum, line) => sum + line.quantity, 0)
+const total = computed(() => countFor(mode.value))
+const itemCount = id => cart.value.filter(line => line.id === id).reduce((sum, line) => sum + line.quantity, 0)
+const visibleItems = computed(() => menuItems.filter(item => item.type === mode.value && (categories[mode.value] === 'all' || (categories[mode.value] === 'signature' ? item.signature : item.category === categories[mode.value])) && (item.name + item.subtitle).includes(queries[mode.value].trim())))
+const searchOpen = ref(false), panel = ref(''), closing = ref(false), confirmClear = ref(false), feedback = ref('')
+const selected = ref(null), selectedOptions = ref([]), selectedQuantity = ref(1), submitting = ref(false), submitted = ref(null)
+let closeTimer, feedbackTimer, submitTimer
+onLoad(options => { if (['food','coffee'].includes(options?.type)) mode.value = options.type })
+onShow(() => { const pending = useCartStore().consumePendingType(); if (['food','coffee'].includes(pending)) mode.value = pending })
+const switchMode = type => { if (panel.value || mode.value === type) return; mode.value = type; feedback.value = '' }
+const resetFilters = () => { queries[mode.value] = ''; categories[mode.value] = 'all' }
+const toggleSearch = () => { searchOpen.value = !searchOpen.value; if (!searchOpen.value) queries[mode.value] = '' }
+const showFeedback = text => { clearTimeout(feedbackTimer); feedback.value = text; feedbackTimer = setTimeout(() => { feedback.value = '' }, 1400) }
+const quickAdd = item => { if (addToCart(cart.value, item)) showFeedback('已加一' + (mode.value === 'food' ? '份' : '杯') + ' ' + item.name); else showFeedback('这一种口味最多选 20 份') }
+const removeLatest = id => { const line = [...cart.value].reverse().find(item => item.id === id); if (line) decreaseLine(cart.value, line.key) }
+const openDish = item => { selected.value = item; selectedOptions.value = [...item.defaults]; selectedQuantity.value = 1; closing.value = false; panel.value = 'dish' }
+const openCart = () => { closing.value = false; panel.value = 'cart' }
+const openReview = () => { if (!total.value || closing.value) return; panel.value = 'review' }
+const closePanel = () => { if (closing.value || submitting.value) return; closing.value = true; closeTimer = setTimeout(() => { panel.value = ''; closing.value = false; selected.value = null }, 220) }
+const addSelected = () => {
+  if (closing.value || !selected.value) return
+  if (!addToCart(cart.value, selected.value, selectedOptions.value, selectedQuantity.value)) { showFeedback('这一种口味最多选 20 份'); return }
+  showFeedback(selected.value.name + '已加入清单'); closePanel()
 }
-
-/* === 下拉刷新 === */
-const onRefresh = async () => {
-  refreshing.value = true
-  await loadMenu()
-  refreshing.value = false
+const incrementLine = line => { const item = menuItems.find(item => item.id === line.id); if (!addToCart(cart.value, item, line.options)) showFeedback('这一种口味最多选 20 份') }
+const clearCart = () => { carts[mode.value] = []; confirmClear.value = false }
+const submitMock = () => {
+  if (submitting.value || !total.value) return
+  submitting.value = true
+  const type = mode.value
+  const snapshot = {type,lines:JSON.parse(JSON.stringify(cart.value)),note:notes[type].trim(),count:total.value}
+  submitTimer = setTimeout(() => {
+    submitted.value = snapshot; carts[type] = []; notes[type] = ''; submitting.value = false; panel.value = 'success'
+  }, 350)
 }
-
-/**
- * 测量各区段相对滚动内容顶部的偏移量
- * 公式：区段 viewport top - 滚动容器 viewport top + 当前 scrollTop
- * 数据加载/刷新后调用一次即可（卡片高度固定，布局稳定）
- * @param {Function} [onDone] - 测量完成回调（用于点击时偏移未就绪的延迟滚动）
- */
-const measureSections = (onDone) => {
-  const query = uni.createSelectorQuery().in(instance.proxy)
-  query.selectAll('.dish-section').boundingClientRect()
-  query.select('.dish-list').boundingClientRect()
-  query.select('.dish-list').scrollOffset()
-  query.exec((res) => {
-    const sections = res[0] || []
-    const scrollView = res[1]
-    const scrollOffset = res[2]
-    if (!scrollView || sections.length === 0) return
-    const currentTop = scrollOffset ? scrollOffset.scrollTop : 0
-    sectionTops.value = sections.map((r) => r.top - scrollView.top + currentTop)
-    if (typeof onDone === 'function') onDone()
-  })
-}
-
-/**
- * 点击分类：立即高亮 + 右侧滚动到对应区段 + 左侧激活项跟随到可视区
- */
-const onCategoryTap = (catId) => {
-  if (activeCategory.value === catId) return
-  activeCategory.value = catId
-  scrollDishToCategory(catId)
-  scrollSidebarToActive()
-  // 滚动动画期间（约 500ms）屏蔽 scroll 事件回写高亮
-  suppressScrollSync = true
-  clearTimeout(suppressTimer)
-  suppressTimer = setTimeout(() => {
-    suppressScrollSync = false
-  }, 600)
-}
-
-/**
- * 右侧列表滚动到指定分类区段
- */
-const scrollDishToCategory = (catId) => {
-  const idx = categories.value.findIndex((c) => c.id === catId)
-  if (idx < 0) return
-  // 偏移量未就绪（如加载后立刻点击）：先测量，完成后延迟执行滚动
-  if (sectionTops.value.length === 0) {
-    measureSections(() => scrollDishToCategory(catId))
-    return
-  }
-  const top = sectionTops.value[idx]
-  if (top == null) return
-  // 顶部留 8px 呼吸位，避免区段标题紧贴滚动容器边缘
-  const target = Math.max(top - 8, 0)
-  // scroll-top 值不变时 scroll-view 不响应，微扰强制触发
-  dishScrollTop.value = target === lastDishScrollTop ? target + 0.1 : target
-  lastDishScrollTop = dishScrollTop.value
-}
-
-/**
- * 左侧分类栏：让激活项滚动到侧栏纵向约 1/3 处（成熟电商联动交互）
- */
-const scrollSidebarToActive = () => {
-  const query = uni.createSelectorQuery().in(instance.proxy)
-  query.select(`#cat-${activeCategory.value}`).boundingClientRect()
-  query.select('.sidebar').boundingClientRect()
-  query.select('.sidebar').scrollOffset()
-  query.exec((res) => {
-    const item = res[0]
-    const sidebar = res[1]
-    const scrollOffset = res[2]
-    if (!item || !sidebar) return
-    const currentTop = scrollOffset ? scrollOffset.scrollTop : 0
-    const itemTop = item.top - sidebar.top + currentTop
-    const target = Math.max(itemTop - sidebar.height / 3, 0)
-    sidebarScrollTop.value = target === lastSidebarScrollTop ? target + 0.1 : target
-    lastSidebarScrollTop = sidebarScrollTop.value
-  })
-}
-
-/**
- * 滚动监听：记录最新 scrollTop，节流更新左侧高亮分类
- */
-const onScroll = (e) => {
-  latestScrollTop = (e.detail && e.detail.scrollTop) || 0
-  if (suppressScrollSync) return
-  if (scrollThrottleTimer) return
-  scrollThrottleTimer = setTimeout(() => {
-    scrollThrottleTimer = null
-    updateActiveFromScroll(latestScrollTop)
-  }, 100)
-}
-
-/**
- * 根据 scrollTop 与预测量的区段偏移，计算当前高亮分类
- */
-const updateActiveFromScroll = (scrollTop) => {
-  const tops = sectionTops.value
-  if (tops.length === 0) return
-  // 阈值：略过区段 header 高度，滚动经过区段顶部即切换
-  const threshold = scrollTop + 24
-  let activeIdx = 0
-  for (let i = 0; i < tops.length; i++) {
-    if (tops[i] <= threshold) activeIdx = i
-  }
-  const newActive = categories.value[activeIdx]?.id
-  if (newActive && newActive !== activeCategory.value) {
-    activeCategory.value = newActive
-    scrollSidebarToActive()
-  }
-}
-
-/**
- * 列表加购：dish-card 抛出 { dish, originX, originY }
- * 立即加入购物车 + 触发飞入动效
- */
-const onAddToCart = ({ dish, originX, originY }) => {
-  cartStore.addItem(dish)
-  playFlyAnimation(originX, originY, dish)
-}
-
-// 飞行元素尺寸（px）
-const flySize = 40
-
-/**
- * 飞入动效：从 + 按钮位置抛物线飞向购物车图标
- * 1. 查询购物车图标位置
- * 2. 计算起点/峰值/终点坐标
- * 3. 创建飞行元素，CSS keyframe 动画自动播放
- * 4. animationend 或 setTimeout 兜底移除
- */
-const playFlyAnimation = (originX, originY, dish) => {
-  const query = uni.createSelectorQuery().in(instance.proxy)
-  // 飞入目标：底部购物车图标（右上角购物车按钮已移除）
-  query.select('.cart-icon-circle').boundingClientRect((rect) => {
-    if (!rect) {
-      // 降级：仅触发底部购物车弹跳
-      triggerCartFeedback()
-      return
-    }
-    const endX = rect.left + rect.width / 2
-    const endY = rect.top + rect.height / 2
-    const startLeft = originX - flySize / 2
-    const startTop = originY - flySize / 2
-    const endLeft = endX - flySize / 2
-    const endTop = endY - flySize / 2
-    // 抛物线峰值：X 取中点，Y 在直线上方 60px
-    const peakLeft = (startLeft + endLeft) / 2
-    const peakTop = Math.min(startTop, endTop) - 60
-
-    const id = `fly-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-    const emoji = dish.type === 'food' ? '🍲' : '☕'
-
-    flyingItems.value.push({
-      id,
-      image: dish.image || '',
-      emoji,
-      style: {
-        '--sx': `${startLeft}px`,
-        '--sy': `${startTop}px`,
-        '--px': `${peakLeft}px`,
-        '--py': `${peakTop}px`,
-        '--ex': `${endLeft}px`,
-        '--ey': `${endTop}px`
-      }
-    })
-
-    // 兜底清理（防止 animationend 在小程序环境不触发）
-    setTimeout(() => {
-      onFlyEnd(id)
-    }, 900)
-  })
-  query.exec()
-}
-
-/**
- * 飞行结束：移除元素 + 触发购物车抖动
- */
-const onFlyEnd = (id) => {
-  const idx = flyingItems.value.findIndex((f) => f.id === id)
-  if (idx > -1) {
-    flyingItems.value.splice(idx, 1)
-  }
-  triggerCartFeedback()
-}
-
-/* === 底部购物车图标弹跳（加购反馈） === */
-const cartBarBounce = ref(false)
-let barBounceTimer = null
-
-/**
- * 加购反馈：底部购物车图标弹跳（重启 animation 的通用方案）
- */
-const triggerCartFeedback = () => {
-  cartBarBounce.value = false
-  clearTimeout(barBounceTimer)
-  setTimeout(() => {
-    cartBarBounce.value = true
-    barBounceTimer = setTimeout(() => {
-      cartBarBounce.value = false
-    }, 450)
-  }, 20)
-}
-
-/**
- * 菜品卡片点击：跳详情页
- */
-const onDishTap = (dish) => {
-  if (!dish || !dish.dishId) {
-    uni.showToast({ title: '菜品信息异常', icon: 'none' })
-    return
-  }
-  uni.navigateTo({
-    url: `/pages/dish-detail/dish-detail?dishId=${dish.dishId}&type=${dish.type}`
-  })
-}
-
-/**
- * 购物车图标点击：有商品时展开浮层，空购物车提示
- */
-const onCartClick = () => {
-  if (cartTotal.value === 0) {
-    uni.showToast({ title: '购物车是空的~', icon: 'none' })
-    return
-  }
-  cartVisible.value = true
-}
-
-/* === 浮层关闭 === */
-const onPopupClose = () => {
-  cartVisible.value = false
-}
-
-/* === 浮层内"去下单"：关闭浮层后跳转提交页 === */
-const onPopupSubmit = () => {
-  cartVisible.value = false
-  goSubmit()
-}
-
-/* === 跳转提交页 === */
-const goSubmit = () => {
-  if (cartTotal.value === 0) return
-  uni.navigateTo({ url: '/pages/submit/submit' })
-}
-
-/* === 返回首页 === */
-const goHome = () => {
-  uni.switchTab({ url: '/pages/home/home' })
-}
-
-/* === 生命周期 === */
-// onLoad：支持 navigateTo 直接进入时从 options 获取 type（tabBar 页面通常走 switchTab + pendingType）
-onLoad((options) => {
-  if (options.type && ['coffee', 'food'].includes(options.type)) {
-    orderType.value = options.type
-  }
-  // 同步购物车激活类型
-  cartStore.setActiveType(orderType.value)
-})
-
-// onShow：消费首页入口卡片设置的 pendingType，类型变化时重新加载菜单
-onShow(() => {
-  const pendingType = cartStore.consumePendingType()
-  let needReload = false
-  if (
-    pendingType &&
-    ['coffee', 'food'].includes(pendingType) &&
-    pendingType !== orderType.value
-  ) {
-    orderType.value = pendingType
-    needReload = true
-  }
-  // 同步购物车激活类型，使咖啡/美食购物车各自独立
-  cartStore.setActiveType(orderType.value)
-  // 首次加载 或 类型切换 → 拉取菜单
-  if (!loaded.value || needReload) {
-    loadMenu()
-  }
-})
+const cleanup = () => { clearTimeout(closeTimer); clearTimeout(feedbackTimer); clearTimeout(submitTimer); panel.value = ''; closing.value = false; confirmClear.value = false; submitting.value = false; feedback.value = '' }
+onHide(cleanup)
+onUnmounted(cleanup)
+onBackPress(() => { if (confirmClear.value) { confirmClear.value = false; return true } if (panel.value) { closePanel(); return true } return false })
+const panelTitle = computed(() => panel.value === 'dish' ? selected.value?.name : panel.value === 'cart' ? '今天的快乐清单' : panel.value === 'review' ? '把想吃的，写成小纸条' : '点单小回执')
+const panelSubtitle = computed(() => panel.value === 'dish' ? selected.value?.subtitle : panel.value === 'cart' ? mode.value === 'food' ? '每一道，都是你喜欢的味道' : '一杯一杯，装进今天的小快乐' : panel.value === 'review' ? '确认一下，就准备开饭的心情' : '这是一张本地演示回执')
 </script>
 
 <style lang="scss" scoped>
-.page-order {
-  // 应用外壳页标准：视口锁定，页面本身不滚动（详见 mixins page-shell 注释）
-  @include page-shell;
-  background-color: $color-bg;
-  transition: background-color $dur-base $ease-smooth;
-}
-
-/* === 顶部 header === */
-.header {
-  @include flex-between;
-  padding: 40rpx 32rpx 24rpx;
-  position: relative;
-  z-index: 10;
-
-  .back-btn {
-    @include btn-icon;
-    transition: transform $dur-fast $ease-bounce,
-      background-color $dur-base $ease-smooth;
-  }
-
-  // 标题绝对居中：右侧购物车按钮已移除，避免 flex-between 把标题挤向右侧
-  .title {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: $font-size-xl;
-    font-weight: $font-weight-bold;
-    color: var(--theme-primary);
-    transition: color $dur-base $ease-smooth;
-  }
-}
-
-/* === 主体内容 === */
-.content {
-  // 外壳页滚动区：min-height:0 允许收缩，内部 scroll-view 才有界可滚
-  @include page-shell-body;
-  display: flex;
-}
-
-/* === 左侧分类导航 === */
-.sidebar {
-  width: 160rpx;
-  background-color: var(--theme-secondary);
-  flex-shrink: 0;
-  height: 100%;
-  transition: background-color $dur-base $ease-smooth;
-
-  .cat-item {
-    position: relative;
-    padding: 32rpx 0;
-    text-align: center;
-    transition: background-color $dur-base $ease-smooth;
-
-    .cat-indicator {
-      position: absolute;
-      left: 0;
-      top: 50%;
-      transform: translateY(-50%) scaleY(0);
-      width: 6rpx;
-      height: 48rpx;
-      border-radius: $radius-full;
-      background-color: var(--theme-primary);
-      transition: transform $dur-base $ease-bounce,
-        background-color $dur-base $ease-smooth;
-    }
-
-    .cat-name {
-      font-size: $font-size-sm;
-      color: $color-text-muted;
-      transition: color $dur-base $ease-smooth;
-    }
-
-    &.active {
-      background-color: $color-card;
-
-      .cat-indicator {
-        transform: translateY(-50%) scaleY(1);
-      }
-
-      .cat-name {
-        color: var(--theme-primary);
-        font-weight: $font-weight-semibold;
-      }
-    }
-  }
-}
-
-/* === 右侧菜品列表 === */
-.dish-list {
-  flex: 1;
-  height: 100%;
-  padding: 0 24rpx;
-
-  /* 骨架屏容器：与菜品区段一致的纵向内边距 */
-  .dish-skeleton {
-    padding: 16rpx 0;
-  }
-
-  .dish-section {
-    padding: 16rpx 0;
-
-    .section-header {
-      display: flex;
-      align-items: center;
-      gap: 8rpx;
-      padding: 16rpx 8rpx 20rpx;
-
-      .section-title {
-        font-size: $font-size-base;
-        font-weight: $font-weight-bold;
-        color: var(--theme-text);
-        transition: color $dur-base $ease-smooth;
-      }
-
-      .section-deco {
-        font-size: $font-size-sm;
-      }
-    }
-
-    .dish-grid {
-      display: flex;
-      flex-direction: column;
-      gap: 20rpx;
-    }
-
-    .section-empty {
-      padding: 40rpx 0;
-      text-align: center;
-
-      .section-empty-text {
-        font-size: $font-size-xs;
-        color: $color-text-muted;
-      }
-    }
-  }
-
-  .list-bottom-spacer {
-    // 为悬浮购物车条（约 108rpx + 16rpx 间隙）+ 固定 tabbar（80rpx + 安全区）预留空间
-    height: calc(220rpx + env(safe-area-inset-bottom));
-  }
-}
-
-/* === 加载与空状态 === */
-.state-block {
-  @include flex-column;
-  align-items: center;
-  gap: 16rpx;
-  padding: 120rpx 0;
-
-  .loading-dots {
-    display: flex;
-    gap: 8rpx;
-
-    .dot {
-      font-size: $font-size-2xl;
-      color: var(--theme-primary);
-      animation: dotBlink 1.2s $ease-smooth infinite;
-
-      &:nth-child(2) {
-        animation-delay: 0.2s;
-      }
-      &:nth-child(3) {
-        animation-delay: 0.4s;
-      }
-    }
-  }
-
-  .state-emoji {
-    font-size: 96rpx;
-    line-height: 1;
-    animation: pulse 2.4s $ease-smooth infinite;
-  }
-
-  .state-text {
-    font-size: $font-size-sm;
-    color: $color-text-muted;
-    text-align: center;
-    line-height: $line-height-relaxed;
-    white-space: pre-line;
-  }
-
-  .state-action {
-    margin-top: 8rpx;
-    padding: 12rpx 32rpx;
-    border-radius: $radius-full;
-    background-color: var(--theme-secondary);
-    transition: transform $dur-fast $ease-bounce;
-
-    &:active {
-      transform: scale(0.96);
-    }
-
-    .state-action-text {
-      color: var(--theme-primary);
-      font-size: $font-size-sm;
-      font-weight: $font-weight-medium;
-    }
-  }
-}
-
-@keyframes dotBlink {
-  0%,
-  100% {
-    opacity: 0.3;
-  }
-  50% {
-    opacity: 1;
-  }
-}
-
-/* === 底部购物车条：真悬浮毛玻璃条，列表内容从其下方滚过 === */
-.cart-bar {
-  position: fixed;
-  left: 32rpx;
-  right: 32rpx;
-  // 悬浮于列表之上，固定 tabbar（80rpx + 安全区）上方留 16rpx 间隙
-  bottom: calc(96rpx + env(safe-area-inset-bottom));
-  z-index: 90;
-  display: flex;
-  align-items: center;
-  gap: 24rpx;
-  padding: 16rpx 20rpx;
-  border-radius: $radius-2xl;
-  background-color: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(20rpx);
-  -webkit-backdrop-filter: blur(20rpx);
-  border: 1rpx solid rgba(255, 255, 255, 0.65);
-  box-shadow: $shadow-lg;
-
-  // 左侧：购物车图标 + 汇总文案（点击展开浮层）
-  .cart-summary {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    align-items: center;
-    gap: 20rpx;
-    @include tap-feedback(0.97);
-
-    .cart-icon-circle {
-      position: relative;
-      flex-shrink: 0;
-      width: 76rpx;
-      height: 76rpx;
-      border-radius: 50%;
-      background-color: $color-neutral-200;
-      color: $color-neutral-400;
-      @include flex-center;
-      transition: background-color $dur-base $ease-smooth,
-        color $dur-base $ease-smooth;
-
-      &.active {
-        background-color: var(--theme-primary);
-        color: #fff;
-      }
-
-      .cart-count-badge {
-        position: absolute;
-        top: -6rpx;
-        right: -6rpx;
-        min-width: 32rpx;
-        height: 32rpx;
-        padding: 0 8rpx;
-        border-radius: $radius-full;
-        background-color: $color-state-error;
-        color: #fff;
-        font-size: $font-size-xs;
-        font-weight: $font-weight-bold;
-        @include flex-center;
-      }
-    }
-
-    .cart-summary-text {
-      @include flex-column;
-      gap: 2rpx;
-      min-width: 0;
-
-      .cart-summary-main {
-        font-size: $font-size-base;
-        font-weight: $font-weight-semibold;
-        color: $color-text;
-      }
-
-      .cart-summary-sub {
-        font-size: $font-size-xs;
-        color: $color-text-muted;
-      }
-    }
-  }
-
-  // 右侧：去下单按钮
-  .submit-btn {
-    @include btn-primary;
-    flex-shrink: 0;
-    height: 88rpx;
-    padding: 0 44rpx;
-    border-radius: $radius-full;
-    transition: background-color $dur-base $ease-smooth,
-      transform $dur-fast $ease-bounce;
-
-    .submit-text {
-      color: inherit;
-      font-size: $font-size-base;
-      font-weight: $font-weight-semibold;
-    }
-
-    &.disabled {
-      @include btn-disabled;
-
-      &:active {
-        transform: none;
-        opacity: 1;
-      }
-    }
-  }
-}
-
-/* === 飞入动效层 === */
-.fly-layer {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 9999;
-}
-
-.fly-item {
-  position: fixed;
-  left: 0;
-  top: 0;
-  width: 40px;
-  height: 40px;
-  pointer-events: none;
-  animation: flyArc 0.8s cubic-bezier(0.4, 0, 0.6, 1) forwards;
-
-  .fly-img {
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    border: 2rpx solid #fff;
-    box-shadow: $shadow-md;
-  }
-
-  .fly-emoji {
-    width: 100%;
-    height: 100%;
-    @include flex-center;
-    font-size: 32rpx;
-    background-color: var(--theme-secondary);
-    border-radius: 50%;
-    border: 2rpx solid #fff;
-    box-shadow: $shadow-md;
-  }
-}
-
-@keyframes flyArc {
-  0% {
-    transform: translate(var(--sx, 0), var(--sy, 0)) scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: translate(var(--px, 0), var(--py, 0)) scale(0.6);
-    opacity: 1;
-  }
-  100% {
-    transform: translate(var(--ex, 0), var(--ey, 0)) scale(0.2);
-    opacity: 0;
-  }
-}
+@import '@/scss/font-menu.scss';
+.order-page { height:100vh; height:100dvh; display:flex; flex-direction:column; overflow:hidden; background:$p2-paper; color:$p2-ink; padding-bottom:calc(132rpx + env(safe-area-inset-bottom)); box-sizing:border-box; }
+button { background:none; border-radius:0; margin:0; padding:0; line-height:inherit; font:inherit; color:inherit; &::after { border:0; } &:active:not([disabled]) { transform:scale(.95); } transition:transform 110ms $p2-ease; &[disabled] { opacity:.45; } }
+.top-area { padding:0 32rpx; flex-shrink:0; }
+.heading { display:flex; align-items:center; justify-content:space-between; gap:8rpx; padding-bottom:24rpx; }
+.page-title { display:block; font-family:MenuHand,$p2-font-fallback; font-size:46rpx; line-height:1.5; }
+.subtitle { display:block; margin-top:7rpx; color:$p2-ink-soft; font-size:23rpx; }
+.heading-art { width:112rpx; height:112rpx; flex-shrink:0; transform:rotate(6deg); }
+.mode-tabs { position:relative; display:flex; border:2rpx solid $p2-line; border-radius:22rpx 26rpx 19rpx 23rpx; background:$p2-surface; padding:7rpx; height:96rpx; }
+.mode-slider { position:absolute; top:7rpx; bottom:7rpx; left:7rpx; width:calc(50% - 7rpx); background:$p2-leaf-soft; border-radius:16rpx 20rpx 15rpx 19rpx; transform:translateX(0); transition:transform 240ms $p2-ease,background 240ms ease; &.coffee { transform:translateX(100%); background:$p2-butter-soft; } }
+.mode-tab { position:relative; z-index:1; flex:1; display:flex; justify-content:center; align-items:center; gap:12rpx; font-size:29rpx; color:$p2-ink-soft; &.active { color:$p2-ink; font-weight:600; } }
+.tab-count { font-size:18rpx; line-height:30rpx; min-width:30rpx; border-radius:50%; background:$p2-coral; color:$p2-white; padding:0 5rpx; }
+.filter-row { display:flex; align-items:center; gap:12rpx; padding-top:10rpx; }
+.category-scroll { flex:1; width:0; min-width:0; }
+.category-list { display:flex; align-items:center; gap:24rpx; padding:12rpx 0 16rpx; }
+.category { position:relative; flex-shrink:0; font-size:25rpx; padding:14rpx 3rpx; color:$p2-ink-soft; &.selected { color:$p2-ink; font-weight:600; .category-underline { opacity:1; transform:rotate(-3deg) scaleX(1); } } }
+.category-underline { position:absolute; bottom:3rpx; left:0; right:0; height:5rpx; background:$p2-leaf; border-radius:60% 40%; opacity:0; transform:scaleX(.4); transition:transform 180ms $p2-ease,opacity 180ms ease; }
+.search-toggle { width:68rpx; height:62rpx; display:flex; justify-content:center; align-items:center; border-left:2rpx solid #e6dac5; &.active { background:$p2-paper-deep; border-radius:15rpx; } }
+.search-glass { width:24rpx; height:24rpx; border:3rpx solid $p2-ink-soft; border-radius:50%; position:relative; flex-shrink:0; &::after { content:''; position:absolute; width:10rpx; height:3rpx; background:$p2-ink-soft; right:-8rpx; bottom:-4rpx; transform:rotate(45deg); } }
+.search-box { display:flex; align-items:center; gap:20rpx; padding:0 22rpx; background:$p2-surface; border:2rpx solid #cdbba4; border-radius:18rpx; margin-bottom:15rpx; input { flex:1; min-width:0; height:74rpx; font-size:26rpx; } }
+.round-button { display:flex; align-items:center; justify-content:center; width:50rpx; height:60rpx; }
+.menu-scroll { flex:1; min-height:0; height:0; width:100%; }
+.list-inner { padding:0 32rpx 22rpx; }
+.little-note { display:flex; align-items:center; gap:12rpx; background:#f5edce; padding:16rpx 18rpx; border-radius:6rpx 16rpx 10rpx 17rpx; font-size:21rpx; color:#8a7454; margin-bottom:22rpx; }
+.note-spark { margin-left:auto; font-size:26rpx; color:#bc9860; }
+.menu-list { animation:list-in 240ms $p2-ease backwards; }
+.dish-row { display:flex; align-items:center; gap:17rpx; background:$p2-surface; border:2rpx solid #b6a18a; border-radius:25rpx 21rpx 29rpx 19rpx; margin-bottom:22rpx; padding:16rpx 20rpx 16rpx 6rpx; box-shadow:3rpx 4rpx 0 #6247350d; &.chosen { border-color:#91a177; } &:nth-child(even) { border-radius:19rpx 27rpx 20rpx 25rpx; } }
+.art-button { position:relative; flex-shrink:0; width:244rpx; height:232rpx; display:flex; align-items:center; justify-content:center; }
+.art-wash { position:absolute; width:190rpx; height:148rpx; border-radius:48% 52% 47% 53%; background:#f4ebce; transform:rotate(-8deg); opacity:.65; &.green { background:#e1eacb; } &.blue { background:#e1edef; } &.coral { background:#f7e0d5; } }
+.dish-image { position:relative; width:100%; height:100%; }
+.dish-copy { flex:1; min-width:0; }
+.dish-title-button { display:flex; align-items:center; justify-content:space-between; width:100%; text-align:left; padding:6rpx 0; }
+.dish-name { font-family:MenuHand,$p2-font-fallback; font-size:36rpx; line-height:1.4; }
+.dish-description { display:block; margin-top:3rpx; font-size:21rpx; color:$p2-ink-soft; line-height:1.6; }
+.dish-tag { display:inline-block; margin-top:12rpx; font-size:19rpx; padding:4rpx 10rpx; border-radius:7rpx 10rpx; background:#f7ebbc; color:#84714e; &.green { background:#e4edda; color:#6c8055; } &.blue { background:#e4edef; color:#6b868b; } &.coral { background:#f8e1d7; color:#a56855; } }
+.dish-bottom { display:flex; justify-content:space-between; align-items:center; gap:6rpx; margin-top:14rpx; min-height:64rpx; }
+.flavor-button { display:flex; align-items:center; gap:5rpx; color:$p2-ink-soft; font-size:21rpx; min-height:62rpx; white-space:nowrap; }
+.counter { display:flex; align-items:center; flex-shrink:0; gap:6rpx; }
+.quantity-button { width:58rpx; height:58rpx; border:2rpx solid $p2-line; border-radius:18rpx 16rpx 19rpx 15rpx; display:flex; justify-content:center; align-items:center; flex-shrink:0; &.plus { background:$p2-leaf-soft; box-shadow:2rpx 3rpx 0 #62473512; } &.minus { background:$p2-white; border-color:#c9bba7; width:50rpx; height:50rpx; } }
+.quantity-value { min-width:27rpx; text-align:center; font-size:26rpx; font-variant-numeric:tabular-nums; }
+.list-end { display:flex; justify-content:center; gap:14rpx; color:$p2-ink-soft; font-size:21rpx; margin:30rpx 0 15rpx; }
+.mock-label { display:block; text-align:center; font-size:18rpx; color:#a59078; }
+.cart-dock { flex-shrink:0; padding:16rpx 25rpx 8rpx; }
+.cart-bar { display:flex; align-items:center; justify-content:space-between; gap:8rpx; padding:14rpx 13rpx; border:2rpx solid $p2-line; border-radius:25rpx 22rpx 20rpx 24rpx; background:$p2-surface; box-shadow:3rpx 4rpx 0 #62473510; &.filled { background:#f3f4e8; } }
+.cart-summary { flex:1; min-width:0; display:flex; align-items:center; gap:16rpx; text-align:left; }
+.basket-icon { position:relative; width:68rpx; height:72rpx; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.basket-count { position:absolute; top:-4rpx; right:-3rpx; min-width:30rpx; line-height:30rpx; font-size:19rpx; text-align:center; padding:0 5rpx; border-radius:50%; background:$p2-coral; color:white; animation:count-pop 200ms $p2-ease; }
+.cart-title { display:block; font-size:25rpx; font-weight:600; }.cart-subtitle { display:block; font-size:18rpx; color:$p2-ink-soft; margin-top:6rpx; }
+.checkout-button { display:flex; align-items:center; justify-content:center; gap:6rpx; background:$p2-coral-soft; border:2rpx solid $p2-line; padding:18rpx 20rpx; height:76rpx; border-radius:17rpx 21rpx 16rpx 19rpx; font-size:27rpx; flex-shrink:0; }
+.mode-coffee { .quantity-button.plus { background:$p2-butter-soft; }.category-underline { background:$p2-butter; }.cart-bar.filled { background:#faf0d7; }.little-note { background:#f4e8db; } }
+.empty-list,.empty-cart { display:flex; flex-direction:column; align-items:center; gap:16rpx; text-align:center; color:$p2-ink-soft; font-size:25rpx; padding:40rpx 10rpx; image { width:150rpx; height:150rpx; } }
+.empty-title { font-family:MenuHand,$p2-font-fallback; font-size:34rpx; color:$p2-ink; }
+.light-button { border:2rpx solid #b9c39f; border-radius:15rpx; padding:17rpx 25rpx; background:$p2-leaf-soft; margin-top:12rpx; }
+.sheet-layer { position:fixed; inset:0; z-index:300; }
+.sheet-mask { position:absolute; inset:0; background:#3c2a2059; animation:mask-in 180ms ease; transition:opacity 220ms ease; &.closing { opacity:0; } }
+.sheet { position:absolute; bottom:0; left:0; right:0; background:$p2-paper; border-radius:34rpx 39rpx 0 0; max-height:88vh; display:flex; flex-direction:column; overflow:hidden; padding:18rpx 32rpx calc(24rpx + env(safe-area-inset-bottom)); box-sizing:border-box; animation:sheet-in 260ms $p2-ease; transition:transform 220ms $p2-ease; &.closing { transform:translateY(100%); } }
+.sheet-handle { flex-shrink:0; width:64rpx; height:7rpx; background:#d9cbb4; border-radius:9rpx; margin:0 auto 24rpx; }
+.sheet-heading { display:flex; justify-content:space-between; align-items:center; gap:12rpx; flex-shrink:0; margin-bottom:20rpx; }
+.sheet-title { display:block; font-family:MenuHand,$p2-font-fallback; font-size:39rpx; line-height:1.5; }.sheet-subtitle { display:block; color:$p2-ink-soft; font-size:22rpx; margin-top:5rpx; }
+.close-button { width:65rpx; height:65rpx; display:flex; align-items:center; justify-content:center; background:$p2-paper-deep; border-radius:50%; flex-shrink:0; }
+.sheet-scroll { flex:1; min-height:0; max-height:calc(88vh - 280rpx - env(safe-area-inset-bottom)); }
+.sheet-footer { display:flex; align-items:center; gap:14rpx; padding-top:22rpx; flex-shrink:0; }
+.primary-button { flex:1; display:flex; align-items:center; justify-content:center; gap:12rpx; padding:24rpx 18rpx; background:$p2-leaf-soft; border:2rpx solid $p2-line; border-radius:20rpx 24rpx 18rpx 22rpx; box-shadow:3rpx 4rpx 0 #62473515; font-size:29rpx; min-height:88rpx; }
+.dish-detail { padding-bottom:4rpx; }.detail-image { display:block; width:350rpx; height:260rpx; margin:0 auto 12rpx; }
+.detail-description { display:block; font-size:25rpx; line-height:1.85; color:$p2-ink-soft; margin:6rpx 0 24rpx; }
+.option-group { padding:16rpx 0; }.option-label { display:block; font-size:26rpx; font-weight:600; margin-bottom:17rpx; text { font-size:21rpx; color:$p2-ink-soft; font-weight:400; } }
+.option-values { display:flex; gap:15rpx; flex-wrap:wrap; }.option-button { padding:17rpx 26rpx; font-size:25rpx; border:2rpx solid #d0c4b1; border-radius:16rpx 19rpx 14rpx 18rpx; background:$p2-white; &.selected { border-color:#889b6b; background:$p2-leaf-soft; } }
+.portion-row { display:flex; align-items:center; justify-content:space-between; padding:22rpx 0 10rpx; font-size:26rpx; border-top:2rpx dashed #ddd0bb; margin-top:16rpx; }
+.cart-toolbar { display:flex; align-items:center; justify-content:space-between; color:$p2-ink-soft; font-size:23rpx; padding:4rpx 0 18rpx; }.clear-cart { display:flex; align-items:center; gap:7rpx; min-height:52rpx; }
+.cart-line { display:flex; align-items:center; gap:16rpx; padding:20rpx 0; border-top:2rpx dashed #dfd2bd; image { width:100rpx; height:100rpx; flex-shrink:0; } }
+.line-copy { flex:1; min-width:0; }.line-title { display:block; font-size:28rpx; font-weight:600; }.line-options { display:block; font-size:22rpx; color:$p2-ink-soft; margin-top:8rpx; }.review-quantity { font-size:28rpx; }
+.order-notes { padding:28rpx 0 12rpx; border-top:2rpx dashed #dfd2bd; }.note-input { width:100%; height:145rpx; padding:18rpx 22rpx; border:2rpx solid #d9c9b2; border-radius:17rpx 21rpx 16rpx 20rpx; background:$p2-surface; font-size:25rpx; line-height:1.7; box-sizing:border-box; }.note-counter { display:block; text-align:right; font-size:20rpx; color:$p2-ink-soft; margin-top:8rpx; }
+.demo-notice { display:flex; align-items:center; justify-content:center; gap:8rpx; font-size:21rpx; color:$p2-ink-soft; padding:20rpx 0 8rpx; }
+.back-to-cart { padding:24rpx; font-size:26rpx; }
+.success-content { text-align:center; }.success-stamp { display:flex; align-items:center; justify-content:center; width:112rpx; height:112rpx; background:$p2-leaf-soft; border:2rpx solid $p2-line; border-radius:48% 52% 44% 56%; margin:10rpx auto 22rpx; transform:rotate(-7deg); }.success-title { display:block; font-family:MenuHand,$p2-font-fallback; font-size:44rpx; }.success-caption { display:block; margin-top:10rpx; color:$p2-ink-soft; font-size:25rpx; }
+.receipt { background:$p2-surface; border:2rpx solid #e0d5c1; border-radius:8rpx; padding:24rpx; margin-top:25rpx; text-align:left; }.receipt-label { display:block; font-size:21rpx; color:$p2-ink-soft; padding-bottom:15rpx; border-bottom:2rpx dashed #e0d5c1; }.receipt-line { display:flex; justify-content:space-between; gap:18rpx; padding:18rpx 0; font-size:26rpx; }.receipt-options { display:block; font-size:21rpx; color:$p2-ink-soft; margin-top:5rpx; }.receipt-note { display:block; font-size:23rpx; color:$p2-ink-soft; margin:10rpx 0; white-space:pre-wrap; overflow-wrap:anywhere; }.receipt-total { display:block; text-align:center; border-top:2rpx dashed #e0d5c1; padding-top:17rpx; font-size:24rpx; }
+.feedback { position:fixed; z-index:1100; bottom:calc(285rpx + env(safe-area-inset-bottom)); left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:10rpx; white-space:nowrap; padding:16rpx 22rpx; border-radius:18rpx; background:#624735ee; color:$p2-white; font-size:23rpx; pointer-events:none; animation:mask-in 130ms ease; }
+@keyframes list-in { from { opacity:0; transform:translateY(8rpx); } to { opacity:1; transform:translateY(0); } }
+@keyframes count-pop { from { transform:scale(.75); } to { transform:scale(1); } }
+@keyframes mask-in { from { opacity:0; } to { opacity:1; } }
+@keyframes sheet-in { from { transform:translateY(100%); } to { transform:translateY(0); } }
+@media (prefers-reduced-motion:reduce) { button,.mode-slider,.category-underline,.sheet,.sheet-mask { transition:none; }.menu-list,.basket-count,.sheet,.sheet-mask,.feedback { animation:none; } }
+@media screen and (max-width:360px) { .art-button { width:220rpx; }.page-title { font-size:43rpx; }.dish-name { font-size:34rpx; }.dish-description { font-size:20rpx; }.dish-row { gap:12rpx; }.cart-title { font-size:23rpx; } }
 </style>

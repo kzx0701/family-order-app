@@ -180,10 +180,14 @@ async function listDishes({ type, categoryId, isOnSale } = {}, dishCol, catCol) 
     .orderBy('createTime', 'desc')
     .get()
 
-  // 一次性查询所有分类：既用于 join 分类名，也随 list 一起返回给菜谱页。
+  // 一次性查询分类：既用于 join 分类名，也随 list 一起返回给菜谱页。
+  // **跟着请求的 type 过滤** —— 菜谱页传 food，就不该拿到咖啡分类，否则分类栏会
+  // 多出永远匹配不到菜品的空 tab。在源头过滤比在页面再筛一次更可靠（不会漏）。
+  // 不传 type 的调用方（管理端）行为不变，仍拿到全部分类。
   // 排序必须与 categories-crud/list 完全一致（sortOrder asc, createTime asc），
   // 否则菜谱页分类栏的顺序会与直接从分类接口取时不同。
-  const catRes = await catCol
+  const catQuery = type ? catCol.where({ type }) : catCol
+  const catRes = await catQuery
     .orderBy('sortOrder', 'asc')
     .orderBy('createTime', 'asc')
     .get()

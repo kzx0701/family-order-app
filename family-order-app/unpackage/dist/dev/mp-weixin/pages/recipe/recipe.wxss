@@ -229,21 +229,6 @@ button.data-v-fb437fc6::after {
   font-size: 21rpx;
   margin: 46rpx 0 22rpx;
 }
-.preview-note.data-v-fb437fc6 {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 20rpx;
-  font-size: 19rpx;
-  color: #8c725e;
-}
-.manage-button.data-v-fb437fc6 {
-  display: flex;
-  align-items: center;
-  gap: 6rpx;
-  text-decoration: underline;
-  min-height: 60rpx;
-}
 .empty-state.data-v-fb437fc6 {
   display: flex;
   flex-direction: column;

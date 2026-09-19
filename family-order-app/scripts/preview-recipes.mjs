@@ -23,7 +23,7 @@ pages.pages.sort((a, b) => Number(b.path === 'pages/recipe/recipe') - Number(a.p
 writeFileSync(resolve(preview, 'pages.json'), JSON.stringify(pages, null, 2))
 writeFileSync(resolve(preview, 'package.json'), readFileSync(resolve(app, 'package.json'), 'utf8'))
 const appSource = readFileSync(resolve(app, 'App.vue'), 'utf8')
-writeFileSync(resolve(preview, 'App.vue'), '<script>export default {}</script>\n' + appSource.slice(appSource.indexOf('<style')) + '\n<style>uni-tabbar { display: none !important; }</style>')
+writeFileSync(resolve(preview, 'App.vue'), '<script>export default {}</script>\n' + appSource.slice(appSource.indexOf('<style')) + '\n<style>uni-tabbar { display: none !important; } .uni-app--showtabbar uni-page-wrapper { height: 100%; } .uni-app--showtabbar uni-page-wrapper::after { display: none; }</style>')
 writeFileSync(resolve(preview, 'main.js'), `import { createSSRApp } from 'vue'
 import { createPinia } from 'pinia'
 import { useUserStore } from './store/user.js'
@@ -35,14 +35,15 @@ export function createApp() {
   useUserStore().currentMode = new URLSearchParams(location.search).get('previewRole') === 'cook' ? 'cook' : 'diner';
   // #endif
   ['navigateTo', 'redirectTo', 'reLaunch', 'switchTab'].forEach(api => uni.addInterceptor(api, { invoke(args) {
-    if (!['/pages/recipe/recipe', '/pages/recipe-detail/recipe-detail'].includes(args.url.split('?')[0])) {
-      uni.showToast({ title: '当前预览的是菜谱模块', icon: 'none' }); return false
+    if (!['/pages/recipe/recipe', '/pages/recipe-detail/recipe-detail', '/pages/order/order'].includes(args.url.split('?')[0])) {
+      uni.showToast({ title: '当前预览的是菜单和菜谱', icon: 'none' }); return false
     }
   }})); return { app }
 }`)
 writeFileSync(resolve(preview, 'vite.config.js'), `import { defineConfig } from 'vite'; import uni from '@dcloudio/vite-plugin-uni'; export default defineConfig({ plugins: [uni()], server: { host: '127.0.0.1', port: 5178, strictPort: true } });`)
 cpSync(resolve(app, 'scripts/recipe-preview.html'), resolve(preview, 'preview.html'))
 cpSync(resolve(app, 'scripts/recipe-editor-preview.html'), resolve(preview, 'editor-preview.html'))
+cpSync(resolve(app, 'scripts/order-preview.html'), resolve(preview, 'order-preview.html'))
 const build = process.argv.includes('--build')
 const platform = process.argv.find(arg => arg.startsWith('--platform='))?.split('=')[1] || 'h5'
 const child = spawn(process.execPath, [resolve(runtime, 'node_modules/@dcloudio/vite-plugin-uni/bin/uni.js'), ...(build ? ['build'] : []), '-p', platform], { cwd: preview, stdio: 'inherit', env: { ...process.env, UNI_INPUT_DIR: preview, UNI_OUTPUT_DIR: resolve(preview, 'dist', platform), UNI_HBUILDERX_PLUGINS: dirname(runtime) } })

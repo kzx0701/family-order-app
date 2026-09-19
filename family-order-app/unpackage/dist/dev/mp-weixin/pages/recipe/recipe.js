@@ -1,8 +1,8 @@
 "use strict";
 const common_vendor = require("../../common/vendor.js");
 const composables_useSafeArea = require("../../composables/useSafeArea.js");
-const store_user = require("../../store/user.js");
 const utils_image = require("../../utils/image.js");
+const utils_spicy = require("../../utils/spicy.js");
 if (!Array) {
   const _easycom_Icon2 = common_vendor.resolveComponent("Icon");
   const _easycom_skeleton2 = common_vendor.resolveComponent("skeleton");
@@ -20,7 +20,6 @@ const PLACEHOLDER_STYLE = "color: rgba(140, 114, 94, 0.55)";
 const _sfc_main = {
   __name: "recipe",
   setup(__props) {
-    const userStore = store_user.useUserStore();
     const { statusBarHeight, menuButton } = composables_useSafeArea.useSafeArea();
     const headerTop = common_vendor.computed(() => {
       var _a;
@@ -28,7 +27,6 @@ const _sfc_main = {
     });
     const search = common_vendor.ref("");
     const searchFocused = common_vendor.ref(false);
-    const SPICY_TEXT = { none: "不辣", mild: "微辣", medium: "中辣" };
     const categories = common_vendor.ref([]);
     const dishes = common_vendor.ref([]);
     const loading = common_vendor.ref(false);
@@ -43,7 +41,7 @@ const _sfc_main = {
         return;
       loading.value = true;
       try {
-        const dishRes = await common_vendor.Vs.callFunction({ name: "app-service", data: { module: "dishes-crud", action: "list" } });
+        const dishRes = await common_vendor.Vs.callFunction({ name: "app-service", data: { module: "dishes-crud", action: "list", type: "food" } });
         const dishResult = dishRes.result || {};
         if (dishResult.code !== 0) {
           common_vendor.index.showToast({ title: dishResult.message || "菜谱加载失败", icon: "none" });
@@ -53,7 +51,7 @@ const _sfc_main = {
           id: d._id,
           name: d.name,
           image: d.image || "",
-          spicy: SPICY_TEXT[d.spicy] || SPICY_TEXT.none,
+          spicy: utils_spicy.SPICY_TEXT[d.spicy] || utils_spicy.SPICY_TEXT.none,
           isSignature: !!d.isSignature,
           categoryId: d.categoryId || "",
           // 卡片副行：优先备注（做饭人的经验），没有就退回描述
@@ -61,16 +59,16 @@ const _sfc_main = {
         }));
         let catList = dishResult.categories;
         if (!Array.isArray(catList)) {
-          const catRes = await common_vendor.Vs.callFunction({ name: "app-service", data: { module: "categories-crud", action: "list" } });
+          const catRes = await common_vendor.Vs.callFunction({ name: "app-service", data: { module: "categories-crud", action: "list", type: "food" } });
           const catResult = catRes.result || {};
           catList = (catResult.code === 0 ? catResult.list || [] : []).map((c) => ({ id: c._id, name: c.name }));
         }
-        categories.value = catList.map((c) => ({ id: c.id || c._id, name: c.name }));
+        categories.value = catList.filter((c) => !c.type || c.type === "food").map((c) => ({ id: c.id || c._id, name: c.name }));
         if (activeCategory.value !== "all" && !categories.value.some((c) => c.id === activeCategory.value)) {
           activeCategory.value = "all";
         }
       } catch (e) {
-        common_vendor.index.__f__("error", "at pages/recipe/recipe.vue:136", "[recipe] loadRecipes error", e);
+        common_vendor.index.__f__("error", "at pages/recipe/recipe.vue:141", "[recipe] loadRecipes error", e);
         common_vendor.index.showToast({ title: "网络不太好，稍后再试", icon: "none" });
       } finally {
         loading.value = false;
@@ -88,7 +86,6 @@ const _sfc_main = {
       search.value = "";
       activeCategory.value = "all";
     };
-    const showConfigurationScope = () => common_vendor.index.showModal({ title: "菜谱配置", content: "名称、图片、辣度、招牌与备注已在云端维护；配料、口味和步骤还没接入，补齐后才是完整菜谱、才能加入菜单。", showCancel: false, confirmText: "知道啦", confirmColor: "#624735" });
     return (_ctx, _cache) => {
       return common_vendor.e({
         a: headerTop.value + "px",
@@ -177,15 +174,8 @@ const _sfc_main = {
         z: common_vendor.p({
           name: "food",
           size: 14
-        }),
-        A: common_vendor.unref(userStore).isCook
-      }, common_vendor.unref(userStore).isCook ? {
-        B: common_vendor.p({
-          name: "edit",
-          size: 13
-        }),
-        C: common_vendor.o(showConfigurationScope, "c1")
-      } : {});
+        })
+      });
     };
   }
 };
