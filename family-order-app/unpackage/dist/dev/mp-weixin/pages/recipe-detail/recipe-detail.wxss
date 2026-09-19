@@ -159,6 +159,14 @@ button[disabled].data-v-fc6387aa {
   height: 44rpx;
   flex-shrink: 0;
 }
+.picker-field-icon.data-v-fc6387aa {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44rpx;
+  height: 44rpx;
+  flex-shrink: 0;
+}
 .picker-field-value.data-v-fc6387aa {
   flex: 1;
   min-width: 0;
@@ -578,6 +586,12 @@ button[disabled].data-v-fc6387aa {
 .picker-item.selected.data-v-fc6387aa {
   background: #eaf0db;
   border-color: #8b9e6a;
+}
+.picker-art-box.data-v-fc6387aa {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 110rpx;
 }
 @keyframes picker-pop-fc6387aa {
 from {

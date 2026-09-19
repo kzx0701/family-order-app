@@ -14,7 +14,7 @@
           <text class="field-label">菜谱名称 · 必填</text>
           <input v-model="draft.name" class="field title-field" maxlength="24" placeholder="给这道菜起个名字" aria-label="菜谱名称" />
           <text class="field-label">菜品分类 <text>选填</text></text>
-          <button class="field picker-field" aria-label="选择菜品分类" @tap="openPicker('category')"><image v-if="currentCategoryImage" class="picker-field-art" :src="currentCategoryImage" mode="aspectFit" /><text class="picker-field-value" :class="{ 'is-empty': !currentCategoryName }">{{ currentCategoryName || '还没选分类' }}</text><Icon name="chevron-right" :size="15" /></button>
+          <button class="field picker-field" aria-label="选择菜品分类" @tap="openPicker('category')"><image v-if="currentCategoryImage" class="picker-field-art" :src="currentCategoryImage" mode="aspectFit" /><Icon v-else-if="currentCategoryIcon" class="picker-field-icon" :name="currentCategoryIcon" size="36rpx" /><text class="picker-field-value" :class="{ 'is-empty': !currentCategoryName }">{{ currentCategoryName || '还没选分类' }}</text><Icon name="chevron-right" :size="15" /></button>
           <text class="field-label">辣度 <text>选填</text></text>
           <button class="field picker-field" aria-label="选择辣度" @tap="openPicker('spicy')"><image class="picker-field-art" :src="currentSpicy.image" mode="aspectFit" /><text class="picker-field-value">{{ currentSpicy.label }}</text><Icon name="chevron-right" :size="15" /></button>
         </template>
@@ -65,7 +65,7 @@
       <view class="mask" @tap="picker = ''" @touchmove.stop.prevent />
       <view class="sheet"><view class="handle" /><view class="picker-heading"><view><text class="section-title">{{ pickerKind.title }}</text><text class="subtitle">{{ pickerKind.subtitle }}</text></view></view>
         <view v-if="pickerKind.searchable" class="picker-search" :class="{ 'is-focused': pickerFocused }"><Icon name="search" :size="16" :stroke-width="2.2" /><input v-model="pickerKeyword" class="picker-search-input" :placeholder="'搜一搜' + pickerKind.noun" :placeholder-style="PLACEHOLDER_STYLE" :maxlength="20" confirm-type="search" :aria-label="'搜索' + pickerKind.noun" @focus="pickerFocused = true" @blur="pickerFocused = false" /><button v-if="pickerKeyword" class="picker-search-clear" aria-label="清空搜索" @tap="pickerKeyword = ''"><Icon name="close" :size="13" /></button></view>
-        <scroll-view scroll-y class="picker-scroll" :style="{ height: pickerListHeight }"><view v-if="!pickerOptions.length" class="picker-blank"><template v-if="pickerKind.searchable && pickerKeyword.trim()"><text>没有找到「{{ pickerKeyword.trim() }}」</text><text>换个词试试</text></template><template v-else><text>{{ pickerKind.emptyTitle }}</text><text>{{ pickerKind.emptyHint }}</text></template></view><view class="picker-grid"><button v-for="(item, index) in pickerOptions" :key="item.id + '-' + pickerKeyword" class="picker-item" :style="{ animationDelay: Math.min(index, 6) * 20 + 'ms' }" :class="{ selected: selection.includes(item.id) }" :aria-label="'选择' + item.name" :aria-pressed="selection.includes(item.id)" @tap="toggleSelection(item.id)"><image :src="item.image" mode="aspectFit" /><text>{{ item.name }}</text><view class="selection-dot"><Icon v-if="selection.includes(item.id)" name="check" :size="12" /></view></button></view></scroll-view>
+        <scroll-view scroll-y class="picker-scroll" :style="{ height: pickerListHeight }"><view v-if="!pickerOptions.length" class="picker-blank"><template v-if="pickerKind.searchable && pickerKeyword.trim()"><text>没有找到「{{ pickerKeyword.trim() }}」</text><text>换个词试试</text></template><template v-else><text>{{ pickerKind.emptyTitle }}</text><text>{{ pickerKind.emptyHint }}</text></template></view><view class="picker-grid"><button v-for="(item, index) in pickerOptions" :key="item.id + '-' + pickerKeyword" class="picker-item" :style="{ animationDelay: Math.min(index, 6) * 20 + 'ms' }" :class="{ selected: selection.includes(item.id) }" :aria-label="'选择' + item.name" :aria-pressed="selection.includes(item.id)" @tap="toggleSelection(item.id)"><image v-if="item.image" :src="item.image" mode="aspectFit" /><view v-else-if="item.icon" class="picker-art-box"><Icon :name="item.icon" size="88rpx" /></view><text>{{ item.name }}</text><view class="selection-dot"><Icon v-if="selection.includes(item.id)" name="check" :size="12" /></view></button></view></scroll-view>
         <button class="primary confirm" @tap="confirmPicker">{{ pickerConfirmText }}</button>
       </view>
     </view>
@@ -80,6 +80,7 @@ import { useSafeArea } from '@/composables/useSafeArea.js'
 import { useUserStore } from '@/store/user.js'
 import { pantry, freshRecipe, cloneRecipe, validateRecipe } from '@/mock/recipe-editor.js'
 import { SPICY_OPTIONS, SPICY_LEVELS } from '@/utils/spicy.js'
+import { categoryArt } from '@/utils/category-art.js'
 const STORAGE_KEY = 'fo_recipe_editor_demo_v2'
 const userStore = useUserStore()
 const canEdit = computed(() => userStore.isCook)
@@ -151,26 +152,23 @@ const stepFromCloud = (step, index) => ({
  */
 const categories = ref([])
 
-// 分类选项的占位图（临时）：等 categories.image 在云端填好后这里的映射会自动让位。
-// 按名称匹配、命中不了回退 __default，所以云端分类叫什么名字都不会出现空图。
-const CATEGORY_ART = {
-  炒菜: '/static/images/recipes/categories/stir-fry-v1.png',
-  蒸菜: '/static/images/recipes/categories/steam-v1.png',
-  烧菜: '/static/images/recipes/categories/braise-v1.png',
-  汤类: '/static/images/recipes/categories/soup-v1.png',
-  汤: '/static/images/recipes/categories/soup-v1.png',
-  炖汤: '/static/images/recipes/categories/soup-v1.png',
-  凉菜: '/static/images/recipes/categories/cold-v1.png',
-  凉拌: '/static/images/recipes/categories/cold-v1.png',
-  主食: '/static/images/recipes/categories/staple-v1.png',
-  主: '/static/images/recipes/categories/staple-v1.png',
-  __default: '/static/images/recipes/categories/default-v1.png'
-}
-
-/** 分类选项：云端填了图标就用云端的，没填用上表的占位图 */
-const categoryOptions = computed(() => categories.value.map(c => ({
-  id: c.id, name: c.name, image: c.image || CATEGORY_ART[c.name] || CATEGORY_ART.__default
-})))
+/**
+ * 分类选项
+ *
+ * 图标与**菜谱列表页顶部的分类 tab 是同一批素材**（utils/category-art.js）——
+ * 两处曾各存一份映射（列表页用彩色 SVG 素材、这里用 Icon.vue 的线性图标名），
+ * 于是同一批分类在两个页面长得不一样（一个彩色插画、一个随文字变单色），
+ * 改一处另一处不会跟着动。现在只有一份，换素材只改 util。
+ *
+ * 优先级：云端 `categories.image`（后台配了图就用它）> 内置素材 > 内置餐具图标兜底。
+ * 兜底那一档不能省：素材命中不了时若 image 与 icon 都为空，模板里的两个分支都不渲染，
+ * `.picker-art-box` 提供的 110rpx 占位会一起消失 —— 那个格子会比同排另两个矮一截、整行错位。
+ */
+const FALLBACK_CATEGORY_ICON = 'food'
+const categoryOptions = computed(() => categories.value.map(c => {
+  const art = c.image || categoryArt(c.name)
+  return { id: c.id, name: c.name, image: art, icon: art ? '' : FALLBACK_CATEGORY_ICON }
+}))
 
 // 辣度档位（SPICY_OPTIONS / SPICY_LEVELS）来自 utils/spicy.js —— 与列表页共用一份定义。
 // 浏览态用**辣椒图标的数量**表达 —— none 不显示、mild 1 根、medium 2 根、hot 3 根
@@ -193,6 +191,12 @@ const spicyCount = computed(() => {
 const currentCategory = computed(() => categoryOptions.value.find(o => o.id === (shown.value && shown.value.categoryId)) || null)
 const currentCategoryName = computed(() => (currentCategory.value || {}).name || '')
 const currentCategoryImage = computed(() => (currentCategory.value || {}).image || '')
+// 一个都没选时也留一个前导图标（餐具）占位：否则「还没选分类」的起点会比下面
+// 辣度行的文字左移一格，同一组表单的左边缘读起来是歪的。
+const currentCategoryIcon = computed(() => {
+  const item = currentCategory.value || {}
+  return item.icon || (item.image ? '' : FALLBACK_CATEGORY_ICON)
+})
 
 /** 当前辣度档位（未设置 / 脏值一律按「不辣」处理，与浏览态的辣椒根数同一套规则） */
 const currentSpicy = computed(() => SPICY_OPTIONS.find(o => o.value === (shown.value && shown.value.spicy)) || SPICY_OPTIONS[0])
@@ -536,6 +540,10 @@ button { margin:0; padding:0; background:transparent; color:inherit; font:inheri
 // 这样两行选择器与上方的名称输入框读起来是同一组表单。
 .picker-field { display:flex; align-items:center; gap:14rpx; width:100%; text-align:left; }
 .picker-field-art { width:44rpx; height:44rpx; flex-shrink:0; }
+// 图标走 Icon.vue（SVG mask + 继承 currentColor），颜色跟着控件的文字色走，不另设。
+// 外面套一个和 .picker-field-art **等宽等高**的盒子（44rpx）：分类行是「素材 or 图标兜底」、
+// 辣度行是素材，若两条前导图形宽度不同，下面一行的文字会横向错开几个像素。
+.picker-field-icon { display:flex; align-items:center; justify-content:center; width:44rpx; height:44rpx; flex-shrink:0; }
 .picker-field-value { flex:1; min-width:0; color:$p2-ink; }
 .picker-field-value.is-empty { color:$p2-ink-soft; }
 .material-section { padding:24rpx 0 26rpx; border-top:2rpx dashed #e1d6c3; }
@@ -612,6 +620,9 @@ $picker-gap: 18rpx;
 // transform:none，把按下反馈（全局 button:active 的 scale(.96)）压掉；backwards 只在
 // 延迟期间维持 from，动画一结束就把属性交还给常规样式。
 .picker-item { box-sizing:border-box; height:$picker-row; position:relative; border:2rpx solid #e1d8c5; padding:15rpx; border-radius:20rpx; font-size:$p2-fs-body; background:$p2-surface; animation: picker-pop $p2-dur-base $p2-ease backwards; image { display:block; width:110rpx; height:110rpx; margin:auto; } &.selected { background:#eaf0db; border-color:#8b9e6a; } }
+// 内置图标与上面的 <image> 占同样高度（110rpx），让两种选项的格子高度一致 ——
+// 图片是 display:block + margin:auto 居中，图标是 inline-block 的组件，套一层 flex 盒子才稳。
+.picker-art-box { display:flex; align-items:center; justify-content:center; height:110rpx; }
 @keyframes picker-pop { from { opacity:0; transform:translateY(16rpx) scale(.94); } to { opacity:1; transform:none; } }
 .selection-dot { position:absolute; top:10rpx; right:10rpx; width:28rpx; height:28rpx; border:2rpx solid #a9b695; border-radius:50%; display:flex; align-items:center; justify-content:center; }.confirm { width:100%; }
 @keyframes appear { from { opacity:0; transform:translateY(6rpx); } to { opacity:1; transform:translateY(0); } }

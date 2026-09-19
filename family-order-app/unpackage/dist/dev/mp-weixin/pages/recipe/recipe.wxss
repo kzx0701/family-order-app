@@ -101,7 +101,11 @@ button.data-v-fb437fc6::after {
 .category.data-v-fb437fc6 {
   position: relative;
   flex-shrink: 0;
-  padding: 8rpx 10rpx 14rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rpx;
+  padding: 4rpx 10rpx 14rpx;
   font-size: 28rpx;
   line-height: 1.4;
   color: #8c725e;
@@ -116,6 +120,17 @@ button.data-v-fb437fc6::after {
 .category.selected .category-mark.data-v-fb437fc6 {
   opacity: 1;
   transform: rotate(-2deg) scaleX(1);
+}
+.category-icon-slot.data-v-fb437fc6 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 52rpx;
+}
+.category-icon.data-v-fb437fc6 {
+  width: 52rpx;
+  height: 52rpx;
+  display: block;
 }
 .category-mark.data-v-fb437fc6 {
   position: absolute;

@@ -3,6 +3,7 @@ const common_vendor = require("../../common/vendor.js");
 const composables_useSafeArea = require("../../composables/useSafeArea.js");
 const utils_image = require("../../utils/image.js");
 const utils_spicy = require("../../utils/spicy.js");
+const utils_categoryArt = require("../../utils/category-art.js");
 if (!Array) {
   const _easycom_Icon2 = common_vendor.resolveComponent("Icon");
   const _easycom_skeleton2 = common_vendor.resolveComponent("skeleton");
@@ -68,7 +69,7 @@ const _sfc_main = {
           activeCategory.value = "all";
         }
       } catch (e) {
-        common_vendor.index.__f__("error", "at pages/recipe/recipe.vue:141", "[recipe] loadRecipes error", e);
+        common_vendor.index.__f__("error", "at pages/recipe/recipe.vue:142", "[recipe] loadRecipes error", e);
         common_vendor.index.showToast({ title: "网络不太好，稍后再试", icon: "none" });
       } finally {
         loading.value = false;
@@ -76,7 +77,10 @@ const _sfc_main = {
       }
     };
     common_vendor.onShow(loadRecipes);
-    const categoryTabs = common_vendor.computed(() => [{ id: "all", name: "全部" }, ...categories.value]);
+    const categoryTabs = common_vendor.computed(() => [
+      { id: "all", name: "全部", icon: "" },
+      ...categories.value.map((item) => ({ ...item, icon: utils_categoryArt.categoryArt(item.name) }))
+    ]);
     const filtered = common_vendor.computed(() => {
       const keyword = search.value.trim().toLocaleLowerCase();
       return dishes.value.filter((dish) => (activeCategory.value === "all" || dish.categoryId === activeCategory.value) && (!keyword || [dish.name, dish.tip].some((value) => String(value).toLocaleLowerCase().includes(keyword))));
@@ -109,13 +113,17 @@ const _sfc_main = {
       } : {}, {
         k: searchFocused.value ? 1 : "",
         l: common_vendor.f(categoryTabs.value, (category, k0, i0) => {
-          return {
-            a: common_vendor.t(category.name),
-            b: category.id,
-            c: activeCategory.value === category.id ? 1 : "",
-            d: activeCategory.value === category.id,
-            e: common_vendor.o(($event) => activeCategory.value = category.id, category.id)
-          };
+          return common_vendor.e({
+            a: category.icon
+          }, category.icon ? {
+            b: category.icon
+          } : {}, {
+            c: common_vendor.t(category.name),
+            d: category.id,
+            e: activeCategory.value === category.id ? 1 : "",
+            f: activeCategory.value === category.id,
+            g: common_vendor.o(($event) => activeCategory.value = category.id, category.id)
+          });
         }),
         m: loading.value && !dishes.value.length
       }, loading.value && !dishes.value.length ? {

@@ -16,7 +16,7 @@
         <scroll-view scroll-x class="category-scroll" :show-scrollbar="false">
           <view class="categories">
             <button v-for="category in categoryTabs" :key="category.id" class="category" :class="{ selected: activeCategory === category.id }" :aria-pressed="activeCategory === category.id" @tap="activeCategory = category.id">
-              <text>{{ category.name }}</text><view class="category-mark" />
+              <view class="category-icon-slot"><image v-if="category.icon" class="category-icon" :src="category.icon" mode="aspectFit" /></view><text>{{ category.name }}</text><view class="category-mark" />
             </button>
           </view>
         </scroll-view>
@@ -53,6 +53,7 @@ import { onShow } from '@dcloudio/uni-app'
 import { useSafeArea } from '@/composables/useSafeArea.js'
 import { imgUrl } from '@/utils/image.js'
 import { SPICY_TEXT } from '@/utils/spicy.js'
+import { categoryArt } from '@/utils/category-art.js'
 import RecipeArt from '@/components/recipe-art/recipe-art.vue'
 const { statusBarHeight, menuButton } = useSafeArea()
 const headerTop = computed(() => menuButton.value?.bottom ? Math.round(menuButton.value.bottom + 12) : statusBarHeight.value + 26)
@@ -150,7 +151,14 @@ const loadRecipes = async () => {
 onShow(loadRecipes)
 
 // 分类栏：固定「全部」置首，其余来自 categories 集合
-const categoryTabs = computed(() => [{ id: 'all', name: '全部' }, ...categories.value])
+// 图标只由分类名映射（utils/category-art.js），后端仍可继续返回动态分类 ——
+// 命中不了的分类不显示图标（文字 tab 仍成立），不会因为多了个分类就报错。
+// 这份映射与菜谱详情页编辑态的「菜品分类」**共用同一个文件**：两处曾各存一份，
+// 列表页是彩色素材、编辑页是单色线稿，同一批分类在两个页面长得不一样。
+const categoryTabs = computed(() => [
+  { id: 'all', name: '全部', icon: '' },
+  ...categories.value.map(item => ({ ...item, icon: categoryArt(item.name) }))
+])
 
 const filtered = computed(() => {
   const keyword = search.value.trim().toLocaleLowerCase()
@@ -194,7 +202,13 @@ button { padding: 0; margin: 0; background: none; color: inherit; font: inherit;
 // vertical-align:top 消除 inline 元素固有的基线间隙（本行已有 white-space:nowrap，
 // 分类名短、不涉及长文本折行问题，故保留）。
 .categories { display: inline-flex; vertical-align: top; gap: 16rpx; padding: 10rpx 0 14rpx; }
-.category { position: relative; flex-shrink: 0; padding: 8rpx 10rpx 14rpx; font-size: $p2-fs-body; line-height: 1.4; color: $p2-ink-soft; transition: color $p2-dur-fast $p2-ease; &:active { opacity: .55; } &.selected { color: $p2-ink; .category-mark { opacity: 1; transform: rotate(-2deg) scaleX(1); } } }
+.category { position: relative; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 2rpx; padding: 4rpx 10rpx 14rpx; font-size: $p2-fs-body; line-height: 1.4; color: $p2-ink-soft; transition: color $p2-dur-fast $p2-ease; &:active { opacity: .55; } &.selected { color: $p2-ink; .category-mark { opacity: 1; transform: rotate(-2deg) scaleX(1); } } }
+// 图标槽：**没有图标时也要占住这 52rpx**。「全部」不在图标映射里（它不是一个菜系），
+// 少了这一格它的文字就会顶到行首 —— .categories 是 flex 行、子项被拉伸到同一高度后
+// 内容默认从顶排起，于是「全部」二字会比右侧同排的分类名高出一个图标的高度，整行读起来是歪的。
+// 槽固定高度 + 居中，六类与「全部」的文字基线就永远在同一行。
+.category-icon-slot { display: flex; align-items: center; justify-content: center; height: 52rpx; }
+.category-icon { width: 52rpx; height: 52rpx; display: block; }
 .category-mark { position: absolute; left: 10rpx; right: 10rpx; bottom: 3rpx; height: 6rpx; border-radius: 55% 45% 60% 40%; background: $p2-leaf; opacity: 0; transform: rotate(-2deg) scaleX(.5); transition: opacity $p2-dur-fast $p2-ease, transform $p2-dur-settle $p2-ease; }
 .section-title { font-family: RecipeMaoken, $p2-font-fallback; font-size: $p2-fs-title; }
 .recipe-skeleton { padding-top: 24rpx; }
