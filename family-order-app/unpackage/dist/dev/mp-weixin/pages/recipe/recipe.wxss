@@ -246,12 +246,8 @@ button.data-v-fb437fc6::after {
   left: 18rpx;
   font-size: 18rpx;
   padding: 5rpx 12rpx;
-  background: #edf1db;
-  border-radius: 7rpx 10rpx 7rpx 9rpx;
-  color: #536844;
-}
-.card-label.signature.data-v-fb437fc6 {
   background: #f9e8aa;
+  border-radius: 7rpx 10rpx 7rpx 9rpx;
   color: #624735;
 }
 .card-copy.data-v-fb437fc6 {
@@ -265,19 +261,44 @@ button.data-v-fb437fc6::after {
 }
 .card-meta.data-v-fb437fc6 {
   display: flex;
-  justify-content: space-between;
-  gap: 16rpx;
   align-items: center;
-  margin-top: 22rpx;
+  justify-content: space-between;
+  gap: 14rpx;
+  margin-top: 20rpx;
   color: #8c725e;
-  font-size: 19rpx;
+  font-size: 21rpx;
 }
-.card-tip.data-v-fb437fc6 {
-  flex: 1;
+.card-facts.data-v-fb437fc6 {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
   min-width: 0;
-  overflow: hidden;
+}
+.card-cat-icon.data-v-fb437fc6 {
+  width: 32rpx;
+  height: 32rpx;
+  flex-shrink: 0;
+  display: block;
+}
+.card-spicy.data-v-fb437fc6 {
+  display: inline-flex;
+  align-items: center;
+  gap: 3rpx;
+  color: #e97a69;
+}
+.card-time.data-v-fb437fc6 {
+  flex-shrink: 0;
   white-space: nowrap;
-  text-overflow: ellipsis;
+  color: #624735;
+  font-variant-numeric: tabular-nums;
+}
+.card-time-num.data-v-fb437fc6 {
+  font-size: 24rpx;
+}
+.card-time-unit.data-v-fb437fc6 {
+  margin-left: 4rpx;
+  font-size: 18rpx;
+  color: #8c725e;
 }
 .page-footnote.data-v-fb437fc6 {
   display: flex;

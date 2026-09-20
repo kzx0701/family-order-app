@@ -29,11 +29,24 @@
         <view class="card-picture">
           <view v-if="recipe.image" class="card-photo-box"><image class="card-photo" :class="{ 'is-loaded': photoReady[recipe.id] }" :src="imgUrl(recipe.image, { w: 480 })" mode="aspectFit" :webp="true" @load="markPhotoReady(recipe.id)" @error="markPhotoReady(recipe.id)" /></view>
           <RecipeArt v-else :index="index % 6" :label="recipe.name" />
-          <text class="card-label" :class="{ signature: recipe.isSignature }">{{ recipe.isSignature ? '家的拿手菜' : recipe.spicy }}</text>
+          <!-- 角标只说「招牌」这一件事。辣度已经由下方的辣椒表达，同一张卡上说两遍是重复，
+               而且角标压在图片上、辣椒在信息行里，两者的读法也不一样（前者是标签、后者是量）。 -->
+          <text v-if="recipe.isSignature" class="card-label">家的拿手菜</text>
         </view>
         <view class="card-copy">
           <text class="dish-name">{{ recipe.name }}</text>
-          <view class="card-meta"><text class="card-tip">{{ recipe.tip || '做法还在记' }}</text><Icon name="chevron-right" :size="15" /></view>
+          <!-- 信息行：左「分类图标 + 辣度」，右「所需时间」。
+               原来是「做法摘要 + 右箭头」—— 摘要被截成一句半、读不出什么，箭头又与整卡可点重复，
+               信息量最低的一行占了卡片最显眼的位置。换成两项一眼能比的元信息。 -->
+          <view class="card-meta">
+            <view class="card-facts">
+              <image v-if="categoryIconMap[recipe.categoryId]" class="card-cat-icon" :src="categoryIconMap[recipe.categoryId]" mode="aspectFit" />
+              <view v-if="recipe.spicyCount" class="card-spicy"><Icon v-for="n in recipe.spicyCount" :key="n" name="chili" :size="13" :stroke-width="2.4" /></view>
+            </view>
+            <!-- 时长：一行极简字。数字稍大稍深、单位小一号更浅 —— 层级靠字号与颜色，
+                 不加纸底、不加图标、不加旋转。这一行只该「轻」，它旁边已经有分类图标和辣椒了。 -->
+            <text class="card-time"><text class="card-time-num">{{ recipe.minutes }}</text><text class="card-time-unit">分钟</text></text>
+          </view>
         </view>
       </button>
     </view>
@@ -64,7 +77,7 @@ import { onShow } from '@dcloudio/uni-app'
 import { useSafeArea } from '@/composables/useSafeArea.js'
 import { useUserStore } from '@/store/user.js'
 import { imgUrl } from '@/utils/image.js'
-import { SPICY_TEXT } from '@/utils/spicy.js'
+import { SPICY_LEVELS } from '@/utils/spicy.js'
 import { categoryArt } from '@/utils/category-art.js'
 import RecipeArt from '@/components/recipe-art/recipe-art.vue'
 const { statusBarHeight, menuButton } = useSafeArea()
@@ -120,6 +133,58 @@ const markPhotoReady = (id) => {
 }
 
 /**
+ * 【临时假数据】所需时间
+ *
+ * 云端 dishes 目前没有这个字段，先造一组**看起来合理**的值把版式效果做出来。
+ *
+ * 两条约束，都是为了让"假"不干扰你看设计：
+ * 1. **稳定**：每次 onShow 都会重新拉列表，若用随机数，同一道菜的时长每次进来都在跳，像 bug。
+ *    → 取值由 id 哈希决定。
+ * 2. **合理**：纯哈希会让「排骨玉米汤 10 分钟、凉拌黄瓜 45 分钟」这种组合出现在界面上，
+ *    → 先按分类名给一档符合直觉的候选（汤/烧最久、炒/凉最快），命中不了再退回通用档位。
+ *
+ * 接真实数据时：删掉这一整段，映射里改成 `minutes: Number(d.minutes) || 0`，
+ * 并在 dishes 的 schema 里补 `minutes`（int，分钟）。
+ */
+const CATEGORY_MINUTES = {
+  汤: [40, 45, 60],
+  烧: [35, 40, 45],
+  蒸: [25, 30, 35],
+  主食: [25, 30, 40],
+  炒: [10, 15, 20],
+  凉: [10, 15, 20]
+}
+const FALLBACK_MINUTES = [15, 20, 25, 30, 40]
+/**
+ * 稳定哈希（FNV-1a 32 位）
+ *
+ * 不用 `h*31 + code` 那种简易哈希：它**雪崩性差** —— 实测只有末位不同的相邻 id
+ * 会算出连续的值，`% 3` 之后整齐地循环（…60、40、45、60、40、45…），
+ * 几道同期录入的菜会显示成规律的档位，一眼就假。
+ * FNV-1a 改一个字符就整串散开，同时仍然是确定性的（同一 id 永远同一结果）。
+ */
+const stableHash = (seed) => {
+  const s = String(seed || '')
+  let h = 2166136261
+  for (let i = 0; i < s.length; i += 1) {
+    h ^= s.charCodeAt(i)
+    h = Math.imul(h, 16777619)
+  }
+  return Math.abs(h)
+}
+const fakeMinutes = (seed, categoryName) => {
+  const h = stableHash(seed)
+  const name = String(categoryName || '')
+  for (const key of Object.keys(CATEGORY_MINUTES)) {
+    if (name.includes(key)) {
+      const options = CATEGORY_MINUTES[key]
+      return options[h % options.length]
+    }
+  }
+  return FALLBACK_MINUTES[h % FALLBACK_MINUTES.length]
+}
+
+/**
  * 取菜谱数据
  *
  * 只调 dishes-crud / list 一个接口（无需鉴权，干饭人也要能看菜谱）：
@@ -151,10 +216,17 @@ const loadRecipes = async () => {
       id: d._id,
       name: d.name,
       image: d.image || '',
-      spicy: SPICY_TEXT[d.spicy] || SPICY_TEXT.none,
+      // 辣度：卡片只显示辣椒的**根数**，不显示文字档位（角标那条已删，避免同卡说两遍）——
+      // 根数与详情页同一个算法（none 0 根、mild 1、medium 2、hot 3），
+      // 卡片只消费这个数字，不在模板里另算一遍，两处的表达才不会跑偏
+      spicyCount: Math.max(SPICY_LEVELS.indexOf(d.spicy), 0),
       isSignature: !!d.isSignature,
       categoryId: d.categoryId || '',
-      // 卡片副行：优先备注（做饭人的经验），没有就退回描述
+      // 所需时间：云端有就先用，没有才落到临时假数据（见上方 fakeMinutes 的说明）。
+      // categoryName 由 list 接口 join 后返回，假数据靠它给一个符合直觉的档位
+      minutes: Number(d.minutes) || fakeMinutes(d._id || d.name, d.categoryName),
+      // 卡片副行不再显示它，但**搜索要用**（「找道菜，或搜搜备注…」按 name + tip 匹配），
+      // 所以这个字段继续留在视图模型里，别顺手删
       tip: d.note || d.description || ''
     }))
     // 分类优先取 list 顺带返回的（形状为 { id, name }）；旧版云函数无此字段则回退
@@ -192,6 +264,19 @@ const categoryTabs = computed(() => [
   { id: 'all', name: '全部', icon: '' },
   ...categories.value.map(item => ({ ...item, icon: categoryArt(item.name) }))
 ])
+
+/**
+ * 按分类 id 查图标（卡片信息行左侧用）
+ *
+ * 与上面的分类栏**共用同一份映射**（utils/category-art.js）：两处各写一份的话，
+ * 同一个分类会在 tab 上是彩色插画、在卡片上是另一个图形 —— 这页踩过同类坑（见上）。
+ * 命中不了的分类返回空串，模板据此不渲染 <image>，不会留一个裂图占位。
+ */
+const categoryIconMap = computed(() => {
+  const map = {}
+  for (const item of categories.value) map[item.id] = categoryArt(item.name)
+  return map
+})
 
 const filtered = computed(() => {
   const keyword = search.value.trim().toLocaleLowerCase()
@@ -284,11 +369,39 @@ button { padding: 0; margin: 0; background: none; color: inherit; font: inherit;
 // 淡入而非瞬时跳现：加载期间保持透明（露出卡片底色），@load 后才浮出来。
 // 不加占位底色 —— aspectFit 下 1:1 素材左右本就留空，底色会变成一块可见色块。
 .card-photo { position: absolute; left: 0; top: 0; width: 100%; height: 100%; opacity: 0; transition: opacity $p2-dur-base $p2-ease; &.is-loaded { opacity: 1; } }
-.card-label { position: absolute; bottom: 12rpx; left: 18rpx; font-size: 18rpx; padding: 5rpx 12rpx; background: #edf1db; border-radius: 7rpx 10rpx 7rpx 9rpx; color: #536844; &.signature { background: $p2-butter-soft; color: $p2-ink; } }
+// 角标现在只有「家的拿手菜」一种（辣度已交给信息行的辣椒），配色即原来的 signature 变体
+.card-label { position: absolute; bottom: 12rpx; left: 18rpx; font-size: 18rpx; padding: 5rpx 12rpx; background: $p2-butter-soft; border-radius: 7rpx 10rpx 7rpx 9rpx; color: $p2-ink; }
 .card-copy { padding: 19rpx 18rpx 20rpx; }
 .dish-name { display: block; font-family: RecipeMaoken, $p2-font-fallback; font-size: $p2-fs-title; line-height: 1.3; }
-.card-meta { display: flex; justify-content: space-between; gap: 16rpx; align-items: center; margin-top: 22rpx; color: $p2-ink-soft; font-size: 19rpx; }
-.card-tip { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+// 卡片信息行：左「分类图标 + 辣椒根数」，右「所需时间」。
+// 两端对齐：左侧长度可变（不辣的菜只剩分类图标），右侧时长固定贴右 —— 同一屏里时长会自然成一列，
+// 扫视时能横向比较，这是把它放在右边而不是紧跟分类的原因。
+.card-meta { display: flex; align-items: center; justify-content: space-between; gap: 14rpx; margin-top: 20rpx; color: $p2-ink-soft; font-size: 21rpx; }
+.card-facts { display: flex; align-items: center; gap: 10rpx; min-width: 0; }
+// 分类图标 32rpx（16px）：比同行文字略高一档、形成"图形在左、文字在右"的读序。
+// 素材是彩色 SVG，直接 <image> 加载 —— 不要塞进 Icon.vue（mask 会抹掉颜色）。
+.card-cat-icon { width: 32rpx; height: 32rpx; flex-shrink: 0; display: block; }
+// 辣椒：与详情页同一套表达（几根代表几档），颜色取 $p2-coral；gap 收窄让它读成一组而非散开的图标
+.card-spicy { display: inline-flex; align-items: center; gap: 3rpx; color: $p2-coral; }
+// 「所需时间」= 一行极简字：数字稍大稍深、单位小一号更浅。
+//
+// ⚠️ 这一处连续被否过两次，结论记在这里，免得再走回头路：
+//   第一版 `{{ minutes }} 分钟` —— 一行同字号、同灰度的字，被读成「没有设计」：
+//     没有层级，最关键的数值被埋在单位里，整行看着就是数据库字段。
+//   第二版加了浅绿纸底 + 时钟图标 + 旋转 —— 被读成「太大、不简约」：
+//     这一行旁边已经有分类图标和辣椒，再塞一个色块进去，卡片的呼吸就没了。
+//   两次的交集 = **不加任何容器，只把层级做出来**。粒度落在 24rpx 数字 + 18rpx 单位，
+//   整行高度约 24rpx（比纸片版矮四成）；「设计」体现在字号比与颜色深浅差
+//   （$p2-ink → $p2-ink-soft），而不是体现在有没有一个形状。
+//
+// 三条不做：
+//   1) 不加底色 / 圆角 / 旋转 —— 容器是「标签」的语法，这里只是一行注记；
+//   2) 不加 font-weight —— 本项目层级一律靠字号差建立（手写体一加粗就糊笔触）；
+//   3) 数字不用 RecipeMaoken 手写体 —— 子集（405 字）**不含 0-9**，会静默回退成系统字体，
+//      变成「单位手写、数字不是」，比全用系统字体更碎（要手写数字得先重新子集化）。
+.card-time { flex-shrink: 0; white-space: nowrap; color: $p2-ink; font-variant-numeric: tabular-nums; }
+.card-time-num { font-size: 24rpx; }
+.card-time-unit { margin-left: 4rpx; font-size: 18rpx; color: $p2-ink-soft; }
 .page-footnote { display: flex; align-items: center; justify-content: center; gap: 13rpx; color: $p2-ink-soft; font-size: 21rpx; margin: 46rpx 0 22rpx; }
 .empty-state { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 94rpx 16rpx 70rpx; }
 .empty-book { display: flex; align-items: center; justify-content: center; width: 140rpx; height: 140rpx; border-radius: 50%; background: $p2-butter-soft; margin-bottom: 28rpx; transform: rotate(-8deg); }

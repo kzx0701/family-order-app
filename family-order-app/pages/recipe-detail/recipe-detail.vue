@@ -26,8 +26,21 @@
           <button class="field picker-field" aria-label="选择菜品分类" @tap="openPicker('category')"><image v-if="currentCategoryImage" class="picker-field-art" :src="currentCategoryImage" mode="aspectFit" /><Icon v-else-if="currentCategoryIcon" class="picker-field-icon" :name="currentCategoryIcon" size="36rpx" /><text class="picker-field-value" :class="{ 'is-empty': !currentCategoryName }">{{ currentCategoryName || '还没选分类' }}</text><Icon name="chevron-right" :size="15" /></button>
           <text class="field-label">辣度 <text>选填</text></text>
           <button class="field picker-field" aria-label="选择辣度" @tap="openPicker('spicy')"><image class="picker-field-art" :src="currentSpicy.image" mode="aspectFit" /><text class="picker-field-value">{{ currentSpicy.label }}</text><Icon name="chevron-right" :size="15" /></button>
+          <!-- 菜谱描述：对应云端的 dishes.description（本来就有这个字段，此前只有管理端能写）。
+               它是菜谱列表页**卡片副行**的来源（note 为空时回退它），所以限 40 字 ——
+               再长在卡片上也会被省略号截掉，不如让用户在写的时候就看得见长度。
+               字段本身与 draft.subtitle 同源：读回、保存、dirty 比较三处早已接通，这里只补入口。 -->
+          <text class="field-label">菜谱描述 <text>选填</text></text>
+          <input v-model="draft.subtitle" class="field" maxlength="40" placeholder="一句话说说它，比如：酸酸甜甜，拌饭刚刚好" aria-label="菜谱描述" />
         </template>
-        <template v-else><text class="title">{{ shown.name }}</text></template>
+        <template v-else>
+          <text class="title">{{ shown.name }}</text>
+          <view v-if="shown.subtitle" class="note-row">
+            <view class="recipe-note">
+              <text class="recipe-note-text">{{ shown.subtitle }}</text>
+            </view>
+          </view>
+        </template>
         <view v-if="!editing && (currentCategoryName || spicyCount || !cloudDishId)" class="meta"><view v-if="currentCategoryName" class="category-pill"><view class="leaf" />{{ currentCategoryName }}</view><text v-if="currentCategoryName && spicyCount" class="meta-dot">·</text><view v-if="spicyCount" class="spicy"><Icon v-for="n in spicyCount" :key="n" name="chili" size="28rpx" :stroke-width="2.4" /></view><text v-if="!cloudDishId" class="demo-label">本机体验菜谱</text></view>
       </view>
       <view v-for="(section, index) in sections" :key="section.key" class="material-section">
@@ -374,20 +387,74 @@ const cloudDishId = ref('')
  * id 来自菜谱列表页的跳转（pages/recipe 的 openRecipe 会带 ?id=）。
  * 接口不通或菜谱不存在时整段静默降级为本地数据，页面照旧可看，不会白屏。
  */
-const loadCloudRecipe = async id => {
+/**
+ * 基础数据一：物料（食材 / 调料）
+ *
+ * **独立 try**，不与其他请求共用一个 Promise.all —— 见 loadCategories 上方的说明。
+ */
+const loadMaterials = async () => {
   try {
-    // 物料与分类都是与具体菜品无关的基础数据，并行取；且**不管有没有 id 都要拉** ——
-    // 分类没拿到就没法显示、也没法选。分类只取 type=food 的（coffee 那些不属于菜品）。
-    const [matRes, catRes] = await Promise.all([
-      uniCloud.callFunction({ name: 'app-service', data: { module: 'materials-crud', action: 'list' } }),
-      uniCloud.callFunction({ name: 'app-service', data: { module: 'categories-crud', action: 'list', type: 'food' } })
-    ])
-    const matResult = matRes.result || {}
-    if (matResult.code === 0) cloudMaterials.value = matResult.list || []
-    const catResult = catRes.result || {}
-    if (catResult.code === 0) categories.value = (catResult.list || []).map(c => ({ id: c._id, name: c.name, image: c.image || '' }))
+    const res = await uniCloud.callFunction({ name: 'app-service', data: { module: 'materials-crud', action: 'list' } })
+    const result = res.result || {}
+    if (result.code === 0) {
+      cloudMaterials.value = result.list || []
+    } else {
+      console.warn('[recipe-detail] 物料加载失败', result.code, result.message)
+    }
+  } catch (e) {
+    console.error('[recipe-detail] 物料请求异常', e)
+  }
+}
 
-    if (!id) return
+/**
+ * 基础数据二：菜品分类（categories 里 type=food 的那些）
+ *
+ * 两步查询，**都不能省**：
+ * 1. 先按 `type: 'food'` 查（正常路径，只取菜品分类）；
+ * 2. 结果为空时再不带 type 查一次全量，在页面侧按 `!c.type || c.type === 'food'` 筛 ——
+ *    菜谱列表页就是这么做的（它拿的是 dishes-crud/list 顺带返回的分类，同样靠这句兜底），
+ *    **两页口径必须一致**，否则会出现「列表页有 6 个分类、编辑页抽屉却是空的」这种裂缝。
+ *
+ * 为什么两处都要打 warn：原先这里只有一句 `if (code === 0)`，接口异常时**完全静默** ——
+ * 2026-09-20 排查「抽屉空」时，就是因为没有任何输出才绕了弯路。
+ */
+const loadCategories = async () => {
+  try {
+    const res = await uniCloud.callFunction({ name: 'app-service', data: { module: 'categories-crud', action: 'list', type: 'food' } })
+    const result = res.result || {}
+    if (result.code !== 0) console.warn('[recipe-detail] 分类(type=food)查询失败', result.code, result.message)
+    let list = result.code === 0 ? result.list || [] : []
+    if (!list.length) {
+      const allRes = await uniCloud.callFunction({ name: 'app-service', data: { module: 'categories-crud', action: 'list' } })
+      const allResult = allRes.result || {}
+      if (allResult.code === 0) {
+        list = allResult.list || []
+      } else {
+        console.warn('[recipe-detail] 分类全量查询也失败', allResult.code, allResult.message)
+      }
+    }
+    categories.value = list
+      .filter(c => !c.type || c.type === 'food')
+      .map(c => ({ id: c._id, name: c.name, image: c.image || '' }))
+    if (!categories.value.length) console.warn('[recipe-detail] 分类结果为空，抽屉会显示空态')
+  } catch (e) {
+    console.error('[recipe-detail] 分类请求异常', e)
+  }
+}
+
+const loadCloudRecipe = async id => {
+  /**
+   * 物料与分类各自独立加载
+   *
+   * 原先这两件事与菜品详情一起挤在一个 try + Promise.all 里：**任一接口抛错就会 reject
+   * 掉整段**，另外两个跟着一起变空，而外层只有一句笼统的 console.error ——
+   * 排查时完全看不出是哪个接口挂了（2026-09-20 分类抽屉空，就是在这一点上绕了弯路）。
+   * 现在拆开：一个挂了不影响另一个，失败也能具体到接口。
+   */
+  await Promise.all([loadMaterials(), loadCategories()])
+
+  if (!id) return
+  try {
     const dishRes = await uniCloud.callFunction({ name: 'app-service', data: { module: 'dishes-crud', action: 'detail', _id: id } })
     const dishResult = dishRes.result || {}
     if (dishResult.code !== 0 || !dishResult.dish) return
@@ -531,7 +598,8 @@ const save = async () => {
       // 封面：编辑器里刚换过的就是可访问链接；没换过则是从云端读回的原值，原样回传
       // （空串是合法值 —— 这道菜没有封面）
       image: value.image || '',
-      // 简介已不在界面上编辑，但仍原样回传 —— 菜谱列表页卡片的副行在用它（note 为空时回退 description）
+      // 描述：这一页已经能编辑（辣度下方那个输入框）；它同时是菜谱列表页卡片副行的来源
+      // （note 为空时回退它），所以为空串也要如实写回去 —— 那是「用户清空了描述」，不是「没改」
       description: value.subtitle,
       // 分类：没选就是空串（合法状态 —— 菜品可以不归类）
       categoryId: value.categoryId || '',
@@ -636,6 +704,31 @@ button { margin:0; padding:0; background:transparent; color:inherit; font:inheri
 .intro { padding:5rpx 0 30rpx; }
 .title { display:block; font-family:RecipeMaoken,$p2-font-fallback; font-size:$p2-fs-display; line-height:1.35; }
 .subtitle { display:block; font-size:$p2-fs-body; color:$p2-ink-soft; margin-top:10rpx; line-height:1.7; }
+// 简约小纸条：宽度随文字收拢，淡黄纸面与不规则小圆角延续手绘风格。
+.note-row { display:flex; margin-top:14rpx; }
+.recipe-note {
+  box-sizing:border-box;
+  min-width:0;
+  max-width:100%;
+  padding:10rpx 18rpx;
+  background:#fff0bd;
+  border-radius:4rpx 7rpx 5rpx 3rpx;
+  box-shadow:0 2rpx 0 #c6a96630;
+}
+.recipe-note-text {
+  display:block;
+  // 系统字体：便签里装的是**用户自由输入**的一段话，而两套手写体都是"子集化内嵌"的
+  // （RecipeMaoken 405 字 / MenuHand 59 字），遇到没收录的字会静默回退 ——
+  // 一句话里半个手写、半个系统，比整句都用系统字体更碎。
+  // 手写体只适合用在**字表可枚举**的地方（菜名、固定文案）。
+  font-family:$p2-font-fallback;
+  font-size:25rpx;
+  line-height:1.5;
+  color:$p2-ink;
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+  word-break:break-word;
+}
 .meta { display:flex; align-items:center; gap:12rpx; font-size:21rpx; color:$p2-ink-soft; margin-top:18rpx; }
 .leaf { width:12rpx; height:18rpx; border-radius:70% 20%; background:$p2-leaf; transform:rotate(30deg); }
 // 分类徽标：形制对齐页面里已有的「浅底小标签」—— 本页的 ①②③ 序号方块、列表页的卡片角标，

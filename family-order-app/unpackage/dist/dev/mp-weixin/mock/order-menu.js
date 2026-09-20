@@ -6,8 +6,8 @@ const americanoArt = art('<path d="M39 35 47 127q30 9 66-2l12-90" fill="#e4eff0"
 const coconutArt = art('<path d="M41 33 49 126q30 10 61-1l13-90" fill="#fff4d9"/><path d="m45 67 72 1-5 26-65-2Z" fill="#c8a881"/><ellipse cx="82" cy="34" rx="41" ry="13" fill="#efddb6"/><path d="m79 36 18-28 18 2" stroke="#8ba57a"/><path d="M91 111q15-20 36-7 17 12 5 25-23 20-44 3Z" fill="#ac8b64"/><path d="M95 113q13-14 30-5 12 10 3 20-19 12-32 1Z" fill="#fff7e7"/><path d="m59 61 2 20" stroke="#fffdf4"/>');
 const img = (name) => "/static/images/recipes/dishes/" + name + "-v1.png";
 const menuItems = [
-  { id: "tomato-eggs", recipeId: "tomato-eggs", type: "food", name: "番茄炒蛋", subtitle: "酸酸甜甜，拌饭刚刚好", image: img("tomato-eggs"), category: "home", tag: "下饭担当", tone: "yellow", minutes: 12, signature: true, description: "嫩嫩的鸡蛋裹着番茄汁，是家里怎么吃都不腻的味道。留一点汤汁，拌饭更香。", options: [{ name: "辣度", values: ["不辣", "微辣", "中辣"] }], defaults: ["不辣"] },
-  { id: "potato-chicken", recipeId: "potato-chicken", type: "food", name: "土豆焖鸡", subtitle: "软糯土豆，承包一碗饭", image: img("potato-chicken"), category: "home", tag: "家的拿手菜", tone: "coral", minutes: 35, signature: true, description: "鸡肉慢慢焖入味，土豆吸饱酱汁。喜欢软糯口感的话，可以在备注里告诉做饭人。", options: [{ name: "辣度", values: ["不辣", "微辣", "中辣"] }], defaults: ["微辣"] },
+  { id: "tomato-eggs", recipeId: "tomato-eggs", type: "food", name: "番茄炒蛋", subtitle: "酸酸甜甜，拌饭刚刚好", image: img("tomato-eggs"), category: "home", tag: "下饭担当", tone: "yellow", minutes: 12, signature: true, spicy: "none", description: "嫩嫩的鸡蛋裹着番茄汁，是家里怎么吃都不腻的味道。留一点汤汁，拌饭更香。", options: [], defaults: [] },
+  { id: "potato-chicken", recipeId: "potato-chicken", type: "food", name: "土豆焖鸡", subtitle: "软糯土豆，承包一碗饭", image: img("potato-chicken"), category: "home", tag: "家的拿手菜", tone: "coral", minutes: 35, signature: true, spicy: "mild", description: "鸡肉慢慢焖入味，土豆吸饱酱汁。喜欢软糯口感的话，可以在备注里告诉做饭人。", options: [], defaults: [] },
   { id: "garlic-greens", recipeId: "garlic-greens", type: "food", name: "蒜蓉小青菜", subtitle: "清清爽爽，给餐桌添点绿", image: img("garlic-bok-choy"), category: "greens", tag: "清爽搭档", tone: "green", minutes: 8, signature: false, description: "新鲜小青菜配上一点蒜香，大火快炒。简单的一盘，也要认认真真做好。", options: [{ name: "口味", values: ["蒜香", "清淡"] }], defaults: ["蒜香"] },
   { id: "corn-soup", recipeId: "corn-soup", type: "food", name: "玉米排骨汤", subtitle: "咕嘟咕嘟，暖到心里", image: img("corn-rib-soup"), category: "soup", tag: "暖胃小幸福", tone: "blue", minutes: 60, signature: false, description: "玉米的清甜慢慢煮进汤里，胡萝卜和排骨软软的。盛一碗，把今天的疲惫也暖一暖。", options: [{ name: "口味", values: ["原味", "少盐"] }], defaults: ["原味"] },
   { id: "latte", recipeId: "latte", type: "coffee", name: "暖暖拿铁", subtitle: "奶香和咖啡，刚好抱个满怀", image: latteArt, category: "milky", tag: "温柔一杯", tone: "coral", minutes: 5, signature: true, description: "浓缩咖啡与绵密牛奶的日常搭配。冷热和甜度都可以按你的心情来。", options: [{ name: "温度", values: ["热", "冰"] }, { name: "甜度", values: ["无糖", "微甜", "正常甜"] }], defaults: ["热", "无糖"] },
@@ -18,31 +18,26 @@ const menuCategories = {
   food: [{ id: "all", name: "全部" }, { id: "signature", name: "拿手菜" }, { id: "home", name: "家常菜" }, { id: "greens", name: "清爽蔬菜" }, { id: "soup", name: "暖心汤" }],
   coffee: [{ id: "all", name: "全部" }, { id: "signature", name: "偏爱推荐" }, { id: "milky", name: "奶咖" }, { id: "black", name: "黑咖啡" }]
 };
-const cartKey = (id, options) => JSON.stringify([id, options]);
-function addToCart(lines, item, options = item.defaults, quantity = 1) {
-  const key = cartKey(item.id, options);
+const cartKey = (id) => String(id);
+function addToCart(lines, item, options = item.defaults, note = "") {
+  const key = cartKey(item.id);
   const line = lines.find((value) => value.key === key);
-  const current = (line == null ? void 0 : line.quantity) || 0;
-  if (current + quantity > 20)
-    return false;
-  if (line)
-    line.quantity += quantity;
-  else
-    lines.push({ key, id: item.id, recipeId: item.recipeId, name: item.name, image: item.image, options: [...options], quantity });
-  return true;
-}
-function decreaseLine(lines, key) {
-  const index = lines.findIndex((item) => item.key === key);
-  if (index < 0)
+  const trimmed = String(note || "").trim();
+  if (line) {
+    line.options = [...options];
+    line.note = trimmed;
     return;
-  if (lines[index].quantity > 1)
-    lines[index].quantity--;
-  else
+  }
+  lines.push({ key, id: item.id, recipeId: item.recipeId, name: item.name, image: item.image, options: [...options], note: trimmed });
+}
+function removeLine(lines, key) {
+  const index = lines.findIndex((item) => item.key === key);
+  if (index >= 0)
     lines.splice(index, 1);
 }
 exports.addToCart = addToCart;
 exports.bowlArt = bowlArt;
-exports.decreaseLine = decreaseLine;
 exports.menuCategories = menuCategories;
 exports.menuItems = menuItems;
+exports.removeLine = removeLine;
 //# sourceMappingURL=../../.sourcemap/mp-weixin/mock/order-menu.js.map

@@ -3,6 +3,7 @@ const common_vendor = require("../../common/vendor.js");
 const composables_useSafeArea = require("../../composables/useSafeArea.js");
 const store_cart = require("../../store/cart.js");
 const mock_orderMenu = require("../../mock/order-menu.js");
+const utils_spicy = require("../../utils/spicy.js");
 if (!Array) {
   const _easycom_Icon2 = common_vendor.resolveComponent("Icon");
   const _easycom_custom_tabbar2 = common_vendor.resolveComponent("custom-tabbar");
@@ -27,12 +28,12 @@ const _sfc_main = {
     const mode = common_vendor.ref("food"), categories = common_vendor.reactive({ food: "all", coffee: "all" }), queries = common_vendor.reactive({ food: "", coffee: "" });
     const carts = common_vendor.reactive({ food: [], coffee: [] }), notes = common_vendor.reactive({ food: "", coffee: "" });
     const cart = common_vendor.computed(() => carts[mode.value]);
-    const countFor = (type) => carts[type].reduce((sum, line) => sum + line.quantity, 0);
+    const countFor = (type) => carts[type].length;
     const total = common_vendor.computed(() => countFor(mode.value));
-    const itemCount = (id) => cart.value.filter((line) => line.id === id).reduce((sum, line) => sum + line.quantity, 0);
+    const inCart = (id) => cart.value.some((line) => line.id === id);
     const visibleItems = common_vendor.computed(() => mock_orderMenu.menuItems.filter((item) => item.type === mode.value && (categories[mode.value] === "all" || (categories[mode.value] === "signature" ? item.signature : item.category === categories[mode.value])) && (item.name + item.subtitle).includes(queries[mode.value].trim())));
     const searchOpen = common_vendor.ref(false), panel = common_vendor.ref(""), closing = common_vendor.ref(false), confirmClear = common_vendor.ref(false), feedback = common_vendor.ref("");
-    const selected = common_vendor.ref(null), selectedOptions = common_vendor.ref([]), selectedQuantity = common_vendor.ref(1), submitting = common_vendor.ref(false), submitted = common_vendor.ref(null);
+    const selected = common_vendor.ref(null), selectedOptions = common_vendor.ref([]), selectedNote = common_vendor.ref(""), submitting = common_vendor.ref(false), submitted = common_vendor.ref(null);
     let closeTimer, feedbackTimer, submitTimer;
     common_vendor.onLoad((options) => {
       if (["food", "coffee"].includes(options == null ? void 0 : options.type))
@@ -65,23 +66,19 @@ const _sfc_main = {
         feedback.value = "";
       }, 1400);
     };
-    const quickAdd = (item) => {
-      if (mock_orderMenu.addToCart(cart.value, item))
-        showFeedback("已加一" + (mode.value === "food" ? "份" : "杯") + " " + item.name);
-      else
-        showFeedback("这一种口味最多选 20 份");
-    };
-    const removeLatest = (id) => {
-      const line = [...cart.value].reverse().find((item) => item.id === id);
-      if (line)
-        mock_orderMenu.decreaseLine(cart.value, line.key);
-    };
     const openDish = (item) => {
+      const line = cart.value.find((value) => value.id === item.id);
       selected.value = item;
-      selectedOptions.value = [...item.defaults];
-      selectedQuantity.value = 1;
+      selectedOptions.value = line ? [...line.options] : [...item.defaults];
+      selectedNote.value = line ? line.note : "";
       closing.value = false;
       panel.value = "dish";
+    };
+    const spicyText = common_vendor.computed(() => selected.value && utils_spicy.SPICY_TEXT[selected.value.spicy] || "");
+    const selectedInCart = common_vendor.computed(() => !!selected.value && inCart(selected.value.id));
+    const removeFromCart = (line) => {
+      mock_orderMenu.removeLine(cart.value, line.key);
+      showFeedback("已把 " + line.name + " 从清单里去掉");
     };
     const openCart = () => {
       closing.value = false;
@@ -105,17 +102,10 @@ const _sfc_main = {
     const addSelected = () => {
       if (closing.value || !selected.value)
         return;
-      if (!mock_orderMenu.addToCart(cart.value, selected.value, selectedOptions.value, selectedQuantity.value)) {
-        showFeedback("这一种口味最多选 20 份");
-        return;
-      }
-      showFeedback(selected.value.name + "已加入清单");
+      const existed = inCart(selected.value.id);
+      mock_orderMenu.addToCart(cart.value, selected.value, selectedOptions.value, selectedNote.value);
+      showFeedback(existed ? selected.value.name + "已更新" : selected.value.name + "已加入清单");
       closePanel();
-    };
-    const incrementLine = (line) => {
-      const item = mock_orderMenu.menuItems.find((item2) => item2.id === line.id);
-      if (!mock_orderMenu.addToCart(cart.value, item, line.options))
-        showFeedback("这一种口味最多选 20 份");
     };
     const clearCart = () => {
       carts[mode.value] = [];
@@ -162,10 +152,7 @@ const _sfc_main = {
       var _a;
       return panel.value === "dish" ? (_a = selected.value) == null ? void 0 : _a.name : panel.value === "cart" ? "今天的快乐清单" : panel.value === "review" ? "把想吃的，写成小纸条" : "点单小回执";
     });
-    const panelSubtitle = common_vendor.computed(() => {
-      var _a;
-      return panel.value === "dish" ? (_a = selected.value) == null ? void 0 : _a.subtitle : panel.value === "cart" ? mode.value === "food" ? "每一道，都是你喜欢的味道" : "一杯一杯，装进今天的小快乐" : panel.value === "review" ? "确认一下，就准备开饭的心情" : "这是一张本地演示回执";
-    });
+    const panelSubtitle = common_vendor.computed(() => panel.value === "dish" ? "" : panel.value === "cart" ? mode.value === "food" ? "每一道，都是你喜欢的味道" : "一杯一杯，装进今天的小快乐" : panel.value === "review" ? "确认一下，就准备开饭的心情" : "这是一张本地演示回执");
     return (_ctx, _cache) => {
       return common_vendor.e({
         a: common_vendor.t(mode.value === "food" ? "今天，想吃点什么？" : "给今天，加点咖啡香"),
@@ -217,114 +204,95 @@ const _sfc_main = {
         o: common_vendor.o(($event) => queries[mode.value] = "", "29")
       } : {}) : {}, {
         p: headerTop.value + "px",
-        q: common_vendor.p({
-          name: mode.value === "food" ? "note" : "coffee",
-          size: 17,
-          ["stroke-width"]: 1.6
-        }),
-        r: common_vendor.t(mode.value === "food" ? "家里的拿手菜，今天也为你留了一份。" : "冷热与甜度，都按你的心情来。"),
-        s: common_vendor.f(visibleItems.value, (item, k0, i0) => {
-          return common_vendor.e({
+        q: common_vendor.f(visibleItems.value, (item, k0, i0) => {
+          return {
             a: common_vendor.n(item.tone),
             b: item.image,
             c: "查看" + item.name,
             d: common_vendor.o(($event) => openDish(item), item.id),
             e: common_vendor.t(item.name),
-            f: "93207a4f-3-" + i0,
-            g: "选择" + item.name + "口味",
-            h: common_vendor.o(($event) => openDish(item), item.id),
-            i: common_vendor.t(item.subtitle),
-            j: common_vendor.t(item.tag),
-            k: common_vendor.n(item.tone),
-            l: "93207a4f-4-" + i0,
-            m: item.name + "选口味",
-            n: common_vendor.o(($event) => openDish(item), item.id),
-            o: itemCount(item.id)
-          }, itemCount(item.id) ? {
-            p: "93207a4f-5-" + i0,
-            q: common_vendor.p({
-              name: "minus",
-              size: 15
+            f: "选择" + item.name + "口味",
+            g: common_vendor.o(($event) => openDish(item), item.id),
+            h: common_vendor.t(item.description),
+            i: common_vendor.t(item.tag),
+            j: common_vendor.n(item.tone),
+            k: "93207a4f-2-" + i0,
+            l: common_vendor.p({
+              name: inCart(item.id) ? "check" : "plus",
+              size: inCart(item.id) ? 15 : 17
             }),
-            r: "减少" + item.name,
-            s: common_vendor.o(($event) => removeLatest(item.id), item.id)
-          } : {}, {
-            t: itemCount(item.id)
-          }, itemCount(item.id) ? {
-            v: common_vendor.t(itemCount(item.id))
-          } : {}, {
-            w: "93207a4f-6-" + i0,
-            x: "添加" + item.name,
-            y: common_vendor.o(($event) => quickAdd(item), item.id),
-            z: item.id,
-            A: itemCount(item.id) > 0 ? 1 : ""
-          });
+            m: inCart(item.id) ? 1 : "",
+            n: inCart(item.id) ? "调整" + item.name + "的口味" : "选口味并添加" + item.name,
+            o: common_vendor.o(($event) => openDish(item), item.id),
+            p: item.id,
+            q: inCart(item.id) ? 1 : ""
+          };
         }),
-        t: common_vendor.p({
-          name: "chevron-right",
-          size: 14
-        }),
-        v: common_vendor.p({
-          name: "chevron-down",
-          size: 12
-        }),
-        w: common_vendor.p({
-          name: "plus",
-          size: 18
-        }),
-        x: mode.value + categories[mode.value],
-        y: !visibleItems.value.length
+        r: mode.value + categories[mode.value],
+        s: !visibleItems.value.length
       }, !visibleItems.value.length ? {
-        z: common_vendor.unref(mock_orderMenu.bowlArt),
-        A: common_vendor.o(resetFilters, "af")
+        t: common_vendor.unref(mock_orderMenu.bowlArt),
+        v: common_vendor.o(resetFilters, "b4")
       } : {}, {
-        B: common_vendor.t(mode.value === "food" ? "好好吃饭，是今天的小正事" : "日子慢慢过，咖啡慢慢喝"),
-        C: mode.value + categories[mode.value],
-        D: common_vendor.p({
+        w: common_vendor.t(mode.value === "food" ? "好好吃饭，是今天的小正事" : "日子慢慢过，咖啡慢慢喝"),
+        x: mode.value + categories[mode.value],
+        y: common_vendor.p({
           name: mode.value === "food" ? "shopping-bag" : "coffee",
           size: 24,
           ["stroke-width"]: 1.6
         }),
+        z: total.value
+      }, total.value ? {
+        A: common_vendor.t(total.value),
+        B: total.value
+      } : {}, {
+        C: common_vendor.t(total.value ? "已选 " + total.value + (mode.value === "food" ? " 道好味道" : " 杯小快乐") : "今天的快乐，还差一口"),
+        D: common_vendor.t(total.value ? "点这里，看看你的小清单" : mode.value === "food" ? "挑几道喜欢的，开饭啦" : "选一杯喜欢的，歇一歇"),
         E: total.value
       }, total.value ? {
-        F: common_vendor.t(total.value),
-        G: total.value
-      } : {}, {
-        H: common_vendor.t(total.value ? "已选 " + total.value + (mode.value === "food" ? " 份好味道" : " 杯小快乐") : "今天的快乐，还差一口"),
-        I: common_vendor.t(total.value ? "点这里，看看你的小清单" : mode.value === "food" ? "挑几道喜欢的，开饭啦" : "选一杯喜欢的，歇一歇"),
-        J: total.value
-      }, total.value ? {
-        K: common_vendor.p({
+        F: common_vendor.p({
           name: "chevron-up",
           size: 14
         })
       } : {}, {
-        L: common_vendor.o(openCart, "c4"),
-        M: common_vendor.p({
+        G: common_vendor.o(openCart, "9a"),
+        H: common_vendor.p({
           name: "chevron-right",
           size: 16
         }),
-        N: !total.value,
-        O: common_vendor.o(openReview, "f6"),
-        P: total.value > 0 ? 1 : "",
-        Q: panel.value
+        I: !total.value,
+        J: common_vendor.o(openReview, "d8"),
+        K: total.value > 0 ? 1 : "",
+        L: panel.value
       }, panel.value ? common_vendor.e({
-        R: closing.value ? 1 : "",
-        S: common_vendor.o(closePanel, "28"),
-        T: common_vendor.o(() => {
-        }, "28"),
-        U: common_vendor.t(panelTitle.value),
-        V: common_vendor.t(panelSubtitle.value),
-        W: common_vendor.p({
+        M: closing.value ? 1 : "",
+        N: common_vendor.o(closePanel, "54"),
+        O: common_vendor.o(() => {
+        }, "d7"),
+        P: common_vendor.t(panelTitle.value),
+        Q: panelSubtitle.value
+      }, panelSubtitle.value ? {
+        R: common_vendor.t(panelSubtitle.value)
+      } : {}, {
+        S: common_vendor.p({
           name: "close",
           size: 20
         }),
-        X: common_vendor.o(closePanel, "aa"),
-        Y: panel.value === "dish" && selected.value
-      }, panel.value === "dish" && selected.value ? {
-        Z: selected.value.image,
-        aa: common_vendor.t(selected.value.description),
-        ab: common_vendor.f(selected.value.options, (option, index, i0) => {
+        T: common_vendor.o(closePanel, "8d"),
+        U: panel.value === "dish" && selected.value
+      }, panel.value === "dish" && selected.value ? common_vendor.e({
+        V: selected.value.image,
+        W: common_vendor.t(selected.value.description),
+        X: spicyText.value
+      }, spicyText.value ? {
+        Y: common_vendor.p({
+          name: "chili",
+          size: 15,
+          ["stroke-width"]: 2.2
+        }),
+        Z: common_vendor.t(spicyText.value)
+      } : {}, {
+        aa: common_vendor.f(selected.value.options, (option, index, i0) => {
           return {
             a: common_vendor.t(option.name),
             b: common_vendor.f(option.values, (value, k1, i1) => {
@@ -339,153 +307,142 @@ const _sfc_main = {
             c: option.name
           };
         }),
-        ac: common_vendor.t(mode.value === "food" ? "几份" : "几杯"),
-        ad: common_vendor.p({
-          name: "minus",
-          size: 16
-        }),
-        ae: selectedQuantity.value <= 1,
-        af: common_vendor.o(($event) => selectedQuantity.value--, "95"),
-        ag: common_vendor.t(selectedQuantity.value),
-        ah: common_vendor.p({
-          name: "plus",
-          size: 18
-        }),
-        ai: selectedQuantity.value >= 20,
-        aj: common_vendor.o(($event) => selectedQuantity.value++, "4f")
-      } : panel.value === "cart" || panel.value === "review" ? common_vendor.e({
-        al: total.value
+        ab: selectedNote.value,
+        ac: common_vendor.o(($event) => selectedNote.value = $event.detail.value, "02")
+      }) : panel.value === "cart" || panel.value === "review" ? common_vendor.e({
+        ae: total.value
       }, total.value ? common_vendor.e({
-        am: panel.value === "cart"
+        af: panel.value === "cart"
       }, panel.value === "cart" ? {
-        an: common_vendor.t(cart.value.length),
-        ao: common_vendor.t(mode.value === "food" ? "好味道" : "小快乐"),
-        ap: common_vendor.p({
+        ag: common_vendor.t(cart.value.length),
+        ah: common_vendor.t(mode.value === "food" ? "好味道" : "小快乐"),
+        ai: common_vendor.p({
           name: "trash",
           size: 14
         }),
-        aq: common_vendor.o(($event) => confirmClear.value = true, "af")
+        aj: common_vendor.o(($event) => confirmClear.value = true, "58")
       } : {}, {
-        ar: common_vendor.f(cart.value, (line, k0, i0) => {
+        ak: common_vendor.f(cart.value, (line, k0, i0) => {
           return common_vendor.e({
             a: line.image,
             b: common_vendor.t(line.name),
-            c: common_vendor.t(line.options.join(" · "))
-          }, panel.value === "cart" ? {
-            d: "93207a4f-15-" + i0,
-            e: common_vendor.p({
-              name: "minus",
-              size: 14
-            }),
-            f: "清单减少" + line.name + line.options.join(""),
-            g: common_vendor.o(($event) => common_vendor.unref(mock_orderMenu.decreaseLine)(cart.value, line.key), line.key),
-            h: common_vendor.t(line.quantity),
-            i: "93207a4f-16-" + i0,
-            j: common_vendor.p({
-              name: "plus",
+            c: line.options.length
+          }, line.options.length ? {
+            d: common_vendor.t(line.options.join(" · "))
+          } : {}, {
+            e: line.note
+          }, line.note ? {
+            f: common_vendor.t(line.note)
+          } : {}, panel.value === "cart" ? {
+            g: "93207a4f-10-" + i0,
+            h: common_vendor.p({
+              name: "trash",
               size: 16
             }),
-            k: "清单增加" + line.name + line.options.join(""),
-            l: common_vendor.o(($event) => incrementLine(line), line.key)
-          } : {
-            m: common_vendor.t(line.quantity)
-          }, {
-            n: line.key
+            i: "把" + line.name + "从清单里去掉",
+            j: common_vendor.o(($event) => removeFromCart(line), line.key)
+          } : {}, {
+            k: line.key
           });
         }),
-        as: panel.value === "cart",
-        at: panel.value === "review"
+        al: panel.value === "cart",
+        am: panel.value === "review"
       }, panel.value === "review" ? {
-        av: common_vendor.t(mode.value === "food" ? "做饭人" : "咖啡师"),
-        aw: notes[mode.value],
-        ax: common_vendor.o(($event) => notes[mode.value] = $event.detail.value, "ce"),
-        ay: common_vendor.t(notes[mode.value].length),
-        az: common_vendor.p({
+        an: common_vendor.t(mode.value === "food" ? "做饭人" : "咖啡师"),
+        ao: notes[mode.value],
+        ap: common_vendor.o(($event) => notes[mode.value] = $event.detail.value, "8e"),
+        aq: common_vendor.t(notes[mode.value].length),
+        ar: common_vendor.p({
           name: "note",
           size: 14
         })
       } : {}) : {
-        aA: common_vendor.unref(mock_orderMenu.bowlArt)
+        as: common_vendor.unref(mock_orderMenu.bowlArt)
       }) : panel.value === "success" ? common_vendor.e({
-        aC: common_vendor.p({
+        av: common_vendor.p({
           name: "check",
           size: 35,
           ["stroke-width"]: 1.7
         }),
-        aD: common_vendor.t(submitted.value.type === "food" ? "菜品" : "咖啡"),
-        aE: common_vendor.f(submitted.value.lines, (line, k0, i0) => {
-          return {
+        aw: common_vendor.t(submitted.value.type === "food" ? "菜品" : "咖啡"),
+        ax: common_vendor.f(submitted.value.lines, (line, k0, i0) => {
+          return common_vendor.e({
             a: common_vendor.t(line.name),
-            b: common_vendor.t(line.options.join(" · ")),
-            c: common_vendor.t(line.quantity),
-            d: line.key
-          };
+            b: line.options.length
+          }, line.options.length ? {
+            c: common_vendor.t(line.options.join(" · "))
+          } : {}, {
+            d: line.note
+          }, line.note ? {
+            e: common_vendor.t(line.note)
+          } : {}, {
+            f: line.key
+          });
         }),
-        aF: submitted.value.note
+        ay: submitted.value.note
       }, submitted.value.note ? {
-        aG: common_vendor.t(submitted.value.note)
+        az: common_vendor.t(submitted.value.note)
       } : {}, {
-        aH: common_vendor.t(submitted.value.count),
-        aI: common_vendor.t(submitted.value.type === "food" ? "份" : "杯")
+        aA: common_vendor.t(submitted.value.count),
+        aB: common_vendor.t(submitted.value.type === "food" ? "道" : "杯")
       }) : {}, {
-        ak: panel.value === "cart" || panel.value === "review",
-        aB: panel.value === "success",
-        aJ: panel.value === "dish"
+        ad: panel.value === "cart" || panel.value === "review",
+        at: panel.value === "success",
+        aC: panel.value === "dish"
       }, panel.value === "dish" ? {
-        aK: common_vendor.p({
-          name: "plus",
+        aD: common_vendor.p({
+          name: selectedInCart.value ? "check" : "plus",
           size: 18
         }),
-        aL: common_vendor.t(selectedQuantity.value),
-        aM: common_vendor.t(mode.value === "food" ? "份" : "杯"),
-        aN: common_vendor.o(addSelected, "70")
+        aE: common_vendor.t(selectedInCart.value ? "更新口味" : "加入清单"),
+        aF: common_vendor.o(addSelected, "f0")
       } : panel.value === "cart" ? {
-        aP: common_vendor.t(total.value ? "选好了，去点单 · " + total.value + (mode.value === "food" ? " 份" : " 杯") : "去挑点好吃的"),
-        aQ: common_vendor.p({
+        aH: common_vendor.t(total.value ? "选好了，去点单 · " + total.value + (mode.value === "food" ? " 道" : " 杯") : "去挑点好吃的"),
+        aI: common_vendor.p({
           name: "chevron-right",
           size: 17
         }),
-        aR: common_vendor.o(($event) => total.value ? openReview() : closePanel(), "56")
+        aJ: common_vendor.o(($event) => total.value ? openReview() : closePanel(), "87")
       } : panel.value === "review" ? {
-        aT: common_vendor.o(($event) => panel.value = "cart", "71"),
-        aU: common_vendor.t(submitting.value ? "正在写小纸条…" : "确认点单"),
-        aV: common_vendor.p({
+        aL: common_vendor.o(($event) => panel.value = "cart", "46"),
+        aM: common_vendor.t(submitting.value ? "正在写小纸条…" : "确认点单"),
+        aN: common_vendor.p({
           name: "check",
           size: 17
         }),
-        aW: !total.value || submitting.value,
-        aX: common_vendor.o(submitMock, "6d")
+        aO: !total.value || submitting.value,
+        aP: common_vendor.o(submitMock, "3a")
       } : {
-        aY: common_vendor.p({
+        aQ: common_vendor.p({
           name: "check",
           size: 17
         }),
-        aZ: common_vendor.o(closePanel, "5a")
+        aR: common_vendor.o(closePanel, "c6")
       }, {
-        aO: panel.value === "cart",
-        aS: panel.value === "review",
-        ba: closing.value ? 1 : "",
-        bb: panel.value === "success" ? 1 : "",
-        bc: panelTitle.value
+        aG: panel.value === "cart",
+        aK: panel.value === "review",
+        aS: closing.value ? 1 : "",
+        aT: panel.value === "success" ? 1 : "",
+        aU: panelTitle.value
       }) : {}, {
-        bd: common_vendor.o(($event) => confirmClear.value = false, "bc"),
-        be: common_vendor.o(clearCart, "a2"),
-        bf: common_vendor.p({
+        aV: common_vendor.o(($event) => confirmClear.value = false, "81"),
+        aW: common_vendor.o(clearCart, "56"),
+        aX: common_vendor.p({
           visible: confirmClear.value,
           title: "清空这份小清单？",
           subtitle: "只清空当前分类的已选内容。",
           ["cancel-text"]: "再想想",
           ["confirm-text"]: "清空"
         }),
-        bg: feedback.value
+        aY: feedback.value
       }, feedback.value ? {
-        bh: common_vendor.p({
+        aZ: common_vendor.p({
           name: "check",
           size: 15
         }),
-        bi: common_vendor.t(feedback.value)
+        ba: common_vendor.t(feedback.value)
       } : {}, {
-        bj: common_vendor.n("mode-" + mode.value)
+        bb: common_vendor.n("mode-" + mode.value)
       });
     };
   }

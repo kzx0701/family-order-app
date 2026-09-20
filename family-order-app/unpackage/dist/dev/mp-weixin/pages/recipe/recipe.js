@@ -41,6 +41,35 @@ const _sfc_main = {
     const markPhotoReady = (id) => {
       photoReady[id] = true;
     };
+    const CATEGORY_MINUTES = {
+      汤: [40, 45, 60],
+      烧: [35, 40, 45],
+      蒸: [25, 30, 35],
+      主食: [25, 30, 40],
+      炒: [10, 15, 20],
+      凉: [10, 15, 20]
+    };
+    const FALLBACK_MINUTES = [15, 20, 25, 30, 40];
+    const stableHash = (seed) => {
+      const s = String(seed || "");
+      let h = 2166136261;
+      for (let i = 0; i < s.length; i += 1) {
+        h ^= s.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+      }
+      return Math.abs(h);
+    };
+    const fakeMinutes = (seed, categoryName) => {
+      const h = stableHash(seed);
+      const name = String(categoryName || "");
+      for (const key of Object.keys(CATEGORY_MINUTES)) {
+        if (name.includes(key)) {
+          const options = CATEGORY_MINUTES[key];
+          return options[h % options.length];
+        }
+      }
+      return FALLBACK_MINUTES[h % FALLBACK_MINUTES.length];
+    };
     const loadRecipes = async () => {
       if (loading.value)
         return;
@@ -56,10 +85,17 @@ const _sfc_main = {
           id: d._id,
           name: d.name,
           image: d.image || "",
-          spicy: utils_spicy.SPICY_TEXT[d.spicy] || utils_spicy.SPICY_TEXT.none,
+          // 辣度：卡片只显示辣椒的**根数**，不显示文字档位（角标那条已删，避免同卡说两遍）——
+          // 根数与详情页同一个算法（none 0 根、mild 1、medium 2、hot 3），
+          // 卡片只消费这个数字，不在模板里另算一遍，两处的表达才不会跑偏
+          spicyCount: Math.max(utils_spicy.SPICY_LEVELS.indexOf(d.spicy), 0),
           isSignature: !!d.isSignature,
           categoryId: d.categoryId || "",
-          // 卡片副行：优先备注（做饭人的经验），没有就退回描述
+          // 所需时间：云端有就先用，没有才落到临时假数据（见上方 fakeMinutes 的说明）。
+          // categoryName 由 list 接口 join 后返回，假数据靠它给一个符合直觉的档位
+          minutes: Number(d.minutes) || fakeMinutes(d._id || d.name, d.categoryName),
+          // 卡片副行不再显示它，但**搜索要用**（「找道菜，或搜搜备注…」按 name + tip 匹配），
+          // 所以这个字段继续留在视图模型里，别顺手删
           tip: d.note || d.description || ""
         }));
         let catList = dishResult.categories;
@@ -73,7 +109,7 @@ const _sfc_main = {
           activeCategory.value = "all";
         }
       } catch (e) {
-        common_vendor.index.__f__("error", "at pages/recipe/recipe.vue:175", "[recipe] loadRecipes error", e);
+        common_vendor.index.__f__("error", "at pages/recipe/recipe.vue:247", "[recipe] loadRecipes error", e);
         common_vendor.index.showToast({ title: "网络不太好，稍后再试", icon: "none" });
       } finally {
         loading.value = false;
@@ -85,6 +121,12 @@ const _sfc_main = {
       { id: "all", name: "全部", icon: "" },
       ...categories.value.map((item) => ({ ...item, icon: utils_categoryArt.categoryArt(item.name) }))
     ]);
+    const categoryIconMap = common_vendor.computed(() => {
+      const map = {};
+      for (const item of categories.value)
+        map[item.id] = utils_categoryArt.categoryArt(item.name);
+      return map;
+    });
     const filtered = common_vendor.computed(() => {
       const keyword = search.value.trim().toLocaleLowerCase();
       return dishes.value.filter((dish) => (activeCategory.value === "all" || dish.categoryId === activeCategory.value) && (!keyword || [dish.name, dish.tip].some((value) => String(value).toLocaleLowerCase().includes(keyword))));
@@ -154,58 +196,71 @@ const _sfc_main = {
               label: recipe.name
             })
           }, {
-            h: common_vendor.t(recipe.isSignature ? "家的拿手菜" : recipe.spicy),
-            i: recipe.isSignature ? 1 : "",
-            j: common_vendor.t(recipe.name),
-            k: common_vendor.t(recipe.tip || "做法还在记"),
-            l: "fb437fc6-4-" + i0,
-            m: recipe.id,
-            n: Math.min(index, 5) * 35 + "ms",
-            o: "查看" + recipe.name + "菜谱",
-            p: common_vendor.o(($event) => openRecipe(recipe), recipe.id)
+            h: recipe.isSignature
+          }, recipe.isSignature ? {} : {}, {
+            i: common_vendor.t(recipe.name),
+            j: categoryIconMap.value[recipe.categoryId]
+          }, categoryIconMap.value[recipe.categoryId] ? {
+            k: categoryIconMap.value[recipe.categoryId]
+          } : {}, {
+            l: recipe.spicyCount
+          }, recipe.spicyCount ? {
+            m: common_vendor.f(recipe.spicyCount, (n, k1, i1) => {
+              return {
+                a: n,
+                b: "fb437fc6-4-" + i0 + "-" + i1
+              };
+            }),
+            n: common_vendor.p({
+              name: "chili",
+              size: 13,
+              ["stroke-width"]: 2.4
+            })
+          } : {}, {
+            o: common_vendor.t(recipe.minutes),
+            p: recipe.id,
+            q: Math.min(index, 5) * 35 + "ms",
+            r: "查看" + recipe.name + "菜谱",
+            s: common_vendor.o(($event) => openRecipe(recipe), recipe.id)
           });
         }),
-        q: common_vendor.p({
-          name: "chevron-right",
-          size: 15
-        }),
-        r: activeCategory.value
+        q: activeCategory.value
       } : loaded.value ? common_vendor.e({
-        t: common_vendor.p({
+        s: common_vendor.p({
           name: "book-open",
           size: 42,
           ["stroke-width"]: 1.3
         }),
-        v: common_vendor.t(dishes.value.length ? "这道味道，还没翻到" : "第一道菜，还等你记下来"),
-        w: common_vendor.t(dishes.value.length ? "试试其他菜名、备注，或放宽筛选吧。" : "饲养员添几道拿手菜，就会出现在这里。"),
-        x: dishes.value.length
+        t: common_vendor.t(dishes.value.length ? "这道味道，还没翻到" : "第一道菜，还等你记下来"),
+        v: common_vendor.t(dishes.value.length ? "试试其他菜名、备注，或放宽筛选吧。" : "饲养员添几道拿手菜，就会出现在这里。"),
+        w: dishes.value.length
       }, dishes.value.length ? {
-        y: common_vendor.o(resetFilters, "f1")
+        x: common_vendor.o(resetFilters, "1c")
       } : canAdd.value ? {
-        A: common_vendor.p({
+        z: common_vendor.p({
           name: "plus",
           size: 16
         }),
-        B: common_vendor.o(createRecipe, "03")
+        A: common_vendor.o(createRecipe, "2a")
       } : {}, {
-        z: canAdd.value
+        y: canAdd.value
       }) : {}, {
         o: filtered.value.length,
-        s: loaded.value,
-        C: common_vendor.p({
+        r: loaded.value,
+        B: common_vendor.p({
           name: "food",
           size: 14
         }),
-        D: showAddBar.value
+        C: showAddBar.value
       }, showAddBar.value ? {
-        E: common_vendor.p({
+        D: common_vendor.p({
           name: "plus",
           size: 20,
           ["stroke-width"]: 2.2
         }),
-        F: common_vendor.o(createRecipe, "a6")
+        E: common_vendor.o(createRecipe, "db")
       } : {}, {
-        G: showAddBar.value ? 1 : ""
+        F: showAddBar.value ? 1 : ""
       });
     };
   }
