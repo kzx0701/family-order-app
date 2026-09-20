@@ -310,6 +310,32 @@ const onCancel = () => {
   emit('cancel')
 }
 
+/**
+ * 判断画布上是否真有透明像素 —— 决定导出 PNG 还是 JPEG
+ *
+ * 事故背景（2026-09-20）：导出一直写死 `fileType: 'jpg'`，而 **JPEG 没有 alpha 通道**，
+ * 透明区域会被编码成**黑色**。菜品的抠图素材（透明底 PNG）经裁剪上传后就变成了"黑底图"，
+ * 在页面上一眼就能看出问题。
+ *
+ * 为什么不一律改 PNG：JPEG 的体积优势对照片很大（同样 960px，JPEG 约 150KB、PNG 可达 1MB），
+ * 所以按需选择 —— **有透明像素才用 PNG**（保住透明通道），全不透明仍走 JPEG。
+ *
+ * 读取失败时按"有透明"处理：宁可文件大一点，也不能再把透明图压成黑底。
+ */
+const hasTransparentPixel = (ctx, w, h) => {
+  try {
+    const { data } = ctx.getImageData(0, 0, w, h)
+    // alpha 在每 4 个字节的第 4 位（RGBA）；只要有一个像素不是全不透明就说明需要 PNG
+    for (let i = 3; i < data.length; i += 4) {
+      if (data[i] < 255) return true
+    }
+    return false
+  } catch (e) {
+    console.error('[cropper] 读取画布像素失败，按 PNG 导出', e)
+    return true
+  }
+}
+
 /* === 确认：绘制到离屏 canvas 并导出临时文件 === */
 const onConfirm = () => {
   if (exporting.value || !displaySrc.value) return
@@ -341,14 +367,18 @@ const onConfirm = () => {
         const srcW = viewportW.value / bs
         const srcH = viewportH.value / bs
         ctx.drawImage(img, srcX, srcY, srcW, srcH, 0, 0, outW, outH)
+        // 画布上透明像素是否存在，必须在 drawImage 之后、导出之前判断
+        const fileType = hasTransparentPixel(ctx, outW, outH) ? 'png' : 'jpg'
         uni.canvasToTempFilePath({
           canvas,
-          fileType: 'jpg',
-          quality: 0.9,
+          fileType,
+          quality: 0.9, // PNG 时被忽略，JPEG 时生效
           success: (r) => {
             uni.hideLoading()
             exporting.value = false
-            emit('confirm', r.tempFilePath)
+            // 把实际格式一并交出去：调用方要用它决定云存储文件的后缀名，
+            // 后缀与真实内容不一致会让 CDN 的 Content-Type 说谎
+            emit('confirm', r.tempFilePath, fileType)
           },
           fail: () => {
             uni.hideLoading()
@@ -443,12 +473,18 @@ const onConfirm = () => {
   padding: 24rpx 32rpx 40rpx;
 }
 
+// 底色用页面纸色（$p2-paper）而不是原来的纯黑：
+// 裁剪视口里的图恒以 scaleToFill 铺满，所以这层底色**只在素材自身透明的地方露出来** ——
+// 换句话说它就是"透明区域将来长什么样"的预览。项目里的菜品图多是透明底抠图，
+// 底色为黑会让人以为"我传的明明是透明图、怎么变黑了"（2026-09-20 的实际误解），
+// 而实际上透明区域在页面里是落在纸色底上的。改成纸色后预览与最终效果一致。
+// 网格线同步换成棕色系：白线放在纸色底上会看不见。
 .crop-viewport {
   position: relative;
   overflow: hidden;
   border-radius: $radius-lg;
-  background-color: #000;
-  box-shadow: 0 0 0 2rpx rgba(255, 255, 255, 0.1);
+  background-color: $p2-paper;
+  box-shadow: 0 0 0 2rpx rgba(98, 71, 53, 0.18);
   touch-action: none;
 
   .crop-image {
@@ -461,7 +497,8 @@ const onConfirm = () => {
   /* 三分构图网格 */
   .grid-line {
     position: absolute;
-    background-color: rgba(255, 255, 255, 0.16);
+    /* 棕色细线（与视口底色同色系）：原来的白色在纸色底上看不见 */
+    background-color: rgba(98, 71, 53, 0.18);
     pointer-events: none;
   }
 

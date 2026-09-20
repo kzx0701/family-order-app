@@ -74,8 +74,8 @@
   position: relative;
   overflow: hidden;
   border-radius: 12px;
-  background-color: #000;
-  box-shadow: 0 0 0 2rpx rgba(255, 255, 255, 0.1);
+  background-color: #fff9ed;
+  box-shadow: 0 0 0 2rpx rgba(98, 71, 53, 0.18);
   touch-action: none;
   /* 三分构图网格 */
 }
@@ -87,7 +87,8 @@
 }
 .crop-viewport .grid-line.data-v-d0be24ff {
   position: absolute;
-  background-color: rgba(255, 255, 255, 0.16);
+  /* 棕色细线（与视口底色同色系）：原来的白色在纸色底上看不见 */
+  background-color: rgba(98, 71, 53, 0.18);
   pointer-events: none;
 }
 .crop-viewport .g-h1.data-v-d0be24ff {

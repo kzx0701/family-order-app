@@ -130,7 +130,7 @@
               @tap="onDishCardTap(dish)"
             >
               <view class="dish-image">
-                <image v-if="dish.image" :src="dish.image" mode="aspectFill" class="dish-img" />
+                <image v-if="dish.image" :src="imgUrl(dish.image, { w: DISH_THUMB_WIDTH })" mode="aspectFill" class="dish-img" :webp="true" />
                 <view v-else class="dish-img-placeholder">{{ dish.type === 'coffee' ? '☕' : '🍲' }}</view>
                 <view class="dish-off-badge" v-if="!dish.isOnSale">已下架</view>
                 <view class="dish-recommend-badge" v-if="dish.isRecommended">推荐</view>
@@ -165,7 +165,7 @@
               @tap.stop="noop"
             >
               <view class="dish-image">
-                <image v-if="dish.image" :src="dish.image" mode="aspectFill" class="dish-img" />
+                <image v-if="dish.image" :src="imgUrl(dish.image, { w: DISH_THUMB_WIDTH })" mode="aspectFill" class="dish-img" :webp="true" />
                 <view v-else class="dish-img-placeholder">{{ dish.type === 'coffee' ? '☕' : '🍲' }}</view>
                 <view class="dish-off-badge" v-if="!dish.isOnSale">已下架</view>
                 <view class="dish-recommend-badge" v-if="dish.isRecommended">推荐</view>
@@ -316,7 +316,7 @@
             <text class="progress-text">上传中 {{ uploadProgress }}%</text>
           </view>
           <view v-else class="image-preview" @tap="onAdjustImage">
-            <image :src="dishForm.image" mode="aspectFill" class="preview-img" />
+            <image :src="imgUrl(dishForm.image, { w: ADMIN_PREVIEW_WIDTH })" mode="aspectFill" class="preview-img" :webp="true" />
             <view class="preview-actions">
               <view class="preview-action" @tap.stop="onAdjustImage">
                 <Icon name="crop" :size="24" color="#fff" />
@@ -497,7 +497,9 @@ import { ref, computed, onMounted, reactive, getCurrentInstance } from 'vue'
 import { useUserStore } from '@/store/user.js'
 import { useSafeArea } from '@/composables/useSafeArea.js'
 import { useHeaderFixed } from '@/composables/useHeaderFixed.js'
+import { useCoverUpload } from '@/composables/useCoverUpload.js'
 import { WX_CONFIG } from '@/utils/wx-config.js'
+import { imgUrl } from '@/utils/image.js'
 
 const { statusBarHeight } = useSafeArea()
 const { headerHeight } = useHeaderFixed('.header')
@@ -556,8 +558,17 @@ const dishFormVisible = ref(false)
 const editingDishId = ref('')
 const dishFormError = ref('')
 const saving = ref(false)
-const uploading = ref(false)
-const uploadProgress = ref(0)
+
+/**
+ * 菜品图输出宽度
+ *
+ * 菜品图存的是云存储链接，渲染统一走 imgUrl 按需取尺寸（项目里所有云存储图片同一套口径）：
+ * - 列表缩略图：容器 140rpx（.dish-image），最大机型约需 241 物理像素 → 取 240
+ * - 表单预览：容器高 280rpx、宽度撑满，aspectFill 按宽度铺满，最大机型约需 1000+ → 取 960
+ * 顺带这一层也兼容了历史上存成 `cloud://` fileID 的旧记录（imgUrl 内部会先归一成链接）。
+ */
+const DISH_THUMB_WIDTH = 240
+const ADMIN_PREVIEW_WIDTH = 960
 const dishForm = reactive({
   name: '',
   image: '',
@@ -568,6 +579,30 @@ const dishForm = reactive({
   isRecommended: false,
   temp: 'hot' // 冷热配置：仅咖啡有效，ice（冰）/ hot（热）
 })
+
+/**
+ * 菜品图片上传：选图 / 裁剪 / 上传云存储 / 归一成链接
+ *
+ * 与菜谱编辑页共用同一份逻辑（composables/useCoverUpload.js），
+ * uploading / uploadProgress 也由它提供（原来在表单状态区各声明了一份）。
+ *
+ * 上传成功后写进表单的已经是**可长期使用的 https 链接**，不是 uploadFile 返回的
+ * `cloud://` 内部协议地址 —— dishes.image 会被点单页、详情页、订单卡片等多处
+ * 直接塞进 <image>，只有链接形态在哪儿都能显示，也才带得上 OSS 缩略图参数。
+ */
+const {
+  cropperVisible,
+  cropperSrc,
+  uploading,
+  uploadProgress,
+  chooseImage: onChooseImage,
+  cancelCrop: onCropperCancel,
+  confirmCrop: onCropperConfirm,
+  adjustImage
+} = useCoverUpload({ onUploaded: (url) => { dishForm.image = url } })
+
+/** 重新裁剪当前图片：入口负责把表单里的图传进去（composable 不持有表单状态） */
+const onAdjustImage = () => adjustImage(dishForm.image)
 
 // === 菜品左滑删除 ===
 // 右侧删除按钮宽度 160rpx，按屏幕宽度换算成 px
@@ -1294,119 +1329,8 @@ const onTypeChange = (type) => {
   }
 }
 
-// 图片选择 + 上传（自定义裁剪）
-// 选择图片后进入裁剪器，用户可拖动/缩放调整构图，确认后再上传
-const onChooseImage = () => {
-  if (uploading.value) return
-  if (uni.chooseMedia) {
-    uni.chooseMedia({
-      count: 1,
-      mediaType: ['image'],
-      sourceType: ['album', 'camera'],
-      sizeType: ['compressed'],
-      success: (res) => {
-        if (res.tempFiles && res.tempFiles[0]) {
-          openCropper(res.tempFiles[0].tempFilePath)
-        }
-      },
-      fail: (err) => {
-        if (String(err.errMsg || '').indexOf('cancel') === -1) {
-          console.error('[admin] chooseMedia fail', err)
-        }
-      }
-    })
-  } else {
-    uni.chooseImage({
-      count: 1,
-      sizeType: ['compressed'],
-      sourceType: ['album', 'camera'],
-      success: (res) => {
-        const tempPath = res.tempFilePaths[0]
-        openCropper(tempPath)
-      },
-      fail: (err) => {
-        if (String(err.errMsg || '').indexOf('cancel') === -1) {
-          console.error('[admin] chooseImage fail', err)
-        }
-      }
-    })
-  }
-}
-
-/* === 自定义图片裁剪器 === */
-const cropperVisible = ref(false)
-const cropperSrc = ref('')
-
-// 打开裁剪器（传入本地临时路径）
-const openCropper = (src) => {
-  cropperSrc.value = src
-  cropperVisible.value = true
-}
-
-// 裁剪完成：上传裁剪结果
-const onCropperConfirm = (tempPath) => {
-  cropperVisible.value = false
-  uploadDishImage(tempPath)
-}
-
-// 取消裁剪
-const onCropperCancel = () => {
-  cropperVisible.value = false
-}
-
-// 重新裁剪已上传的图片：远程图片先下载为本地临时文件
-const onAdjustImage = () => {
-  if (uploading.value || !dishForm.image) return
-  getLocalImagePath(dishForm.image)
-    .then((localPath) => openCropper(localPath))
-    .catch((e) => {
-      console.error('[admin] 图片下载失败', e)
-      uni.showToast({ title: '图片下载失败，请检查网络', icon: 'none' })
-    })
-}
-
-// 远程 URL 转为本地临时路径（canvas 裁剪需要本地文件）
-const getLocalImagePath = (src) => {
-  return new Promise((resolve, reject) => {
-    if (!src) return reject(new Error('图片为空'))
-    if (!/^https?:\/\//.test(src)) return resolve(src)
-    uni.downloadFile({
-      url: src,
-      success: (res) => {
-        if (res.statusCode === 200) {
-          resolve(res.tempFilePath)
-        } else {
-          reject(new Error('下载失败：' + res.statusCode))
-        }
-      },
-      fail: reject
-    })
-  })
-}
-
-const uploadDishImage = async (filePath) => {
-  const timestamp = Date.now()
-  const random = Math.random().toString(36).substring(2, 10)
-  const cloudPath = `dishes/${timestamp}_${random}.jpg`
-  uploading.value = true
-  uploadProgress.value = 0
-  try {
-    const res = await uniCloud.uploadFile({
-      filePath,
-      cloudPath,
-      onProgressCall: (p) => {
-        uploadProgress.value = Math.floor(p.progress || 0)
-      }
-    })
-    dishForm.image = res.fileID
-    uni.showToast({ title: '上传成功', icon: 'success' })
-  } catch (e) {
-    console.error('[admin] uploadDishImage error', e)
-    uni.showToast({ title: '上传失败，请重试', icon: 'none' })
-  } finally {
-    uploading.value = false
-  }
-}
+// 图片的「选图 / 裁剪 / 上传 / 换链接」整段逻辑已抽到 composables/useCoverUpload.js ——
+// 菜谱编辑页要用同一套，不再两处各写一份（原先两处各一份，进度回调名还写错了）。
 
 // 保存菜品
 const onSaveDish = async () => {

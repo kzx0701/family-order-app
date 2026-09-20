@@ -19,6 +19,7 @@ const freshRecipe = () => ({
   version: 1,
   name: "蒜蓉小青菜",
   subtitle: "给餐桌加一点绿意",
+  image: "",
   categoryId: "",
   spicy: "none",
   ingredients: pantry.filter((x) => ["greens", "garlic"].includes(x.id)).map(({ id, quantity }) => ({ id, quantity })),
@@ -30,12 +31,24 @@ const freshRecipe = () => ({
   ]
 });
 const cloneRecipe = (value) => JSON.parse(JSON.stringify(value));
+const blankRecipe = () => ({
+  version: 1,
+  name: "",
+  subtitle: "",
+  image: "",
+  categoryId: "",
+  spicy: "none",
+  ingredients: [],
+  seasonings: [],
+  steps: []
+});
 function validateRecipe(value) {
   if (!value.name.trim())
     return "给这道菜起个名字吧";
   const emptyIndex = value.steps.findIndex((step) => !step.title.trim());
   return emptyIndex < 0 ? "" : `请填写步骤 ${emptyIndex + 1} 的名称`;
 }
+exports.blankRecipe = blankRecipe;
 exports.cloneRecipe = cloneRecipe;
 exports.freshRecipe = freshRecipe;
 exports.pantry = pantry;

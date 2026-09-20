@@ -1,5 +1,5 @@
 <template>
-  <view class="recipe-page">
+  <view class="recipe-page" :class="{ 'has-add-bar': showAddBar }">
     <view class="recipe-sticky">
       <view class="recipe-header" :style="{ paddingTop: headerTop + 'px' }">
         <view class="heading-row">
@@ -41,8 +41,19 @@
       <view class="empty-book"><Icon name="book-open" :size="42" :stroke-width="1.3" /></view>
       <text class="section-title">{{ dishes.length ? '这道味道，还没翻到' : '第一道菜，还等你记下来' }}</text><text class="page-subtitle">{{ dishes.length ? '试试其他菜名、备注，或放宽筛选吧。' : '饲养员添几道拿手菜，就会出现在这里。' }}</text>
       <button v-if="dishes.length" class="reset-button" @tap="resetFilters">看看全部菜谱</button>
+      <button v-else-if="canAdd" class="reset-button" @tap="createRecipe"><Icon name="plus" :size="16" />添第一道菜</button>
     </view>
     <view class="page-footnote"><text>—</text><Icon name="food" :size="14" /><text>好好吃饭，就是日常的小浪漫</text><text>—</text></view>
+    <!-- 新建入口：常驻在底栏之上的固定卡槽 —— 无论列表多长、滚到哪里都点得到。
+         形态沿用网格里那一版的语汇（虚线 + 手绘不规则圆角 + 手绘贴纸圆 + 手写体），
+         只是改成横向单行的窄条（96rpx）：固定元素要长期占用视口，不能像原位版那样占两行。
+         外层 .add-bar 铺不透明纸色底，滚上来的卡片会被它挡住，不会从虚线框里透出来。 -->
+    <view v-if="showAddBar" class="add-bar">
+      <button class="add-slot" aria-label="再记一道拿手菜" @tap="createRecipe">
+        <view class="add-slot-art"><Icon name="plus" :size="20" :stroke-width="2.2" /></view>
+        <text class="add-slot-title">再记一道拿手菜</text>
+      </button>
+    </view>
     <custom-tabbar />
   </view>
 </template>
@@ -51,11 +62,21 @@
 import { ref, computed, reactive } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { useSafeArea } from '@/composables/useSafeArea.js'
+import { useUserStore } from '@/store/user.js'
 import { imgUrl } from '@/utils/image.js'
 import { SPICY_TEXT } from '@/utils/spicy.js'
 import { categoryArt } from '@/utils/category-art.js'
 import RecipeArt from '@/components/recipe-art/recipe-art.vue'
 const { statusBarHeight, menuButton } = useSafeArea()
+const userStore = useUserStore()
+/**
+ * 能不能加菜谱：只有饲养员（cook）。
+ *
+ * 这与云端的鉴权一致 —— `dishes-crud` 的 create 走 `requireCook`，干饭人点了必然 401。
+ * 所以入口不是「藏起来更好看」，而是**权限决定它存不存在**：
+ * 干饭人看不到底部卡槽、也看不到空态里的「添第一道菜」。
+ */
+const canAdd = computed(() => userStore.isCook)
 const headerTop = computed(() => menuButton.value?.bottom ? Math.round(menuButton.value.bottom + 12) : statusBarHeight.value + 26)
 const search = ref('')
 const searchFocused = ref(false)
@@ -72,6 +93,18 @@ const dishes = ref([])
 const loading = ref(false)
 const loaded = ref(false)
 const activeCategory = ref('all')
+
+/**
+ * 底部「再记一道拿手菜」卡槽是否常驻
+ *
+ * 条件是「饲养员 + 家里已经有菜谱」：
+ * - 干饭人不显示（云端 create 走 requireCook，点了必然 401）
+ * - 一道菜都没有时也不显示 —— 那种情况由空态自己的「添第一道菜」承接，
+ *   否则页面上会同时冒出两个新增入口
+ * 其余时候常驻，且**不跟搜索/分类筛选联动**（否则筛到空结果时底栏一闪一闪的）。
+ * 它常驻后，正文要按 .has-add-bar 多让出一段底部留白，见样式里的说明。
+ */
+const showAddBar = computed(() => canAdd.value && dishes.value.length > 0)
 
 /**
  * 成品图是否已就绪（key = 菜品 id）
@@ -166,6 +199,15 @@ const filtered = computed(() => {
     && (!keyword || [dish.name, dish.tip].some((value) => String(value).toLocaleLowerCase().includes(keyword))))
 })
 const openRecipe = recipe => uni.navigateTo({ url: '/pages/recipe-detail/recipe-detail?id=' + recipe.id, animationType: 'slide-in-right', animationDuration: 260 })
+/**
+ * 新建菜谱：进详情页的**新建态**（`mode=create`）
+ *
+ * 详情页是「编辑菜谱」的唯一表单（名称 / 封面 / 分类 / 辣度 / 配料 / 步骤都在那儿），
+ * 所以新增不再另做一个表单页 —— 同一份编辑器、同一套校验，差别只在起点数据与保存时
+ * 调的是 create 而不是 update（见 recipe-detail 的 creating）。
+ * 返回本页时 onShow(loadRecipes) 会静默刷新，新菜谱立刻出现在列表里。
+ */
+const createRecipe = () => uni.navigateTo({ url: '/pages/recipe-detail/recipe-detail?mode=create', animationType: 'slide-in-right', animationDuration: 260 })
 const resetFilters = () => { search.value = ''; activeCategory.value = 'all' }
 </script>
 
@@ -181,6 +223,26 @@ button { padding: 0; margin: 0; background: none; color: inherit; font: inherit;
 .recipe-header { padding-bottom: 10rpx; }
 .heading-row { display: flex; align-items: center; }
 .page-title { display: block; font-family: RecipeMaoken, $p2-font-fallback; font-size: $p2-fs-display; line-height: 1.2; letter-spacing: 2rpx; }
+// 新建入口 = 常驻底栏之上的固定卡槽（v2）。
+// 语汇沿用网格里那一版（虚线 + 手绘不规则圆角 + 手绘贴纸圆 + 手写体），但版式改成
+// **横向单行窄条**：固定元素要长期占着视口，不能像原位版那样占两行。
+// 位置贴着底栏上沿，外层 .add-bar 铺不透明纸色底 —— 滚上来的卡片会被它挡住，
+// 不会从虚线框里透出来；纸色底与底栏（.tabbar-footer 同为 $p2-paper）连成一片，
+// 阅读上是一整块底部区域，而不是"浮着一张条"。
+// 与底栏的接缝：底栏上沿在 `safe-area + 118rpx`（6rpx 内边距 + 112rpx 栏高），
+// 这里取 124rpx 故意**压过去 4rpx**，避免四舍五入后露出一条透出内容的发丝缝。
+.add-bar { position: fixed; left: 0; right: 0; bottom: calc(124rpx + env(safe-area-inset-bottom)); z-index: 190; padding: 14rpx 32rpx 12rpx; background: $p2-paper; }
+.add-slot { display: flex; align-items: center; justify-content: center; gap: 14rpx; height: 96rpx; border: 2rpx dashed #a8b68b; border-radius: 22rpx 18rpx 24rpx 17rpx; color: #63784f; animation: card-arrive 300ms $p2-ease backwards; transition: transform $p2-dur-tap $p2-ease; &:active { transform: scale(.98); } }
+// 手绘贴纸圆：与空态的书本圈（.empty-book）同一手法 —— 不规则圆 + 轻微旋转 + 纸片色，
+// 也就是 custom-tabbar 里那块「菜谱」选中贴纸的语汇。图标走 Icon.vue，颜色单独压深一档，
+// 否则绿色加号落在绿贴上会糊成一片。
+.add-slot-art { display: flex; align-items: center; justify-content: center; width: 64rpx; height: 64rpx; flex-shrink: 0; border-radius: 47% 53% 46% 54%; background: $p2-leaf-soft; color: $p2-ink; transform: rotate(-6deg); }
+// 标题用手写体 —— 与卡片上的菜名同源，读起来是「同一本本子上的字」，不是界面文案
+.add-slot-title { font-family: RecipeMaoken, $p2-font-fallback; font-size: $p2-fs-control; line-height: 1.3; }
+// 卡槽常驻时正文多让出的底部留白：底栏（128rpx + safe-area）+ 卡槽（14 + 96 + 12 = 122rpx）
+// 再加一点呼吸。**只在卡槽真的显示时才加**（.has-add-bar 类由 showAddBar 控制），
+// 否则干饭人、或家里还没有菜谱的页面底部会凭空多出一大块空白。
+.recipe-page.has-add-bar { padding-bottom: calc(272rpx + env(safe-area-inset-bottom)); }
 .page-subtitle { display: block; margin-top: 10rpx; color: $p2-ink-soft; font-size: $p2-fs-caption; line-height: 1.7; }
 // 顶部占位压缩（方案 A，合计 −47rpx）：间距全部按「够用」取最小值，不动标题位置。
 // 已移除 box-shadow：blur 型投影会从四边外溢（无 blur 的 0 0 才不外溢），分类行改成纯文字后
@@ -230,8 +292,12 @@ button { padding: 0; margin: 0; background: none; color: inherit; font: inherit;
 .page-footnote { display: flex; align-items: center; justify-content: center; gap: 13rpx; color: $p2-ink-soft; font-size: 21rpx; margin: 46rpx 0 22rpx; }
 .empty-state { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 94rpx 16rpx 70rpx; }
 .empty-book { display: flex; align-items: center; justify-content: center; width: 140rpx; height: 140rpx; border-radius: 50%; background: $p2-butter-soft; margin-bottom: 28rpx; transform: rotate(-8deg); }
-.reset-button { background: $p2-leaf-soft; border: 2rpx solid $p2-line; padding: 20rpx 32rpx; margin-top: 30rpx; border-radius: 18rpx; font-size: $p2-fs-body; }
+// 空态按钮：页面里两处空态共用同一形态（$p2-leaf-soft 底 + 实棕描边）——
+// 筛选无结果时是「看看全部菜谱」，**还没有任何菜谱时是「添第一道菜」**（只对饲养员渲染）。
+// 空态文案本来就写着「饲养员添几道拿手菜，就会出现在这里」，这里把这句话接到一个动作上，
+// 否则新用户读完提示却无处可点。display:flex 是给带前导加号的后者排版用。
+.reset-button { display: flex; align-items: center; gap: 10rpx; background: $p2-leaf-soft; border: 2rpx solid $p2-line; padding: 20rpx 32rpx; margin-top: 30rpx; border-radius: 18rpx; font-size: $p2-fs-body; transition: transform $p2-dur-tap $p2-ease; &:active { transform: scale(.96); } }
 @keyframes card-arrive { from { opacity: 0; transform: translateY(12rpx); } to { opacity: 1; transform: translateY(0); } }
-@media (prefers-reduced-motion: reduce) { .recipe-card { animation: none; } .recipe-card, .category, .card-photo { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .recipe-card, .add-slot { animation: none; } .recipe-card, .category, .card-photo, .add-slot, .reset-button { transition: none; } }
 @media screen and (max-width: 360px) { .page-title { font-size: 49rpx; } .section-title { font-size: 32rpx; } .dish-name { font-size: 33rpx; } }
 </style>

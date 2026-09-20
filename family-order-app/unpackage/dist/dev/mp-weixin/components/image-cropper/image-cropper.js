@@ -196,6 +196,19 @@ const _sfc_main = {
         return;
       emit("cancel");
     };
+    const hasTransparentPixel = (ctx, w, h) => {
+      try {
+        const { data } = ctx.getImageData(0, 0, w, h);
+        for (let i = 3; i < data.length; i += 4) {
+          if (data[i] < 255)
+            return true;
+        }
+        return false;
+      } catch (e) {
+        common_vendor.index.__f__("error", "at components/image-cropper/image-cropper.vue:334", "[cropper] 读取画布像素失败，按 PNG 导出", e);
+        return true;
+      }
+    };
     const onConfirm = () => {
       if (exporting.value || !displaySrc.value)
         return;
@@ -223,14 +236,16 @@ const _sfc_main = {
           const srcW = viewportW.value / bs;
           const srcH = viewportH.value / bs;
           ctx.drawImage(img, srcX, srcY, srcW, srcH, 0, 0, outW, outH);
+          const fileType = hasTransparentPixel(ctx, outW, outH) ? "png" : "jpg";
           common_vendor.index.canvasToTempFilePath({
             canvas,
-            fileType: "jpg",
+            fileType,
             quality: 0.9,
+            // PNG 时被忽略，JPEG 时生效
             success: (r) => {
               common_vendor.index.hideLoading();
               exporting.value = false;
-              emit("confirm", r.tempFilePath);
+              emit("confirm", r.tempFilePath, fileType);
             },
             fail: () => {
               common_vendor.index.hideLoading();

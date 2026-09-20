@@ -15,10 +15,11 @@ export const pantry = [
   { id: 'soy', name: '生抽', group: 'seasonings', image: bottle('#a77b52', '#f6e7b0', '#db9380'), quantity: '1 小勺' },
   { id: 'dark-soy', name: '老抽', group: 'seasonings', image: bottle('#816044', '#dfe7c9', '#a0b187'), quantity: '半小勺' }
 ]
-// categoryId / spicy 是随菜品一起从云端读回的字段，本地兜底数据给出同样的形状，
-// 让两边在 dirty 比较（JSON.stringify 对比 draft 与 saved）下结构一致
+// image / categoryId / spicy 都是随菜品一起从云端读回的字段，本地兜底数据给出同样的形状，
+// 让两边在 dirty 比较（JSON.stringify 对比 draft 与 saved）下结构一致 ——
+// 少了任何一个都会「一进编辑态就被判定为有改动」
 export const freshRecipe = () => ({
-  version: 1, name: '蒜蓉小青菜', subtitle: '给餐桌加一点绿意', categoryId: '', spicy: 'none',
+  version: 1, name: '蒜蓉小青菜', subtitle: '给餐桌加一点绿意', image: '', categoryId: '', spicy: 'none',
   ingredients: pantry.filter(x => ['greens', 'garlic'].includes(x.id)).map(({ id, quantity }) => ({ id, quantity })),
   seasonings: pantry.filter(x => ['oil', 'salt', 'soy'].includes(x.id)).map(({ id, quantity }) => ({ id, quantity })),
   steps: [
@@ -28,6 +29,23 @@ export const freshRecipe = () => ({
   ]
 })
 export const cloneRecipe = value => JSON.parse(JSON.stringify(value))
+/**
+ * 空菜谱骨架（新建菜谱的起点）
+ *
+ * 与 freshRecipe() 的区别：那份是**演示数据**（有名字、有配料、写了三步做法），
+ * 这份只给结构完整、内容全空的骨架 —— 新建时若拿演示数据当起点，用户一进去
+ * 就看到「蒜蓉小青菜」和别人的三步做法，得先删干净才能写自己的。
+ *
+ * 字段必须与 freshRecipe() **完全一致**（dirty 是 JSON 全量比较，少一个键
+ * 就会一进编辑态被判定为「有改动」）。
+ *
+ * steps 给 0 条而不是 1 条空步骤：validateRecipe 不强制步骤，用户可以先记个名字
+ * 保存、回头再补做法；预置一条空步骤反而会拦住保存（它要求每条步骤都得有名称）。
+ */
+export const blankRecipe = () => ({
+  version: 1, name: '', subtitle: '', image: '', categoryId: '', spicy: 'none',
+  ingredients: [], seasonings: [], steps: []
+})
 export function validateRecipe(value) {
   if (!value.name.trim()) return '给这道菜起个名字吧'
   // 不再强制「至少一个步骤」：云端尚未录入步骤的菜谱进来就是 0 步，

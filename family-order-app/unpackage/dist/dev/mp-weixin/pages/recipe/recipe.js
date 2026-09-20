@@ -1,6 +1,7 @@
 "use strict";
 const common_vendor = require("../../common/vendor.js");
 const composables_useSafeArea = require("../../composables/useSafeArea.js");
+const store_user = require("../../store/user.js");
 const utils_image = require("../../utils/image.js");
 const utils_spicy = require("../../utils/spicy.js");
 const utils_categoryArt = require("../../utils/category-art.js");
@@ -22,6 +23,8 @@ const _sfc_main = {
   __name: "recipe",
   setup(__props) {
     const { statusBarHeight, menuButton } = composables_useSafeArea.useSafeArea();
+    const userStore = store_user.useUserStore();
+    const canAdd = common_vendor.computed(() => userStore.isCook);
     const headerTop = common_vendor.computed(() => {
       var _a;
       return ((_a = menuButton.value) == null ? void 0 : _a.bottom) ? Math.round(menuButton.value.bottom + 12) : statusBarHeight.value + 26;
@@ -33,6 +36,7 @@ const _sfc_main = {
     const loading = common_vendor.ref(false);
     const loaded = common_vendor.ref(false);
     const activeCategory = common_vendor.ref("all");
+    const showAddBar = common_vendor.computed(() => canAdd.value && dishes.value.length > 0);
     const photoReady = common_vendor.reactive({});
     const markPhotoReady = (id) => {
       photoReady[id] = true;
@@ -69,7 +73,7 @@ const _sfc_main = {
           activeCategory.value = "all";
         }
       } catch (e) {
-        common_vendor.index.__f__("error", "at pages/recipe/recipe.vue:142", "[recipe] loadRecipes error", e);
+        common_vendor.index.__f__("error", "at pages/recipe/recipe.vue:175", "[recipe] loadRecipes error", e);
         common_vendor.index.showToast({ title: "网络不太好，稍后再试", icon: "none" });
       } finally {
         loading.value = false;
@@ -86,6 +90,7 @@ const _sfc_main = {
       return dishes.value.filter((dish) => (activeCategory.value === "all" || dish.categoryId === activeCategory.value) && (!keyword || [dish.name, dish.tip].some((value) => String(value).toLocaleLowerCase().includes(keyword))));
     });
     const openRecipe = (recipe) => common_vendor.index.navigateTo({ url: "/pages/recipe-detail/recipe-detail?id=" + recipe.id, animationType: "slide-in-right", animationDuration: 260 });
+    const createRecipe = () => common_vendor.index.navigateTo({ url: "/pages/recipe-detail/recipe-detail?mode=create", animationType: "slide-in-right", animationDuration: 260 });
     const resetFilters = () => {
       search.value = "";
       activeCategory.value = "all";
@@ -99,17 +104,17 @@ const _sfc_main = {
           ["stroke-width"]: 2.2
         }),
         c: PLACEHOLDER_STYLE,
-        d: common_vendor.o(($event) => searchFocused.value = true, "f6"),
-        e: common_vendor.o(($event) => searchFocused.value = false, "3e"),
+        d: common_vendor.o(($event) => searchFocused.value = true, "07"),
+        e: common_vendor.o(($event) => searchFocused.value = false, "0e"),
         f: search.value,
-        g: common_vendor.o(($event) => search.value = $event.detail.value, "f0"),
+        g: common_vendor.o(($event) => search.value = $event.detail.value, "a4"),
         h: search.value
       }, search.value ? {
         i: common_vendor.p({
           name: "close",
           size: 16
         }),
-        j: common_vendor.o(($event) => search.value = "", "d6")
+        j: common_vendor.o(($event) => search.value = "", "dd")
       } : {}, {
         k: searchFocused.value ? 1 : "",
         l: common_vendor.f(categoryTabs.value, (category, k0, i0) => {
@@ -175,14 +180,32 @@ const _sfc_main = {
         w: common_vendor.t(dishes.value.length ? "试试其他菜名、备注，或放宽筛选吧。" : "饲养员添几道拿手菜，就会出现在这里。"),
         x: dishes.value.length
       }, dishes.value.length ? {
-        y: common_vendor.o(resetFilters, "57")
-      } : {}) : {}, {
+        y: common_vendor.o(resetFilters, "f1")
+      } : canAdd.value ? {
+        A: common_vendor.p({
+          name: "plus",
+          size: 16
+        }),
+        B: common_vendor.o(createRecipe, "03")
+      } : {}, {
+        z: canAdd.value
+      }) : {}, {
         o: filtered.value.length,
         s: loaded.value,
-        z: common_vendor.p({
+        C: common_vendor.p({
           name: "food",
           size: 14
-        })
+        }),
+        D: showAddBar.value
+      }, showAddBar.value ? {
+        E: common_vendor.p({
+          name: "plus",
+          size: 20,
+          ["stroke-width"]: 2.2
+        }),
+        F: common_vendor.o(createRecipe, "a6")
+      } : {}, {
+        G: showAddBar.value ? 1 : ""
       });
     };
   }

@@ -13,7 +13,7 @@ const _sfc_main = {
     });
     return (_ctx, _cache) => {
       return {
-        a: common_assets._imports_0$2,
+        a: common_assets._imports_0$1,
         b: common_vendor.s(position.value),
         c: common_vendor.n("art-" + __props.index),
         d: __props.label

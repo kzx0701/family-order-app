@@ -3,10 +3,19 @@
     <view class="nav" :style="{ paddingTop: navTop + 'px' }">
       <button class="icon-button back" aria-label="返回菜谱" @tap="requestBack"><Icon name="arrow-left" :size="20" /></button>
     </view>
-    <text v-if="editing" class="badge" :style="{ top: badgeTop + 'px' }">正在编辑</text>
     <view class="hero">
-      <view class="hero-wash" />
-      <image class="dish-art" src="/static/images/recipes/dishes/garlic-bok-choy-v1.png" mode="aspectFit" aria-label="蒜蓉小青菜" />
+      <image v-if="heroSrc" class="dish-art cover-img" :class="{ 'is-loaded': heroReady }" :src="heroSrc" mode="aspectFit" :webp="true" @load="onHeroLoaded" @error="onHeroError" />
+      <image v-else-if="!editing" class="dish-art" :src="FALLBACK_DISH_ART" mode="aspectFit" aria-label="蒜蓉小青菜" />
+      <button v-else class="cover-blank" aria-label="添加菜品封面" @tap="chooseImage"><Icon name="plus" :size="26" /><text>添加封面</text></button>
+      <button v-if="editing && heroSrc" class="cover-edit" :disabled="uploading" aria-label="换一张封面" @tap="chooseImage"><Icon name="upload" :size="15" />换封面</button>
+    </view>
+    <!-- 上传进度：贴在封面图正下方的细横条。
+         原来把「上传中 45%」塞在「换封面」按钮里，一个控件同时当按钮和状态显示，两不像，
+         位置也跟着按钮飘在图片右下角。进度本来就是"这张图在传"的说明，交给图片下方这条更自然。
+         宽度取 500rpx 与主图框对齐（左边缘与图片左边缘齐平），读起来属于上面那张图。 -->
+    <view v-if="uploading" class="cover-progress">
+      <view class="cover-progress-track"><view class="cover-progress-fill" :style="{ width: uploadProgress + '%' }" /></view>
+      <text class="cover-progress-text">{{ uploadProgress }}%</text>
     </view>
     <view class="body">
       <view class="intro">
@@ -22,21 +31,29 @@
         <view v-if="!editing && (currentCategoryName || spicyCount || !cloudDishId)" class="meta"><view v-if="currentCategoryName" class="category-pill"><view class="leaf" />{{ currentCategoryName }}</view><text v-if="currentCategoryName && spicyCount" class="meta-dot">·</text><view v-if="spicyCount" class="spicy"><Icon v-for="n in spicyCount" :key="n" name="chili" size="28rpx" :stroke-width="2.4" /></view><text v-if="!cloudDishId" class="demo-label">本机体验菜谱</text></view>
       </view>
       <view v-for="(section, index) in sections" :key="section.key" class="material-section">
-        <view class="section-head"><text class="number" :class="section.key">{{ index + 1 }}</text><text class="section-title">{{ section.title }}</text><button v-if="editing" class="text-button" :aria-label="'添加' + section.title" @tap="openPicker(section.key)"><Icon name="plus" :size="14" />添加</button></view>
-        <scroll-view scroll-x class="material-scroll" :show-scrollbar="false">
+        <view class="section-head"><text class="number" :class="section.key">{{ index + 1 }}</text><text class="section-title">{{ section.title }}</text></view>
+        <!-- 一个配料都没有时，整条卡片行都不渲染。
+             空的 scroll-view 并不是"零高度"：里面那个 inline-flex 的 .material-row 自带 12+6rpx 内边距，
+             还会生成一个按父级字号算的行盒（约 33rpx），合计撑出 30~40rpx 的**看不见的空白**。
+             叠上区标题的 20rpx 与下方按钮的 26rpx，就出现默认状态下那段"空得莫名其妙"的大间距
+             （实测约 70rpx，而步骤区只有 46rpx）。去掉之后三个区的间距终于一致。 -->
+        <scroll-view v-if="shown[section.key].length" scroll-x class="material-scroll" :show-scrollbar="false">
+          <!-- 这一行**只装已配置的配料**：添加入口不混在队伍里，而是落到它下方的整行虚线按钮（.add-row）——
+               配料再多也不会把入口挤到看不见的地方，三个区的添加入口形态也就此统一。 -->
           <view class="material-row">
             <view v-for="item in shown[section.key]" :key="item.id" class="material">
               <button v-if="editing" class="remove" :aria-label="'移除' + lookup(item.id).name" @tap="removeMaterial(section.key, item.id)"><Icon name="minus" :size="13" /></button>
               <view class="material-art"><image :src="lookup(item.id).image" mode="aspectFit" /></view>
               <text class="material-name">{{ lookup(item.id).name }}</text>
             </view>
-            <button v-if="editing" class="add-material" :aria-label="'选择' + section.title" @tap="openPicker(section.key)"><Icon name="plus" :size="23" /><text>加一点</text></button>
           </view>
         </scroll-view>
-        <text v-if="!shown[section.key].length" class="empty">{{ editing ? '点「添加」，挑选需要的' + section.title : '暂未记录' + section.title }}</text>
+        <!-- 已配置的配料下面、独占一行的添加入口（与步骤区「添加步骤」同形） -->
+        <button v-if="editing" class="add-row" :aria-label="'添加' + section.title" @tap="openPicker(section.key)"><Icon name="plus" :size="19" />添加{{ section.title }}</button>
+        <!-- 编辑态不再出提示句：入口按钮本身就把话说完了，多一行字反而占版面 -->
+        <text v-if="!editing && !shown[section.key].length" class="empty">暂未记录{{ section.title }}</text>
       </view>
       <view class="section-head steps-heading"><text class="number coral">3</text><text class="section-title">一起慢慢做</text></view>
-      <text v-if="editing" class="hint">步骤名称必填，详情和注意事项可以留空。</text>
       <view v-for="(step, index) in shown.steps" :id="'step-' + step.id" :key="step.id" class="step" :class="{ editor: editing, invalid: editing && attempted && !step.title.trim() }">
         <view class="step-top"><text class="step-index">步骤 {{ index + 1 }}</text><view v-if="editing" class="step-actions">
           <button class="small-icon" :disabled="index === 0" :aria-label="'上移步骤' + (index + 1)" @tap="moveStep(index, -1)"><Icon name="chevron-up" :size="17" /></button>
@@ -53,12 +70,14 @@
         </template>
         <template v-else><text class="step-title">{{ step.title }}</text><text v-if="step.description" class="description">{{ step.description }}</text><view v-if="step.tip" class="tip"><Icon name="note" :size="16" /><view><text class="tip-label">小小提醒</text><text>{{ step.tip }}</text></view></view></template>
       </view>
-      <text v-if="!shown.steps.length" class="empty">{{ editing ? '还没有步骤，点下面的「增加步骤」开始写' : '这道菜还没有记录步骤' }}</text>
-      <button v-if="editing" class="add-step" :disabled="draft.steps.length >= 30" @tap="addStep"><Icon name="plus" :size="19" />{{ draft.steps.length >= 30 ? '最多 30 个步骤' : '增加步骤' }}</button>
+      <!-- 编辑态不再出提示句（原来是「还没有步骤，点下面的「增加步骤」开始写」）：
+           紧挨着的「添加步骤」按钮本身就把话说完了，多一行字只是占版面 -->
+      <text v-if="!editing && !shown.steps.length" class="empty">这道菜还没有记录步骤</text>
+      <button v-if="editing" class="add-row" :disabled="draft.steps.length >= 30" @tap="addStep"><Icon name="plus" :size="19" />{{ draft.steps.length >= 30 ? '最多 30 个步骤' : '添加步骤' }}</button>
       <view v-else class="end-note"><Icon name="food" :size="16" /><text>认真做饭的人，也要好好吃饭呀。</text></view>
     </view>
     <view v-if="canEdit" class="footer">
-      <template v-if="editing"><button class="cancel" @tap="cancelEditing">取消</button><button class="primary save" :disabled="saving" @tap="save"><Icon name="check" :size="18" />{{ saving ? '正在保存…' : '保存菜谱' }}</button></template>
+      <template v-if="editing"><button class="cancel" @tap="cancelEditing">取消</button><button class="primary save" :disabled="saving" @tap="save"><Icon name="check" :size="18" />{{ saving ? '正在保存…' : (creating ? '添加菜谱' : '保存菜谱') }}</button></template>
       <template v-else><button class="ghost" @tap="startEditing"><Icon name="edit" :size="18" />编辑菜谱</button><button class="primary grow"><Icon name="upload" :size="18" />发布菜品</button></template>
     </view>
     <view v-if="picker && editing && canEdit" class="picker-layer">
@@ -70,6 +89,8 @@
       </view>
     </view>
     <fo-dialog :visible="discardDialog" title="收起这次修改？" subtitle="未保存的内容会丢失，原来的菜谱仍会保留。" cancel-text="继续编辑" confirm-text="放弃修改" @close="discardDialog = false" @confirm="discard" />
+    <!-- 封面裁剪器：与管理页同一个组件，导出尺寸对齐主图框所需物理像素 -->
+    <image-cropper :visible="cropperVisible" :image-src="cropperSrc" :ratio="1" :output-size="HERO_ART_WIDTH" @confirm="onCropConfirm" @cancel="onCropCancel" />
   </view>
 </template>
 
@@ -77,10 +98,12 @@
 import { ref, computed, watch, nextTick } from 'vue'
 import { onLoad, onBackPress } from '@dcloudio/uni-app'
 import { useSafeArea } from '@/composables/useSafeArea.js'
+import { useCoverUpload } from '@/composables/useCoverUpload.js'
 import { useUserStore } from '@/store/user.js'
-import { pantry, freshRecipe, cloneRecipe, validateRecipe } from '@/mock/recipe-editor.js'
+import { pantry, freshRecipe, blankRecipe, cloneRecipe, validateRecipe } from '@/mock/recipe-editor.js'
 import { SPICY_OPTIONS, SPICY_LEVELS } from '@/utils/spicy.js'
 import { categoryArt } from '@/utils/category-art.js'
+import { imgUrl } from '@/utils/image.js'
 const STORAGE_KEY = 'fo_recipe_editor_demo_v2'
 const userStore = useUserStore()
 const canEdit = computed(() => userStore.isCook)
@@ -103,19 +126,43 @@ const navTop = computed(() => {
   }
   return statusBarHeight.value + 10
 })
-/**
- * 「正在编辑」徽标的纵向位置
- *
- * 必须留在胶囊**下方**：徽标靠右，与胶囊横向重叠，而胶囊是原生 UI、恒在最上层 ——
- * 一旦跟着返回按钮上移到与胶囊齐平，就会被整个盖住。所以两者分开定位。
- */
-const badgeTop = computed(() => {
-  const btn = menuButton.value
-  return btn?.bottom ? Math.round(btn.bottom + 8) : statusBarHeight.value + 10
-})
 const saved = ref(freshRecipe()), draft = ref(null), editing = ref(false), saving = ref(false), attempted = ref(false)
 const shown = computed(() => editing.value ? draft.value : saved.value)
 const dirty = computed(() => editing.value && JSON.stringify(draft.value) !== JSON.stringify(saved.value))
+
+/* === 菜品封面 === */
+// 静态兜底图：云端还没有封面时，浏览态拿它当演示（与「本机体验菜谱」那套本地数据是一组）
+const FALLBACK_DISH_ART = '/static/images/recipes/dishes/garlic-bok-choy-v1.png'
+/**
+ * 封面图输出宽度
+ *
+ * 主图框 500rpx，最大机型（430pt 屏、DPR 3）约需 860 物理像素，取 960 留一点余量；
+ * 同一个值也作为裁剪器的导出尺寸（见模板里 image-cropper 的 output-size）——
+ * 落库的原图就是 960，页面再经 imgUrl 按需取尺寸，不会出现「先压缩再放大」。
+ */
+const HERO_ART_WIDTH = 960
+const heroReady = ref(false), heroFailed = ref(false)
+/** 当前要显示的封面：统一走 imgUrl（与菜谱列表页卡片同一套口径：OSS 缩略图 + WebP） */
+const heroSrc = computed(() => {
+  if (heroFailed.value) return ''
+  const raw = (shown.value && shown.value.image) || ''
+  return raw ? imgUrl(raw, { w: HERO_ART_WIDTH }) : ''
+})
+// 封面换了就让淡入重来一次（is-loaded 还停在上一张的状态），同时清掉上一次的失败标记。
+// 依赖的是**存的值**而不是 heroSrc —— 后者受 heroFailed 影响，互相依赖会反复重试坏链接。
+watch(() => (shown.value && shown.value.image) || '', () => { heroReady.value = false; heroFailed.value = false })
+// 链接不可用（历史上存过不可访问的地址）时不显示破图：退回静态兜底 / 编辑态的添加占位
+const onHeroError = () => { heroFailed.value = true }
+// 淡入的触发点。写成函数而不是在模板里直接赋值：模板里对 ref 赋值要依赖编译器的引用处理，
+// 万一没生效，图片会停在 opacity:0（看不见）——这种错很难从代码上看出来
+const onHeroLoaded = () => { heroReady.value = true }
+// 封面：选图 → 裁剪 → 上传 → 换链接，与管理页共用一套（composables/useCoverUpload.js）
+const {
+  uploading, uploadProgress, chooseImage,
+  cropperVisible, cropperSrc,
+  cancelCrop: onCropCancel, confirmCrop: onCropConfirm
+} = useCoverUpload({ onUploaded: url => { if (draft.value) draft.value.image = url } })
+
 const picker = ref(''), selection = ref([]), discardDialog = ref(false)
 // 选择器的搜索：关键词与聚焦态（沿用菜谱页搜索框那套输入框规范）
 const PLACEHOLDER_STYLE = 'color: rgba(140, 114, 94, 0.55)'
@@ -352,6 +399,8 @@ const loadCloudRecipe = async id => {
       name: dish.name || saved.value.name,
       // description 为空串代表「用户清空了简介」，不能用 || 退回本地那份
       subtitle: typeof dish.description === 'string' ? dish.description : saved.value.subtitle,
+      // 封面同一规则：空串是「这道菜还没有封面」，不能退回本地那份
+      image: typeof dish.image === 'string' ? dish.image : saved.value.image,
       // 分类与辣度：云端是旧数据、没有这两个字段时就落回本地那份，
       // 不要在界面上把「本来就没有」显示成「被清空了」
       categoryId: typeof dish.categoryId === 'string' ? dish.categoryId : saved.value.categoryId,
@@ -368,14 +417,41 @@ const loadCloudRecipe = async id => {
   }
 }
 
+/**
+ * 新建态（路由带 `mode=create`，来自菜谱列表页的「加一道菜」）
+ *
+ * 与「编辑既有菜谱」共用同一份表单与校验，只有两处不同：
+ * 1. 起点数据 —— 空骨架，既不取演示数据也不取本地缓存（缓存里是上一次编辑的残留）；
+ * 2. 保存动作 —— 走 dishes-crud / create 而不是 update。
+ * 创建成功后会记下返回的 _id 并把本态关掉：这一页随即变成「编辑既有菜谱」，
+ * 用户接着改再保存走的就是 update，不会重复创建。
+ */
+const creating = ref(false)
+
 onLoad(async options => {
+  const route = options || {}
+  // 新建：直接从空骨架进编辑态，跳过后面的本地缓存恢复与菜品详情请求
+  // （物料与分类仍要拉 —— 选配料、选分类都得有它们；不传 id 时函数内部会跳过详情）
+  if (route.mode === 'create') {
+    creating.value = true
+    saved.value = blankRecipe()
+    draft.value = cloneRecipe(saved.value)
+    editing.value = true
+    attempted.value = false
+    await loadCloudRecipe('')
+    return
+  }
   try {
     const value = uni.getStorageSync(STORAGE_KEY)
     // 只校验结构、不校验 id 归属：配料已改用云端的 materialId，
     // 旧写法要求 id 必须存在于本地 pantry，会让云端数据一律校验失败、退回演示数据
     if (value?.version === 1 && typeof value.name === 'string' && typeof value.subtitle === 'string'
       && ['ingredients', 'seasonings'].every(group => Array.isArray(value[group]) && value[group].every(item => item && typeof item.id === 'string' && typeof item.quantity === 'string'))
-      && Array.isArray(value.steps) && value.steps.every(step => typeof step.id === 'string' && ['title', 'description', 'tip'].every(key => typeof step[key] === 'string')) && !validateRecipe(value)) saved.value = cloneRecipe(value)
+      && Array.isArray(value.steps) && value.steps.every(step => typeof step.id === 'string' && ['title', 'description', 'tip'].every(key => typeof step[key] === 'string')) && !validateRecipe(value)) {
+      // image 是后加的字段：旧缓存里没有它，**不能因此把整份丢掉**（那份可能只存在本机、
+      // 云端还没有），缺就补空串。dirty 是 JSON 全量比较，两侧结构一致才不会一进编辑态就误判为有改动
+      saved.value = { ...cloneRecipe(value), image: typeof value.image === 'string' ? value.image : '' }
+    }
   } catch { /* Corrupted or unavailable local storage falls back to the demo. */ }
 
   // 云端数据放在最后覆盖：配料以云端为准，步骤等云端没有的字段仍沿用本地那份
@@ -448,34 +524,50 @@ const save = async () => {
     for (const group of ['ingredients', 'seasonings']) value[group].forEach(item => { item.quantity = item.quantity.trim() })
     value.steps.forEach(step => { for (const key of ['title', 'description', 'tip']) step[key] = step[key].trim() })
 
+    // 与菜品 CRUD 对齐的字段。create 与 update 共用同一份 —— 两处各写一遍必然会漂移，
+    // 而这几个字段（封面 / 分类 / 辣度 / 配料 / 步骤）的归一化规则是同一套。
+    const fields = {
+      name: value.name,
+      // 封面：编辑器里刚换过的就是可访问链接；没换过则是从云端读回的原值，原样回传
+      // （空串是合法值 —— 这道菜没有封面）
+      image: value.image || '',
+      // 简介已不在界面上编辑，但仍原样回传 —— 菜谱列表页卡片的副行在用它（note 为空时回退 description）
+      description: value.subtitle,
+      // 分类：没选就是空串（合法状态 —— 菜品可以不归类）
+      categoryId: value.categoryId || '',
+      // 辣度：只有四档之内才写库，脏值落回不辣
+      spicy: SPICY_LEVELS.includes(value.spicy) ? value.spicy : 'none',
+      ingredients: value.ingredients.map(materialToCloud),
+      seasonings: value.seasonings.map(materialToCloud),
+      // 步骤显式摘掉前端的 id（渲染标识，不进库）；顺序即数组顺序
+      steps: value.steps.map(step => ({ title: step.title, description: step.description, tip: step.tip }))
+    }
+
     // 配料（食材 / 调料）、名称与步骤写回云端 —— 这一步才是编辑真正生效的地方。
-    // 云端 update 对 ingredients / seasonings / steps 都是整组替换，
-    // 所以增、删、改、以及步骤排序都由同一次提交表达。
-    // 仅当详情接口成功加载过（cloudDishId 非空）才写云端，避免把本地演示数据的 id 写进去。
+    // 云端对 ingredients / seasonings / steps 都是整组替换，所以增、删、改、步骤排序
+    // 都由同一次提交表达。
+    // 三种情形：新建态 → create；已连上云端菜品 → update；两者都不是（详情接口没取到）→ 只落本机，
+    // 避免把本地演示数据的 id 当成云端 _id 写进去。
     let toast = '菜谱已保存'
-    if (cloudDishId.value) {
-      const res = await uniCloud.callFunction({
-        name: 'app-service',
-        data: {
-          module: 'dishes-crud', action: 'update', token: userStore.token, _id: cloudDishId.value,
-          name: value.name,
-          // 简介已不在界面上编辑，但仍原样回传 —— 菜谱列表页卡片的副行在用它（note 为空时回退 description）
-          description: value.subtitle,
-          // 分类：没选就是空串（合法状态 —— 菜品可以不归类）
-          categoryId: value.categoryId || '',
-          // 辣度：只有四档之内才写库，脏值落回不辣
-          spicy: SPICY_LEVELS.includes(value.spicy) ? value.spicy : 'none',
-          ingredients: value.ingredients.map(materialToCloud),
-          seasonings: value.seasonings.map(materialToCloud),
-          // 步骤显式摘掉前端的 id（渲染标识，不进库）；顺序即数组顺序
-          steps: value.steps.map(step => ({ title: step.title, description: step.description, tip: step.tip }))
-        }
-      })
+    if (cloudDishId.value || creating.value) {
+      const action = creating.value ? 'create' : 'update'
+      // 新增必须带 type（云端校验必填），且菜谱页只产美食菜谱 —— 咖啡归点单页管
+      const data = action === 'create'
+        ? { module: 'dishes-crud', action, token: userStore.token, type: 'food', ...fields }
+        : { module: 'dishes-crud', action, token: userStore.token, _id: cloudDishId.value, ...fields }
+      const res = await uniCloud.callFunction({ name: 'app-service', data })
       const result = res.result || {}
       if (result.code !== 0) {
         // 云端失败就不算保存成功：留在编辑态，用户的修改还在，可以直接重试
         uni.showToast({ title: result.message || '保存到云端失败，请重试', icon: 'none' })
         return
+      }
+      if (action === 'create') {
+        // 记下新菜品的 _id 并退出新建态：本页随即变成「编辑既有菜谱」，
+        // 用户接着改再保存走的是 update，不会重复创建
+        cloudDishId.value = result._id || ''
+        creating.value = false
+        toast = '菜谱已添加'
       }
     } else {
       toast = '已存到本机（未连接云端菜谱）'
@@ -501,31 +593,53 @@ button { margin:0; padding:0; background:transparent; color:inherit; font:inheri
 .nav { position:absolute; top:0; left:0; right:0; z-index:10; display:flex; align-items:center; padding:0 34rpx; font-size:$p2-fs-caption; }
 .icon-button { width:72rpx; height:72rpx; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 // 返回按钮：形态对齐项目统一的圆形图标按钮（scss/mixins.scss 的 btn-icon —— 72rpx、
-// 图标居中、按下缩放），质感改用二期语言 —— 手绘圆（同 .hero-wash 的
+// 图标居中、按下缩放），质感改用二期语言 —— 手绘圆（同 .cover-edit / .primary 的
 // 不规则圆角手法）+ 实棕描边 + 硬投影，与页面 .primary 按钮同一套「贴纸」语汇。
 // 原来是一个 #d4c4af 浅描边的方角块、且无投影，与页面其它元素不是同一套语言。
 .back { border:2rpx solid $p2-line; background:$p2-surface; border-radius:48% 52% 47% 53%; box-shadow:3rpx 4rpx 0 #62473518; }
-// 徽标独立绝对定位（top 由模板内联传入）：靠右与胶囊横向重叠，必须留在胶囊下方，
-// 不能跟返回按钮一起上移，否则被原生胶囊盖住。
-.badge { position:absolute; right:34rpx; z-index:10; color:#738060; background:#e8edda; padding:9rpx 16rpx; border-radius:16rpx 12rpx; font-size:20rpx; }
-// 主图区两次放大：图片 395×330 → 480×400 → 500×500rpx，装饰色块 340×220 → 420×272 → 525×340rpx。
+// 主图区两次放大：图片 395×330 → 480×400 → 500×500rpx。
 // 素材是 1:1 透明抠图、主体几乎占满画幅（alpha 包围盒实测 100%×99.3%），aspectFit 按框「短边」铺满，
 // 故 1:1 素材放进 500×500 的框即得 500×500 内容 —— 盘子直径 330 → 500rpx（累计 +51%，占屏宽 66.7%）。
 // hero 同步加高以容纳放大后的图片。
+// **图片背后原来有一块 #ebeed7 的绿色斜贴纸（.hero-wash，525×340rpx / 旋转 −9° / opacity .65），
+// 已按主人要求整块去掉**：现在主图是用户上传的真实照片，斜色块只会在照片四角露出来、
+// 和照片抢视线；纯纸色底更干净。色块是绝对定位、不参与布局，去掉后图片位置零位移。
+// 这里有两种图：用户上传的云端封面（裁剪器按 1:1 导出）与静态兜底素材，共用这同一个 500×500 的框，
+// 所以「有没有封面」不会带来任何布局位移 —— 两种图的显示口径一致（aspectFit、透明底抠图）。
 // margin-top 64rpx（32px）：导航改绝对定位后主图直接顶到内容区顶部 —— 实测盘子顶端距顶部仅
 // 10.4px，与微信胶囊（占屏幕顶下方 47~83px）齐平、观感很挤。下移 28px 后盘子顶端约在屏幕
 // y=85px，正好落在胶囊下方；留白仍远小于原来 nav 占的 135px，不会回到「上方大片空白」。
 .hero { position:relative; height:520rpx; margin:64rpx 30rpx 6rpx; display:flex; justify-content:center; align-items:center; }
-.hero-wash { position:absolute; width:525rpx; height:340rpx; background:#ebeed7; border-radius:51% 49% 44% 56%; transform:rotate(-9deg); opacity:.65; }
 .dish-art { position:relative; width:500rpx; height:500rpx; }
+// 云存储封面的淡入（与菜谱列表页卡片同一套手法）：图片要走网络，直接出现会闪一下。
+// 静态兜底那张**不加这个类** —— 它是本地素材、没有等待的必要，加了反而可能因 @load 时机而不显示
+.cover-img { opacity:0; transition:opacity $p2-dur-base $p2-ease; &.is-loaded { opacity:1; } }
+// 编辑态且还没有封面：虚线占位（虚线描边 + 苔绿文字的语汇，同三个区的 .add-row），点了去选图。
+// 这里不能沿用静态兜底那张素材 —— 用户会以为那就是这道菜的封面
+.cover-blank { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14rpx; width:360rpx; height:320rpx; color:#879172; border:3rpx dashed #c3c9ac; border-radius:36rpx 40rpx 34rpx 38rpx; font-size:$p2-fs-caption; }
+// 换封面：浮在主图右下角。质感沿用页面里「可交互控件」那一套 —— 2rpx 实棕描边 + 奶油底 +
+// 手绘不规则圆角 + 硬投影（与 .back / .primary 同源）。用 right/bottom 定位而不是 left + transform
+// 居中：全局 button:active 的 scale 会覆盖 transform，按钮按下时会横跳
+.cover-edit { position:absolute; right:56rpx; bottom:36rpx; z-index:2; display:flex; align-items:center; gap:8rpx; padding:12rpx 22rpx; font-size:$p2-fs-caption; color:$p2-ink; background:$p2-surface; border:2rpx solid $p2-line; border-radius:18rpx 22rpx 16rpx 20rpx; box-shadow:3rpx 4rpx 0 #62473518; }
+// 上传进度：贴在封面图正下方的细横条（模板里有说明）。
+// 宽 500rpx 与主图框同宽，margin:auto 让它的左右边缘与图片对齐 —— 读起来属于上面那张图，
+// 而不是一条横贯页面的系统进度条。hero 的下外边距只有 6rpx，这里再给 16rpx，共 22rpx 落在图下方。
+.cover-progress { display:flex; align-items:center; gap:18rpx; width:500rpx; margin:16rpx auto 0; animation: appear 180ms $p2-ease; }
+// 轨道：浅绿底，与页面「浅底标签」同一色系（不用灰色 —— 灰条会被读成系统控件）。
+// 高度 14rpx：比句号厚一点、比分隔线重一点，看得清进度又不占版面。
+// 圆角只写在轨道上，填充靠 overflow:hidden 裁出同样的圆头，不必给填充单独写圆角。
+.cover-progress-track { flex:1; height:14rpx; background:#e8edda; border-radius:8rpx 10rpx 7rpx 9rpx; overflow:hidden; }
+.cover-progress-fill { height:100%; background:$p2-leaf; }
+// 百分比：定宽 + 右对齐，数字从 9% 跳到 10% 时后面的文字不会跟着抖
+.cover-progress-text { width:66rpx; flex-shrink:0; text-align:right; font-size:22rpx; color:$p2-ink-soft; }
 .body { padding:0 38rpx; }
 .intro { padding:5rpx 0 30rpx; }
 .title { display:block; font-family:RecipeMaoken,$p2-font-fallback; font-size:$p2-fs-display; line-height:1.35; }
 .subtitle { display:block; font-size:$p2-fs-body; color:$p2-ink-soft; margin-top:10rpx; line-height:1.7; }
 .meta { display:flex; align-items:center; gap:12rpx; font-size:21rpx; color:$p2-ink-soft; margin-top:18rpx; }
 .leaf { width:12rpx; height:18rpx; border-radius:70% 20%; background:$p2-leaf; transform:rotate(30deg); }
-// 分类徽标：形制对齐页面里已有的「浅底小标签」—— 同页的 ①②③ 序号方块、列表页的卡片角标、
-// 「正在编辑」徽标，三者都是**浅绿底 + 无描边 + 手绘圆角**。
+// 分类徽标：形制对齐页面里已有的「浅底小标签」—— 本页的 ①②③ 序号方块、列表页的卡片角标，
+// 都是**浅绿底 + 无描边 + 手绘圆角**。
 // 刻意不用描边：全页带 2rpx 实棕描边的都是**可交互控件**（.back / .primary / .ghost /
 // .picker-search），分类是不可点的元信息，套上"控件级"的边框会让层级错乱、观感像贴上去的。
 // 底色取 $p2-leaf-soft，与紧邻下方的序号方块同色，视觉上能连成一套。
@@ -551,7 +665,6 @@ button { margin:0; padding:0; background:transparent; color:inherit; font:inheri
 .number { display:flex; justify-content:center; align-items:center; width:38rpx; height:40rpx; font-size:21rpx; background:$p2-leaf-soft; border-radius:10rpx 13rpx 8rpx 12rpx; transform:rotate(-7deg); }
 .seasonings { background:$p2-butter-soft; }.coral { background:$p2-coral-soft; }
 .section-title { font-size:$p2-fs-title; font-weight:600; }
-.text-button { display:flex; align-items:center; gap:7rpx; margin-left:auto; font-size:$p2-fs-caption; color:#65794f; min-height:58rpx; }
 // 横向滚动：scroll-view 内部的列表行必须用 inline-flex —— 容器宽度由内容决定，内容一多
 // 就必然溢出容器、必然产生可滚动区域。块级 flex 的宽度恒等于父容器宽（内容再多它也不变宽），
 // 其子项的溢出行不行要依赖基础库对 scroll-width 的实现，不可靠：官方文档横向滚动只给了
@@ -568,10 +681,12 @@ button { margin:0; padding:0; background:transparent; color:inherit; font:inheri
 // 将来要恢复用量展示或编辑时数据还在，不必迁移。
 .material-name { display:block; font-size:$p2-fs-body; }
 .remove { position:absolute; top:-8rpx; right:2rpx; width:48rpx; height:48rpx; display:flex; align-items:center; justify-content:center; background:#fae4d9; border-radius:50%; z-index:1; }
-// 「加一点」的高度交给 flex 自动拉伸（.material-row 默认 align-items:stretch）。
-// 原先写死 min-height:190rpx，是因为编辑态卡片带用量输入框、总高约 235rpx；
-// 去掉输入框后卡片只剩约 163rpx，190rpx 会让它比旁边的卡片高出一截。
-.add-material { width:124rpx; flex-shrink:0; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:12rpx; color:#879172; border:2rpx dashed #c3c9ac; border-radius:20rpx 24rpx 19rpx 23rpx; font-size:$p2-fs-caption; }
+// 三个区共用的「添加」按钮：整行虚线长条（食材 / 调料 / 步骤同形，原 .add-material 那格方形的已撤掉）。
+// 在食材与调料区里它落在横向卡片行的**下方、独占一行**，所以卡片行只装已配置的配料 ——
+// 配料再多也不会把入口挤到看不见的地方，三个区的添加入口位置与形态就此一致。
+// 上间距 26rpx；下间距交给容器（食材/调料区自带 padding-bottom:26rpx，步骤区后面是页脚），
+// 原来的 margin-bottom:20rpx 只在编辑态生效，而编辑态它后面没有兄弟元素，去掉不会产生位移。
+.add-row { width:100%; display:flex; align-items:center; justify-content:center; gap:12rpx; padding:26rpx 12rpx; border:2rpx dashed #a8b68b; border-radius:20rpx; color:#63784f; font-size:$p2-fs-body; margin:26rpx 0 0; }
 .empty { display:block; font-size:$p2-fs-caption; color:$p2-ink-soft; padding:20rpx 0; }
 .steps-heading { padding-top:26rpx; border-top:2rpx dashed #e1d6c3; }
 .step { padding:24rpx 0 30rpx; border-bottom:2rpx dashed #e1d6c3; }
@@ -594,10 +709,8 @@ button { margin:0; padding:0; background:transparent; color:inherit; font:inheri
 .field { height:88rpx; padding:0 22rpx; border:2rpx solid #d5c8b5; border-radius:15rpx 19rpx 14rpx 17rpx; background:$p2-surface; font-size:$p2-fs-body; box-sizing:border-box; }
 .title-field { font-size:$p2-fs-title; }
 .area { width:100%; min-height:124rpx; padding:18rpx 22rpx; background:$p2-surface; border:2rpx solid #d5c8b5; border-radius:16rpx; font-size:$p2-fs-body; line-height:1.8; box-sizing:border-box; }.tip-area { background:#fffaf0; }
-.hint { display:block; font-size:22rpx; color:$p2-ink-soft; }
 .editor { border:2rpx solid #d9cbb5; border-radius:22rpx 26rpx 19rpx 24rpx; padding:20rpx 22rpx 26rpx; margin:20rpx 0; background:#fcf5e6; animation:appear 180ms $p2-ease; }
 .step-actions { display:flex; margin-left:auto; gap:4rpx; }.small-icon { width:58rpx; height:58rpx; display:flex; align-items:center; justify-content:center; }.danger { color:$p2-danger; }.invalid { border-color:$p2-danger; }.error { display:block; color:$p2-danger; font-size:22rpx; margin-top:10rpx; }
-.add-step { width:100%; display:flex; align-items:center; justify-content:center; gap:12rpx; padding:26rpx 12rpx; border:2rpx dashed #a8b68b; border-radius:20rpx; color:#63784f; font-size:$p2-fs-body; margin:26rpx 0 20rpx; }
 .picker-layer { position:fixed; inset:0; z-index:100; }.mask { position:absolute; inset:0; background:#3e301a66; }
 .sheet { position:absolute; bottom:0; left:0; right:0; padding:18rpx 34rpx calc(30rpx + env(safe-area-inset-bottom)); background:$p2-paper; border-radius:34rpx 38rpx 0 0; animation:slide-up 240ms $p2-ease; }
 .handle { width:65rpx; height:7rpx; background:#d0c4ac; border-radius:6rpx; margin:0 auto 25rpx; }
@@ -627,5 +740,5 @@ $picker-gap: 18rpx;
 .selection-dot { position:absolute; top:10rpx; right:10rpx; width:28rpx; height:28rpx; border:2rpx solid #a9b695; border-radius:50%; display:flex; align-items:center; justify-content:center; }.confirm { width:100%; }
 @keyframes appear { from { opacity:0; transform:translateY(6rpx); } to { opacity:1; transform:translateY(0); } }
 @keyframes slide-up { from { transform:translateY(100%); } to { transform:translateY(0); } }
-@media (prefers-reduced-motion:reduce) { button { transition:none; }.editor,.sheet,.picker-item,.picker-blank { animation:none; } }
+@media (prefers-reduced-motion:reduce) { button { transition:none; }.editor,.sheet,.picker-item,.picker-blank,.cover-progress { animation:none; } }
 </style>

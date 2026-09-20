@@ -58,16 +58,6 @@ button[disabled].data-v-fc6387aa {
   border-radius: 48% 52% 47% 53%;
   box-shadow: 3rpx 4rpx 0 #62473518;
 }
-.badge.data-v-fc6387aa {
-  position: absolute;
-  right: 34rpx;
-  z-index: 10;
-  color: #738060;
-  background: #e8edda;
-  padding: 9rpx 16rpx;
-  border-radius: 16rpx 12rpx;
-  font-size: 20rpx;
-}
 .hero.data-v-fc6387aa {
   position: relative;
   height: 520rpx;
@@ -76,19 +66,72 @@ button[disabled].data-v-fc6387aa {
   justify-content: center;
   align-items: center;
 }
-.hero-wash.data-v-fc6387aa {
-  position: absolute;
-  width: 525rpx;
-  height: 340rpx;
-  background: #ebeed7;
-  border-radius: 51% 49% 44% 56%;
-  transform: rotate(-9deg);
-  opacity: 0.65;
-}
 .dish-art.data-v-fc6387aa {
   position: relative;
   width: 500rpx;
   height: 500rpx;
+}
+.cover-img.data-v-fc6387aa {
+  opacity: 0;
+  transition: opacity 260ms cubic-bezier(0.22, 0.75, 0.24, 1);
+}
+.cover-img.is-loaded.data-v-fc6387aa {
+  opacity: 1;
+}
+.cover-blank.data-v-fc6387aa {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14rpx;
+  width: 360rpx;
+  height: 320rpx;
+  color: #879172;
+  border: 3rpx dashed #c3c9ac;
+  border-radius: 36rpx 40rpx 34rpx 38rpx;
+  font-size: 24rpx;
+}
+.cover-edit.data-v-fc6387aa {
+  position: absolute;
+  right: 56rpx;
+  bottom: 36rpx;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 12rpx 22rpx;
+  font-size: 24rpx;
+  color: #624735;
+  background: #fffdf7;
+  border: 2rpx solid #765540;
+  border-radius: 18rpx 22rpx 16rpx 20rpx;
+  box-shadow: 3rpx 4rpx 0 #62473518;
+}
+.cover-progress.data-v-fc6387aa {
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+  width: 500rpx;
+  margin: 16rpx auto 0;
+  animation: appear-fc6387aa 180ms cubic-bezier(0.22, 0.75, 0.24, 1);
+}
+.cover-progress-track.data-v-fc6387aa {
+  flex: 1;
+  height: 14rpx;
+  background: #e8edda;
+  border-radius: 8rpx 10rpx 7rpx 9rpx;
+  overflow: hidden;
+}
+.cover-progress-fill.data-v-fc6387aa {
+  height: 100%;
+  background: #85a96f;
+}
+.cover-progress-text.data-v-fc6387aa {
+  width: 66rpx;
+  flex-shrink: 0;
+  text-align: right;
+  font-size: 22rpx;
+  color: #8c725e;
 }
 .body.data-v-fc6387aa {
   padding: 0 38rpx;
@@ -206,15 +249,6 @@ button[disabled].data-v-fc6387aa {
   font-size: 36rpx;
   font-weight: 600;
 }
-.text-button.data-v-fc6387aa {
-  display: flex;
-  align-items: center;
-  gap: 7rpx;
-  margin-left: auto;
-  font-size: 24rpx;
-  color: #65794f;
-  min-height: 58rpx;
-}
 .material-scroll.data-v-fc6387aa {
   width: 100%;
 }
@@ -256,18 +290,18 @@ button[disabled].data-v-fc6387aa {
   border-radius: 50%;
   z-index: 1;
 }
-.add-material.data-v-fc6387aa {
-  width: 124rpx;
-  flex-shrink: 0;
+.add-row.data-v-fc6387aa {
+  width: 100%;
   display: flex;
-  flex-direction: column;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
   gap: 12rpx;
-  color: #879172;
-  border: 2rpx dashed #c3c9ac;
-  border-radius: 20rpx 24rpx 19rpx 23rpx;
-  font-size: 24rpx;
+  padding: 26rpx 12rpx;
+  border: 2rpx dashed #a8b68b;
+  border-radius: 20rpx;
+  color: #63784f;
+  font-size: 28rpx;
+  margin: 26rpx 0 0;
 }
 .empty.data-v-fc6387aa {
   display: block;
@@ -431,11 +465,6 @@ button[disabled].data-v-fc6387aa {
 .tip-area.data-v-fc6387aa {
   background: #fffaf0;
 }
-.hint.data-v-fc6387aa {
-  display: block;
-  font-size: 22rpx;
-  color: #8c725e;
-}
 .editor.data-v-fc6387aa {
   border: 2rpx solid #d9cbb5;
   border-radius: 22rpx 26rpx 19rpx 24rpx;
@@ -467,19 +496,6 @@ button[disabled].data-v-fc6387aa {
   color: #cf6458;
   font-size: 22rpx;
   margin-top: 10rpx;
-}
-.add-step.data-v-fc6387aa {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12rpx;
-  padding: 26rpx 12rpx;
-  border: 2rpx dashed #a8b68b;
-  border-radius: 20rpx;
-  color: #63784f;
-  font-size: 28rpx;
-  margin: 26rpx 0 20rpx;
 }
 .picker-layer.data-v-fc6387aa {
   position: fixed;
@@ -640,7 +656,7 @@ to {
 button.data-v-fc6387aa {
     transition: none;
 }
-.editor.data-v-fc6387aa, .sheet.data-v-fc6387aa, .picker-item.data-v-fc6387aa, .picker-blank.data-v-fc6387aa {
+.editor.data-v-fc6387aa, .sheet.data-v-fc6387aa, .picker-item.data-v-fc6387aa, .picker-blank.data-v-fc6387aa, .cover-progress.data-v-fc6387aa {
     animation: none;
 }
 }
