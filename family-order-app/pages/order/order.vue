@@ -28,7 +28,18 @@
             <view class="dish-copy">
               <button class="dish-title-button" :aria-label="'选择' + item.name + '口味'" @tap="openDish(item)"><text class="dish-name">{{ item.name }}</text></button>
               <text class="dish-description">{{ item.description }}</text>
-              <text class="dish-tag" :class="item.tone">{{ item.tag }}</text>
+              <view class="dish-meta">
+                <!-- 分类图标：这道菜在**菜谱里的做法分类**（炒菜 / 烧菜 / 汤类…），素材来自 utils/category-art.js，
+                     与菜谱列表页、编辑抽屉里的分类选择是同一套图。
+                     ⚠️ 别与顶部筛选栏的「家常菜 / 清爽蔬菜」混淆：那是点单页自己的菜单分类（item.category），
+                     这里是菜谱的做法分类（item.recipeCategory），两个维度并存、数据不要合并。
+                     咖啡类菜品没有做法分类，字段为空 → categoryArt 返回空串 → 不渲染。 -->
+                <image v-if="categoryArt(item.recipeCategory)" class="dish-cat-art" :src="categoryArt(item.recipeCategory)" mode="aspectFit" />
+                <!-- 辣度：与菜谱列表卡片、菜谱详情、点单抽屉**同一套素材**（utils/spicy.js）。
+                     用 spicyMark（标记语义）—— 不辣与未设置都不挂图标，「不辣」是默认状态，
+                     每道不辣的菜都来一枚斜线辣椒只是噪音。咖啡类菜品没有这个字段，自然不显示。 -->
+                <image v-if="spicyMark(item.spicy)" class="dish-spicy-art" :src="spicyMark(item.spicy)" mode="aspectFit" />
+              </view>
               <!-- 卡片上只留这一个操作：**点它打开「选口味」抽屉，在抽屉里点按钮才算加入**。
                    原先卡片里还有一枚「选口味」文字按钮、一个直接加购的「+」、以及数量与减号：
                    同一个菜品能被加成好几份，不同口味还会各占一行。现在一个菜品只占一条。 -->
@@ -69,7 +80,7 @@
             <text class="detail-description">{{ selected.description }}</text>
             <!-- 辣度**只读**：它由菜谱里配好，点单的人只能知道、不能改。
                  这里刻意不做成按钮组 —— 一旦长得像按钮，用户就会以为能点。 -->
-            <view v-if="spicyText" class="dish-spicy"><Icon name="chili" :size="15" :stroke-width="2.2" /><text>辣度</text><text class="spicy-value">{{ spicyText }}</text></view>
+            <view v-if="spicyText" class="dish-spicy"><image class="spicy-art" :src="spicyArt" mode="aspectFit" /><text>辣度</text><text class="spicy-value">{{ spicyText }}</text></view>
             <view v-for="(option, index) in selected.options" :key="option.name" class="option-group"><text class="option-label">{{ option.name }}</text><view class="option-values"><button v-for="value in option.values" :key="value" class="option-button" :class="{ selected: selectedOptions[index] === value }" :aria-pressed="selectedOptions[index] === value" @tap="selectedOptions[index] = value">{{ value }}</button></view></view>
             <!-- 单品备注：跟着这一道菜走（整单的「小纸条」在确认页，两者不冲突） -->
             <view class="dish-note-box">
@@ -109,7 +120,9 @@ import { useSafeArea } from '@/composables/useSafeArea.js'
 import { useCartStore } from '@/store/cart.js'
 import { bowlArt, menuItems, menuCategories, addToCart, removeLine } from '@/mock/order-menu.js'
 // 辣度文案取全局唯一那份（菜谱页 / 详情页同源）—— 点单这里虽然是只读，也得用同一套词
-import { SPICY_TEXT } from '@/utils/spicy.js'
+import { SPICY_TEXT, spicyImage, spicyMark } from '@/utils/spicy.js'
+// 卡片上那枚**做法分类图标**的素材映射（与菜谱列表页、编辑抽屉同一份）
+import { categoryArt } from '@/utils/category-art.js'
 const { statusBarHeight, menuButton } = useSafeArea()
 const headerTop = computed(() => menuButton.value?.bottom ? menuButton.value.bottom + 12 : statusBarHeight.value + 16)
 const types = [{id:'food',label:'吃点好的',icon:'food'},{id:'coffee',label:'喝杯咖啡',icon:'coffee'}]
@@ -149,6 +162,14 @@ const openDish = item => {
 }
 /** 抽屉里只读展示的辣度文案：菜单里没配这一项就整行不渲染 */
 const spicyText = computed(() => (selected.value && SPICY_TEXT[selected.value.spicy]) || '')
+/**
+ * 辣度图案：与菜谱列表、菜谱详情**同一套素材**（由 utils/spicy.js 给出）。
+ *
+ * 这里用 spicyImage 而不是 spicyMark —— 这一行是「字段」语义（图标 + 标签 + 值），
+ * 不辣也要画出那枚斜线辣椒与文字「不辣」配对，把整行撑住；「标记」语义的列表/详情
+ * 才是不辣就不显示。
+ */
+const spicyArt = computed(() => (selected.value ? spicyImage(selected.value.spicy) : ''))
 const selectedInCart = computed(() => !!selected.value && inCart(selected.value.id))
 const removeFromCart = line => { removeLine(cart.value, line.key); showFeedback('已把 ' + line.name + ' 从清单里去掉') }
 const openCart = () => { closing.value = false; panel.value = 'cart' }
@@ -237,8 +258,17 @@ button { background:none; border-radius:0; margin:0; padding:0; line-height:inhe
 // 所以必须单行截断：卡片高度是收紧过的，让它换行会把整列撑开、一屏又少一道菜。
 // 完整描述在抽屉里看（点卡片打开）。
 .dish-description { display:block; margin-top:2rpx; font-size:21rpx; color:$p2-ink-soft; line-height:1.6; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
-// 标签上下留白各收一档（12→8、4→3）：它在每张卡上都出现，省下来的量最可观
-.dish-tag { display:inline-block; margin-top:8rpx; font-size:19rpx; padding:3rpx 9rpx; border-radius:7rpx 10rpx; background:#f7ebbc; color:#84714e; &.green { background:#e4edda; color:#6c8055; } &.blue { background:#e4edef; color:#6b868b; } &.coral { background:#f8e1d7; color:#a56855; } }
+// 信息行：左「做法分类图标」+「辣度图案」并排。2026-09-20 撤掉了原来那枚营销标签
+// （「下饭担当」这类 pill）—— 它与描述、菜品名表达的是同一件事，占着最有价值的一行。
+// 做成一行而不是两行的理由：卡片高度是刚收紧过的（每张 228rpx），再起一行要多花约 28rpx。
+.dish-meta { display:flex; align-items:center; gap:8rpx; margin-top:8rpx; }
+// 分类图标（做法分类）与辣度图案：两个 36rpx 方框并排。
+//   · 辣度素材内容占画布约 53%、分类素材约 62% → 同尺寸方框下两者视觉高度相当（19 / 22rpx）；
+//   · 这一页字号体系比菜谱页小，方框取 36rpx 而不是菜谱那几处的 46rpx，正好与副行文字视觉等高，
+//     也不撑高这张已经收紧过的卡片；
+//   · 分类素材是彩色 SVG，直接 <image> 加载 —— 不要塞进 Icon.vue（mask 会抹掉颜色信息）。
+.dish-cat-art { width:36rpx; height:36rpx; flex-shrink:0; display:block; }
+.dish-spicy-art { width:36rpx; height:36rpx; flex-shrink:0; display:block; }
 // 卡片操作区现在只有一颗按钮，所以右对齐即可（原先左侧还有一枚「选口味」文字按钮）
 .dish-bottom { display:flex; justify-content:flex-end; align-items:center; gap:6rpx; margin-top:8rpx; min-height:54rpx; }
 // 卡片上唯一的操作按钮：点它打开「选口味」抽屉。未加入 = ＋、已加入 = ✓（再点是回去改口味）。
@@ -272,6 +302,12 @@ button { background:none; border-radius:0; margin:0; padding:0; line-height:inhe
 // 辣度只读行 —— 与描述同色系，前面一枚辣椒。**刻意不做成按钮组**：
 // 辣度由菜谱配好、点单的人不能改，一旦长得像按钮，用户就会以为能点。
 .dish-spicy { display:flex; align-items:center; gap:8rpx; margin-bottom:8rpx; font-size:23rpx; color:$p2-ink-soft; }
+// 辣度图案：与菜谱列表、菜谱详情**同一套素材**，由 utils/spicy.js 的 spicyImage() 给出
+// （「字段」语义，不辣时是那枚斜线辣椒）。
+//
+// 尺寸：46rpx 是**三处展示位统一的值**（辣椒视觉高约 24rpx，与同行 23rpx 的文字基本等高）。
+// 换算过程、以及「别拿旧 Icon 的 size 直接当目标高」这条坑，都写在 utils/spicy.js 的注释里。
+.spicy-art { width:46rpx; height:46rpx; flex-shrink:0; display:block; }
 .spicy-value { color:$p2-ink; }
 // 单品备注框：外观复用确认页那张「小纸条」的 .note-input（同一套输入语言），
 // 只把高度收窄一档 —— 单品备注比整单小纸条短，而抽屉里上方已经有一张 260rpx 的大图。

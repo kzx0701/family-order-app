@@ -297,26 +297,23 @@ button[disabled].data-v-93207a4f {
   white-space: nowrap;
   text-overflow: ellipsis;
 }
-.dish-tag.data-v-93207a4f {
-  display: inline-block;
+.dish-meta.data-v-93207a4f {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
   margin-top: 8rpx;
-  font-size: 19rpx;
-  padding: 3rpx 9rpx;
-  border-radius: 7rpx 10rpx;
-  background: #f7ebbc;
-  color: #84714e;
 }
-.dish-tag.green.data-v-93207a4f {
-  background: #e4edda;
-  color: #6c8055;
+.dish-cat-art.data-v-93207a4f {
+  width: 36rpx;
+  height: 36rpx;
+  flex-shrink: 0;
+  display: block;
 }
-.dish-tag.blue.data-v-93207a4f {
-  background: #e4edef;
-  color: #6b868b;
-}
-.dish-tag.coral.data-v-93207a4f {
-  background: #f8e1d7;
-  color: #a56855;
+.dish-spicy-art.data-v-93207a4f {
+  width: 36rpx;
+  height: 36rpx;
+  flex-shrink: 0;
+  display: block;
 }
 .dish-bottom.data-v-93207a4f {
   display: flex;
@@ -586,6 +583,12 @@ button[disabled].data-v-93207a4f {
   margin-bottom: 8rpx;
   font-size: 23rpx;
   color: #8c725e;
+}
+.spicy-art.data-v-93207a4f {
+  width: 46rpx;
+  height: 46rpx;
+  flex-shrink: 0;
+  display: block;
 }
 .spicy-value.data-v-93207a4f {
   color: #624735;

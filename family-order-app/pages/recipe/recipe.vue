@@ -40,8 +40,7 @@
                信息量最低的一行占了卡片最显眼的位置。换成两项一眼能比的元信息。 -->
           <view class="card-meta">
             <view class="card-facts">
-              <image v-if="categoryIconMap[recipe.categoryId]" class="card-cat-icon" :src="categoryIconMap[recipe.categoryId]" mode="aspectFit" />
-              <view v-if="recipe.spicyCount" class="card-spicy"><Icon v-for="n in recipe.spicyCount" :key="n" name="chili" :size="13" :stroke-width="2.4" /></view>
+              <image v-if="recipe.spicyArt" class="card-spicy" :src="recipe.spicyArt" mode="aspectFit" />
             </view>
             <!-- 时长：一行极简字。数字稍大稍深、单位小一号更浅 —— 层级靠字号与颜色，
                  不加纸底、不加图标、不加旋转。这一行只该「轻」，它旁边已经有分类图标和辣椒了。 -->
@@ -77,7 +76,7 @@ import { onShow } from '@dcloudio/uni-app'
 import { useSafeArea } from '@/composables/useSafeArea.js'
 import { useUserStore } from '@/store/user.js'
 import { imgUrl } from '@/utils/image.js'
-import { SPICY_LEVELS } from '@/utils/spicy.js'
+import { spicyMark } from '@/utils/spicy.js'
 import { categoryArt } from '@/utils/category-art.js'
 import RecipeArt from '@/components/recipe-art/recipe-art.vue'
 const { statusBarHeight, menuButton } = useSafeArea()
@@ -97,9 +96,11 @@ const searchFocused = ref(false)
 // 渲染的 placeholder 不生效，必须用内联 placeholder-style；
 // 色值 = $p2-ink-soft(#8c725e) 的 55% 透明版
 const PLACEHOLDER_STYLE = 'color: rgba(140, 114, 94, 0.55)'
-// 辣度文案来自 utils/spicy.js —— 本页不要再维护一份映射：四档曾在列表页与详情页
-// 各存一份，扩档时只改了一处，「特辣」就被这里的 `|| 默认值` 吃成了「不辣」，
-// 而且页面毫无报错（2026-09-18 的实际事故）。
+// 辣度的**值域与图案都来自 utils/spicy.js** —— 本页不要再维护一份映射：四档曾在
+// 列表页与详情页各存一份，扩档时只改了一处，「特辣」就被这里的 `|| 默认值` 吃成了
+// 「不辣」，而且页面毫无报错（2026-09-18 的实际事故）。
+// 卡片上画的是**档位图案**（与编辑抽屉里那四格同一套素材），不再是单色辣椒循环 N 根：
+// 同一档辣度在列表、详情、抽屉里必须长得一样。
 
 const categories = ref([])
 const dishes = ref([])
@@ -216,10 +217,10 @@ const loadRecipes = async () => {
       id: d._id,
       name: d.name,
       image: d.image || '',
-      // 辣度：卡片只显示辣椒的**根数**，不显示文字档位（角标那条已删，避免同卡说两遍）——
-      // 根数与详情页同一个算法（none 0 根、mild 1、medium 2、hot 3），
-      // 卡片只消费这个数字，不在模板里另算一遍，两处的表达才不会跑偏
-      spicyCount: Math.max(SPICY_LEVELS.indexOf(d.spicy), 0),
+      // 辣度：直接带出**档位图案**（素材路径），不显示文字档位（角标那条已删，避免同卡说两遍）。
+      // 用 spicyMark 而不是 spicyImage —— 卡片是「标记」语义，「不辣」与「未设置」都不挂图标
+      // （斜线辣椒留给点单抽屉那种「字段」语义），模板一个 v-if 就收掉。
+      spicyArt: spicyMark(d.spicy),
       isSignature: !!d.isSignature,
       categoryId: d.categoryId || '',
       // 所需时间：云端有就先用，没有才落到临时假数据（见上方 fakeMinutes 的说明）。
@@ -266,17 +267,12 @@ const categoryTabs = computed(() => [
 ])
 
 /**
- * 按分类 id 查图标（卡片信息行左侧用）
+ * 卡片信息行**不再画分类图标**（2026-09-20 按主人要求撤掉）
  *
- * 与上面的分类栏**共用同一份映射**（utils/category-art.js）：两处各写一份的话，
- * 同一个分类会在 tab 上是彩色插画、在卡片上是另一个图形 —— 这页踩过同类坑（见上）。
- * 命中不了的分类返回空串，模板据此不渲染 <image>，不会留一个裂图占位。
+ * 原先是「分类图标 + 辣度」并排。撤掉分类的理由：分类在页面顶部已有筛选栏，
+ * 卡片上重复一遍是冗余；而辣度只有卡片能表达（筛选栏里没有）。
+ * 所以那条 `.card-facts` 容器**要保留**（见样式注释）—— 它负责把右侧的时长顶到右端。
  */
-const categoryIconMap = computed(() => {
-  const map = {}
-  for (const item of categories.value) map[item.id] = categoryArt(item.name)
-  return map
-})
 
 const filtered = computed(() => {
   const keyword = search.value.trim().toLocaleLowerCase()
@@ -373,16 +369,23 @@ button { padding: 0; margin: 0; background: none; color: inherit; font: inherit;
 .card-label { position: absolute; bottom: 12rpx; left: 18rpx; font-size: 18rpx; padding: 5rpx 12rpx; background: $p2-butter-soft; border-radius: 7rpx 10rpx 7rpx 9rpx; color: $p2-ink; }
 .card-copy { padding: 19rpx 18rpx 20rpx; }
 .dish-name { display: block; font-family: RecipeMaoken, $p2-font-fallback; font-size: $p2-fs-title; line-height: 1.3; }
-// 卡片信息行：左「分类图标 + 辣椒根数」，右「所需时间」。
-// 两端对齐：左侧长度可变（不辣的菜只剩分类图标），右侧时长固定贴右 —— 同一屏里时长会自然成一列，
-// 扫视时能横向比较，这是把它放在右边而不是紧跟分类的原因。
+// 卡片信息行：左「辣度图案」，右「所需时间」。
+// 两端对齐：右侧时长固定贴右 —— 同一屏里时长会自然成一列，扫视时能横向比较。
+//
+// ⚠️ `.card-facts` 这个容器**即使里面没东西也要留着**：它是「左组」，靠 space-between 把时长
+//    顶到右端。删掉它的话，没有辣度的菜（不辣 / 未设置 → 空串）那一行就只剩一个子元素，
+//    space-between 对单个元素等同于 flex-start，**时长会掉到左边**。
+//    空容器在这里是安全的：block 级 flex 没有内容时高度为 0，不会像 inline-flex 那样撑出行盒高度。
+//    原来是「分类图标 + 辣度」并排、所以有 gap:10rpx；现在只剩辣度一项，gap 已无意义，去掉。
 .card-meta { display: flex; align-items: center; justify-content: space-between; gap: 14rpx; margin-top: 20rpx; color: $p2-ink-soft; font-size: 21rpx; }
-.card-facts { display: flex; align-items: center; gap: 10rpx; min-width: 0; }
-// 分类图标 32rpx（16px）：比同行文字略高一档、形成"图形在左、文字在右"的读序。
-// 素材是彩色 SVG，直接 <image> 加载 —— 不要塞进 Icon.vue（mask 会抹掉颜色）。
-.card-cat-icon { width: 32rpx; height: 32rpx; flex-shrink: 0; display: block; }
-// 辣椒：与详情页同一套表达（几根代表几档），颜色取 $p2-coral；gap 收窄让它读成一组而非散开的图标
-.card-spicy { display: inline-flex; align-items: center; gap: 3rpx; color: $p2-coral; }
+.card-facts { display: flex; align-items: center; min-width: 0; }
+// 辣度图案：与详情页、点单抽屉**同一套素材**（`static/images/recipes/spicy/*-v2.svg`），
+// 由 utils/spicy.js 的 spicyMark() 给出；「不辣」与未设置都拿到空串 → 模板 v-if 收掉。
+//
+// 尺寸：46rpx 是**三处展示位统一的值**（辣椒视觉高约 24rpx）。换算过程、以及
+// 「别拿旧 Icon 的 size 直接当目标高」这条坑，都写在 utils/spicy.js 的注释里，改前先读。
+// **必须是正方形**：给长方形时 aspectFit 按短边铺满，辣椒反而更小。
+.card-spicy { width: 46rpx; height: 46rpx; flex-shrink: 0; display: block; }
 // 「所需时间」= 一行极简字：数字稍大稍深、单位小一号更浅。
 //
 // ⚠️ 这一处连续被否过两次，结论记在这里，免得再走回头路：

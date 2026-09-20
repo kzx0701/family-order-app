@@ -204,10 +204,10 @@ button[disabled].data-v-fc6387aa {
   color: #bdaa94;
 }
 .spicy.data-v-fc6387aa {
-  display: inline-flex;
-  align-items: center;
-  gap: 3rpx;
-  color: #e97a69;
+  width: 46rpx;
+  height: 46rpx;
+  flex-shrink: 0;
+  display: block;
 }
 .demo-label.data-v-fc6387aa {
   margin-left: auto;
@@ -224,6 +224,10 @@ button[disabled].data-v-fc6387aa {
   width: 44rpx;
   height: 44rpx;
   flex-shrink: 0;
+}
+.picker-field-spicy.data-v-fc6387aa {
+  width: 76rpx;
+  height: 64rpx;
 }
 .picker-field-icon.data-v-fc6387aa {
   display: flex;
@@ -604,6 +608,20 @@ button[disabled].data-v-fc6387aa {
   grid-auto-rows: 190rpx;
   gap: 18rpx;
   padding: 6rpx;
+}
+.picker-grid.cols-4.data-v-fc6387aa {
+  grid-template-columns: repeat(4, 1fr);
+  grid-auto-rows: 176rpx;
+}
+.picker-grid.cols-4 .picker-item.data-v-fc6387aa {
+  height: 176rpx;
+}
+.picker-grid.cols-4 .picker-item image.data-v-fc6387aa {
+  width: 94rpx;
+  height: 94rpx;
+}
+.picker-grid.cols-4 .picker-item .picker-art-box.data-v-fc6387aa {
+  height: 94rpx;
 }
 .picker-item.data-v-fc6387aa {
   box-sizing: border-box;

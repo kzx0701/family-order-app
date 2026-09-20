@@ -85,10 +85,10 @@ const _sfc_main = {
           id: d._id,
           name: d.name,
           image: d.image || "",
-          // 辣度：卡片只显示辣椒的**根数**，不显示文字档位（角标那条已删，避免同卡说两遍）——
-          // 根数与详情页同一个算法（none 0 根、mild 1、medium 2、hot 3），
-          // 卡片只消费这个数字，不在模板里另算一遍，两处的表达才不会跑偏
-          spicyCount: Math.max(utils_spicy.SPICY_LEVELS.indexOf(d.spicy), 0),
+          // 辣度：直接带出**档位图案**（素材路径），不显示文字档位（角标那条已删，避免同卡说两遍）。
+          // 用 spicyMark 而不是 spicyImage —— 卡片是「标记」语义，「不辣」与「未设置」都不挂图标
+          // （斜线辣椒留给点单抽屉那种「字段」语义），模板一个 v-if 就收掉。
+          spicyArt: utils_spicy.spicyMark(d.spicy),
           isSignature: !!d.isSignature,
           categoryId: d.categoryId || "",
           // 所需时间：云端有就先用，没有才落到临时假数据（见上方 fakeMinutes 的说明）。
@@ -109,7 +109,7 @@ const _sfc_main = {
           activeCategory.value = "all";
         }
       } catch (e) {
-        common_vendor.index.__f__("error", "at pages/recipe/recipe.vue:247", "[recipe] loadRecipes error", e);
+        common_vendor.index.__f__("error", "at pages/recipe/recipe.vue:248", "[recipe] loadRecipes error", e);
         common_vendor.index.showToast({ title: "网络不太好，稍后再试", icon: "none" });
       } finally {
         loading.value = false;
@@ -121,12 +121,6 @@ const _sfc_main = {
       { id: "all", name: "全部", icon: "" },
       ...categories.value.map((item) => ({ ...item, icon: utils_categoryArt.categoryArt(item.name) }))
     ]);
-    const categoryIconMap = common_vendor.computed(() => {
-      const map = {};
-      for (const item of categories.value)
-        map[item.id] = utils_categoryArt.categoryArt(item.name);
-      return map;
-    });
     const filtered = common_vendor.computed(() => {
       const keyword = search.value.trim().toLocaleLowerCase();
       return dishes.value.filter((dish) => (activeCategory.value === "all" || dish.categoryId === activeCategory.value) && (!keyword || [dish.name, dish.tip].some((value) => String(value).toLocaleLowerCase().includes(keyword))));
@@ -199,29 +193,15 @@ const _sfc_main = {
             h: recipe.isSignature
           }, recipe.isSignature ? {} : {}, {
             i: common_vendor.t(recipe.name),
-            j: categoryIconMap.value[recipe.categoryId]
-          }, categoryIconMap.value[recipe.categoryId] ? {
-            k: categoryIconMap.value[recipe.categoryId]
+            j: recipe.spicyArt
+          }, recipe.spicyArt ? {
+            k: recipe.spicyArt
           } : {}, {
-            l: recipe.spicyCount
-          }, recipe.spicyCount ? {
-            m: common_vendor.f(recipe.spicyCount, (n, k1, i1) => {
-              return {
-                a: n,
-                b: "fb437fc6-4-" + i0 + "-" + i1
-              };
-            }),
-            n: common_vendor.p({
-              name: "chili",
-              size: 13,
-              ["stroke-width"]: 2.4
-            })
-          } : {}, {
-            o: common_vendor.t(recipe.minutes),
-            p: recipe.id,
-            q: Math.min(index, 5) * 35 + "ms",
-            r: "查看" + recipe.name + "菜谱",
-            s: common_vendor.o(($event) => openRecipe(recipe), recipe.id)
+            l: common_vendor.t(recipe.minutes),
+            m: recipe.id,
+            n: Math.min(index, 5) * 35 + "ms",
+            o: "查看" + recipe.name + "菜谱",
+            p: common_vendor.o(($event) => openRecipe(recipe), recipe.id)
           });
         }),
         q: activeCategory.value
@@ -235,13 +215,13 @@ const _sfc_main = {
         v: common_vendor.t(dishes.value.length ? "试试其他菜名、备注，或放宽筛选吧。" : "饲养员添几道拿手菜，就会出现在这里。"),
         w: dishes.value.length
       }, dishes.value.length ? {
-        x: common_vendor.o(resetFilters, "1c")
+        x: common_vendor.o(resetFilters, "19")
       } : canAdd.value ? {
         z: common_vendor.p({
           name: "plus",
           size: 16
         }),
-        A: common_vendor.o(createRecipe, "2a")
+        A: common_vendor.o(createRecipe, "46")
       } : {}, {
         y: canAdd.value
       }) : {}, {
@@ -258,7 +238,7 @@ const _sfc_main = {
           size: 20,
           ["stroke-width"]: 2.2
         }),
-        E: common_vendor.o(createRecipe, "db")
+        E: common_vendor.o(createRecipe, "6f")
       } : {}, {
         F: showAddBar.value ? 1 : ""
       });

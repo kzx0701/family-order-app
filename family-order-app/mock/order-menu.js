@@ -9,14 +9,24 @@ const img = name => '/static/images/recipes/dishes/' + name + '-v1.png'
 // 取值沿用 utils/spicy.js 的四档（none/mild/medium/hot），与菜谱页、详情页同一套枚举 ——
 // 别在这里另存一份中文映射，那是「同一批分类两处各存一份」踩过的坑。
 // `options` 只装**用户能选的东西**：温度、甜度、口味。辣度不是选项，所以不出现在这里。
+//
+// `recipeCategory` = 这道菜在**菜谱里的做法分类名**（炒菜 / 烧菜 / 汤类…），卡片上用它取分类图标，
+// 由 utils/category-art.js 按名匹配素材。⚠️ 它与上面的 `category` **不是一回事**，别合并：
+//   · `category`（home / greens / soup / milky / black）= **点单页自己的菜单分类**，顶部筛选栏在用；
+//   · `recipeCategory`（中文名）= 菜谱的做法分类，只用于卡片上那枚图标。
+// 咖啡类菜品在菜谱里没有做法分类，不填这个字段 —— 卡片上自然不显示图标（categoryArt 对空值返回空串）。
+//
+// `tone` = 图片背后那块色块的配色（yellow / green / blue / coral），**仍在用**，别一起删。
+// 原先还有个 `tag`（「下饭担当」那类营销标签），2026-09-20 按主人要求撤掉显示并**删除了字段** ——
+// 它与菜名、描述说的是同一件事，却占着卡片上最有价值的一行；需要时从 git 历史找回。
 export const menuItems = [
-  { id:'tomato-eggs', recipeId:'tomato-eggs', type:'food', name:'番茄炒蛋', subtitle:'酸酸甜甜，拌饭刚刚好', image:img('tomato-eggs'), category:'home', tag:'下饭担当', tone:'yellow', minutes:12, signature:true, spicy:'none', description:'嫩嫩的鸡蛋裹着番茄汁，是家里怎么吃都不腻的味道。留一点汤汁，拌饭更香。', options:[], defaults:[] },
-  { id:'potato-chicken', recipeId:'potato-chicken', type:'food', name:'土豆焖鸡', subtitle:'软糯土豆，承包一碗饭', image:img('potato-chicken'), category:'home', tag:'家的拿手菜', tone:'coral', minutes:35, signature:true, spicy:'mild', description:'鸡肉慢慢焖入味，土豆吸饱酱汁。喜欢软糯口感的话，可以在备注里告诉做饭人。', options:[], defaults:[] },
-  { id:'garlic-greens', recipeId:'garlic-greens', type:'food', name:'蒜蓉小青菜', subtitle:'清清爽爽，给餐桌添点绿', image:img('garlic-bok-choy'), category:'greens', tag:'清爽搭档', tone:'green', minutes:8, signature:false, description:'新鲜小青菜配上一点蒜香，大火快炒。简单的一盘，也要认认真真做好。', options:[{name:'口味',values:['蒜香','清淡']}], defaults:['蒜香'] },
-  { id:'corn-soup', recipeId:'corn-soup', type:'food', name:'玉米排骨汤', subtitle:'咕嘟咕嘟，暖到心里', image:img('corn-rib-soup'), category:'soup', tag:'暖胃小幸福', tone:'blue', minutes:60, signature:false, description:'玉米的清甜慢慢煮进汤里，胡萝卜和排骨软软的。盛一碗，把今天的疲惫也暖一暖。', options:[{name:'口味',values:['原味','少盐']}], defaults:['原味'] },
-  { id:'latte', recipeId:'latte', type:'coffee', name:'暖暖拿铁', subtitle:'奶香和咖啡，刚好抱个满怀', image:latteArt, category:'milky', tag:'温柔一杯', tone:'coral', minutes:5, signature:true, description:'浓缩咖啡与绵密牛奶的日常搭配。冷热和甜度都可以按你的心情来。', options:[{name:'温度',values:['热','冰']},{name:'甜度',values:['无糖','微甜','正常甜']}], defaults:['热','无糖'] },
-  { id:'americano', recipeId:'americano', type:'coffee', name:'清醒美式', subtitle:'轻轻一口，唤醒今天的你', image:americanoArt, category:'black', tag:'清醒搭子', tone:'blue', minutes:3, signature:false, description:'浓缩咖啡加水，保留纯粹的咖啡香。冰一点或热一点，都是元气的开始。', options:[{name:'温度',values:['冰','热']}], defaults:['冰'] },
-  { id:'coconut', recipeId:'coconut', type:'coffee', name:'椰香拿铁', subtitle:'椰风吹进杯子，快乐加一点', image:coconutArt, category:'milky', tag:'今日小偏爱', tone:'green', minutes:5, signature:true, description:'浓郁椰香与咖啡交织的一杯小快乐。椰乳自带甜味，可以额外选择甜度。', options:[{name:'温度',values:['冰','热']},{name:'甜度',values:['不加糖','微甜']}], defaults:['冰','不加糖'] }
+  { id:'tomato-eggs', recipeId:'tomato-eggs', type:'food', name:'番茄炒蛋', subtitle:'酸酸甜甜，拌饭刚刚好', image:img('tomato-eggs'), category:'home', recipeCategory:'炒菜', tone:'yellow', minutes:12, signature:true, spicy:'none', description:'嫩嫩的鸡蛋裹着番茄汁，是家里怎么吃都不腻的味道。留一点汤汁，拌饭更香。', options:[], defaults:[] },
+  { id:'potato-chicken', recipeId:'potato-chicken', type:'food', name:'土豆焖鸡', subtitle:'软糯土豆，承包一碗饭', image:img('potato-chicken'), category:'home', recipeCategory:'烧菜', tone:'coral', minutes:35, signature:true, spicy:'mild', description:'鸡肉慢慢焖入味，土豆吸饱酱汁。喜欢软糯口感的话，可以在备注里告诉做饭人。', options:[], defaults:[] },
+  { id:'garlic-greens', recipeId:'garlic-greens', type:'food', name:'蒜蓉小青菜', subtitle:'清清爽爽，给餐桌添点绿', image:img('garlic-bok-choy'), category:'greens', recipeCategory:'炒菜', tone:'green', minutes:8, signature:false, description:'新鲜小青菜配上一点蒜香，大火快炒。简单的一盘，也要认认真真做好。', options:[{name:'口味',values:['蒜香','清淡']}], defaults:['蒜香'] },
+  { id:'corn-soup', recipeId:'corn-soup', type:'food', name:'玉米排骨汤', subtitle:'咕嘟咕嘟，暖到心里', image:img('corn-rib-soup'), category:'soup', recipeCategory:'汤类', tone:'blue', minutes:60, signature:false, description:'玉米的清甜慢慢煮进汤里，胡萝卜和排骨软软的。盛一碗，把今天的疲惫也暖一暖。', options:[{name:'口味',values:['原味','少盐']}], defaults:['原味'] },
+  { id:'latte', recipeId:'latte', type:'coffee', name:'暖暖拿铁', subtitle:'奶香和咖啡，刚好抱个满怀', image:latteArt, category:'milky', tone:'coral', minutes:5, signature:true, description:'浓缩咖啡与绵密牛奶的日常搭配。冷热和甜度都可以按你的心情来。', options:[{name:'温度',values:['热','冰']},{name:'甜度',values:['无糖','微甜','正常甜']}], defaults:['热','无糖'] },
+  { id:'americano', recipeId:'americano', type:'coffee', name:'清醒美式', subtitle:'轻轻一口，唤醒今天的你', image:americanoArt, category:'black', tone:'blue', minutes:3, signature:false, description:'浓缩咖啡加水，保留纯粹的咖啡香。冰一点或热一点，都是元气的开始。', options:[{name:'温度',values:['冰','热']}], defaults:['冰'] },
+  { id:'coconut', recipeId:'coconut', type:'coffee', name:'椰香拿铁', subtitle:'椰风吹进杯子，快乐加一点', image:coconutArt, category:'milky', tone:'green', minutes:5, signature:true, description:'浓郁椰香与咖啡交织的一杯小快乐。椰乳自带甜味，可以额外选择甜度。', options:[{name:'温度',values:['冰','热']},{name:'甜度',values:['不加糖','微甜']}], defaults:['冰','不加糖'] }
 ]
 export const menuCategories = {
   food:[{id:'all',name:'全部'},{id:'signature',name:'拿手菜'},{id:'home',name:'家常菜'},{id:'greens',name:'清爽蔬菜'},{id:'soup',name:'暖心汤'}],

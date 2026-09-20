@@ -25,7 +25,7 @@
           <text class="field-label">菜品分类 <text>选填</text></text>
           <button class="field picker-field" aria-label="选择菜品分类" @tap="openPicker('category')"><image v-if="currentCategoryImage" class="picker-field-art" :src="currentCategoryImage" mode="aspectFit" /><Icon v-else-if="currentCategoryIcon" class="picker-field-icon" :name="currentCategoryIcon" size="36rpx" /><text class="picker-field-value" :class="{ 'is-empty': !currentCategoryName }">{{ currentCategoryName || '还没选分类' }}</text><Icon name="chevron-right" :size="15" /></button>
           <text class="field-label">辣度 <text>选填</text></text>
-          <button class="field picker-field" aria-label="选择辣度" @tap="openPicker('spicy')"><image class="picker-field-art" :src="currentSpicy.image" mode="aspectFit" /><text class="picker-field-value">{{ currentSpicy.label }}</text><Icon name="chevron-right" :size="15" /></button>
+          <button class="field picker-field" aria-label="选择辣度" @tap="openPicker('spicy')"><image class="picker-field-art picker-field-spicy" :src="currentSpicy.image" mode="aspectFit" /><text class="picker-field-value">{{ currentSpicy.label }}</text><Icon name="chevron-right" :size="15" /></button>
           <!-- 菜谱描述：对应云端的 dishes.description（本来就有这个字段，此前只有管理端能写）。
                它是菜谱列表页**卡片副行**的来源（note 为空时回退它），所以限 40 字 ——
                再长在卡片上也会被省略号截掉，不如让用户在写的时候就看得见长度。
@@ -41,7 +41,7 @@
             </view>
           </view>
         </template>
-        <view v-if="!editing && (currentCategoryName || spicyCount || !cloudDishId)" class="meta"><view v-if="currentCategoryName" class="category-pill"><view class="leaf" />{{ currentCategoryName }}</view><text v-if="currentCategoryName && spicyCount" class="meta-dot">·</text><view v-if="spicyCount" class="spicy"><Icon v-for="n in spicyCount" :key="n" name="chili" size="28rpx" :stroke-width="2.4" /></view><text v-if="!cloudDishId" class="demo-label">本机体验菜谱</text></view>
+        <view v-if="!editing && (currentCategoryName || spicyArt || !cloudDishId)" class="meta"><view v-if="currentCategoryName" class="category-pill"><view class="leaf" />{{ currentCategoryName }}</view><text v-if="currentCategoryName && spicyArt" class="meta-dot">·</text><image v-if="spicyArt" class="spicy" :src="spicyArt" mode="aspectFit" /><text v-if="!cloudDishId" class="demo-label">本机体验菜谱</text></view>
       </view>
       <view v-for="(section, index) in sections" :key="section.key" class="material-section">
         <view class="section-head"><text class="number" :class="section.key">{{ index + 1 }}</text><text class="section-title">{{ section.title }}</text></view>
@@ -97,7 +97,7 @@
       <view class="mask" @tap="picker = ''" @touchmove.stop.prevent />
       <view class="sheet"><view class="handle" /><view class="picker-heading"><view><text class="section-title">{{ pickerKind.title }}</text><text class="subtitle">{{ pickerKind.subtitle }}</text></view></view>
         <view v-if="pickerKind.searchable" class="picker-search" :class="{ 'is-focused': pickerFocused }"><Icon name="search" :size="16" :stroke-width="2.2" /><input v-model="pickerKeyword" class="picker-search-input" :placeholder="'搜一搜' + pickerKind.noun" :placeholder-style="PLACEHOLDER_STYLE" :maxlength="20" confirm-type="search" :aria-label="'搜索' + pickerKind.noun" @focus="pickerFocused = true" @blur="pickerFocused = false" /><button v-if="pickerKeyword" class="picker-search-clear" aria-label="清空搜索" @tap="pickerKeyword = ''"><Icon name="close" :size="13" /></button></view>
-        <scroll-view scroll-y class="picker-scroll" :style="{ height: pickerListHeight }"><view v-if="!pickerOptions.length" class="picker-blank"><template v-if="pickerKind.searchable && pickerKeyword.trim()"><text>没有找到「{{ pickerKeyword.trim() }}」</text><text>换个词试试</text></template><template v-else><text>{{ pickerKind.emptyTitle }}</text><text>{{ pickerKind.emptyHint }}</text></template></view><view class="picker-grid"><button v-for="(item, index) in pickerOptions" :key="item.id + '-' + pickerKeyword" class="picker-item" :style="{ animationDelay: Math.min(index, 6) * 20 + 'ms' }" :class="{ selected: selection.includes(item.id) }" :aria-label="'选择' + item.name" :aria-pressed="selection.includes(item.id)" @tap="toggleSelection(item.id)"><image v-if="item.image" :src="item.image" mode="aspectFit" /><view v-else-if="item.icon" class="picker-art-box"><Icon :name="item.icon" size="88rpx" /></view><text>{{ item.name }}</text><view class="selection-dot"><Icon v-if="selection.includes(item.id)" name="check" :size="12" /></view></button></view></scroll-view>
+        <scroll-view scroll-y class="picker-scroll" :style="{ height: pickerListHeight }"><view v-if="!pickerOptions.length" class="picker-blank"><template v-if="pickerKind.searchable && pickerKeyword.trim()"><text>没有找到「{{ pickerKeyword.trim() }}」</text><text>换个词试试</text></template><template v-else><text>{{ pickerKind.emptyTitle }}</text><text>{{ pickerKind.emptyHint }}</text></template></view><view class="picker-grid" :class="'cols-' + pickerCols"><button v-for="(item, index) in pickerOptions" :key="item.id + '-' + pickerKeyword" class="picker-item" :style="{ animationDelay: Math.min(index, 6) * 20 + 'ms' }" :class="{ selected: selection.includes(item.id) }" :aria-label="'选择' + item.name" :aria-pressed="selection.includes(item.id)" @tap="toggleSelection(item.id)"><image v-if="item.image" :src="item.image" mode="aspectFit" /><view v-else-if="item.icon" class="picker-art-box"><Icon :name="item.icon" size="88rpx" /></view><text>{{ item.name }}</text><view class="selection-dot"><Icon v-if="selection.includes(item.id)" name="check" :size="12" /></view></button></view></scroll-view>
         <button class="primary confirm" @tap="confirmPicker">{{ pickerConfirmText }}</button>
       </view>
     </view>
@@ -114,7 +114,7 @@ import { useSafeArea } from '@/composables/useSafeArea.js'
 import { useCoverUpload } from '@/composables/useCoverUpload.js'
 import { useUserStore } from '@/store/user.js'
 import { pantry, freshRecipe, blankRecipe, cloneRecipe, validateRecipe } from '@/mock/recipe-editor.js'
-import { SPICY_OPTIONS, SPICY_LEVELS } from '@/utils/spicy.js'
+import { SPICY_OPTIONS, SPICY_LEVELS, spicyMark } from '@/utils/spicy.js'
 import { categoryArt } from '@/utils/category-art.js'
 import { imgUrl } from '@/utils/image.js'
 const STORAGE_KEY = 'fo_recipe_editor_demo_v2'
@@ -230,17 +230,20 @@ const categoryOptions = computed(() => categories.value.map(c => {
   return { id: c.id, name: c.name, image: art, icon: art ? '' : FALLBACK_CATEGORY_ICON }
 }))
 
-// 辣度档位（SPICY_OPTIONS / SPICY_LEVELS）来自 utils/spicy.js —— 与列表页共用一份定义。
-// 浏览态用**辣椒图标的数量**表达 —— none 不显示、mild 1 根、medium 2 根、hot 3 根
-// （餐饮品牌通用的表达法，也比文字更省横向空间）；编辑态在抽屉里用图标 + 文字选，
-// 与「食材 / 调料」同一个抽屉模式。
-// 档位高低即数组顺序，所以浏览态直接用 SPICY_LEVELS.indexOf 取根数，不需要额外映射表。
+// 辣度档位（SPICY_OPTIONS / SPICY_LEVELS）与档位图案（spicyImage / spicyMark）都来自
+// utils/spicy.js —— 与菜谱列表页、点单抽屉共用一份定义和一套素材，**本页不要另存映射**
+// （2026-09-18 两页各存一份，扩档时「特辣」被吃成「不辣」且页面毫无报错）。
+//
+// 浏览态画的是**档位图案**（与编辑抽屉里那四格是同一套素材），不再是 Icon.vue 的单色辣椒
+// 循环 N 根 —— 同一档辣度在列表、详情、抽屉里必须长得一样。
 
-/** 当前菜品要显示几根辣椒：0 = 不辣（完全不显示），1/2/3 = 微辣 / 中辣 / 特辣 */
-const spicyCount = computed(() => {
-  // 未设置、空值、非法值一律按「不辣」处理 —— indexOf 返回 -1 时被 Math.max 收到 0
-  return Math.max(SPICY_LEVELS.indexOf(shown.value && shown.value.spicy), 0)
-})
+/**
+ * 当前菜品要显示的档位图案
+ *
+ * 用 spicyMark（不是 spicyImage）：浏览态是「标记」语义，**「不辣」是默认状态、不挂图标**；
+ * 未设置与脏值同样得到空串 → 模板一个 v-if 收掉。斜线辣椒只出现在「字段」语义的点单抽屉里。
+ */
+const spicyArt = computed(() => spicyMark(shown.value && shown.value.spicy))
 
 /**
  * 当前菜品的分类（编辑态取 draft、浏览态取 saved）
@@ -354,17 +357,28 @@ const pickerConfirmText = computed(() => {
   return `就选这些 · ${selection.value.length} 种`
 })
 
-// 列表区高度：由当前抽屉的选项总数决定，最多三行 —— 搜索时不随结果的增减而变化。
-// 数值与样式一一对应：.picker-item 的 height 与 .picker-grid 的 grid-auto-rows = 190rpx、
-// .picker-grid 的 gap = 18rpx、上下 padding 合计 12rpx。改动样式需同步改这三个常量。
+// 列表区高度：由当前抽屉的选项总数与**列数**决定，最多三行 —— 搜索时不随结果的增减而变化。
+// 数值与样式一一对应：.picker-item 的 height 与 .picker-grid 的 grid-auto-rows = 190rpx（辣度 176rpx）、
+// .picker-grid 的 gap = 18rpx、上下 padding 合计 12rpx。改动样式需同步改这几个常量。
 const PICKER_ROW_RPX = 190
+const PICKER_ROW_SPICY_RPX = 176
 const PICKER_GAP_RPX = 18
 const PICKER_GRID_PAD_RPX = 12
-const PICKER_COLS = 3
 const PICKER_MAX_ROWS = 3
+/**
+ * 每行几格
+ *
+ * 辣度是**恰好四档、语义上并列的一组**（不辣 → 特辣，顺序即高低），
+ * 排成三列会让第四档单独掉到第二行，既断开序列又白占一行高度；
+ * 四列并排才能一眼读完"从哪档到哪档"。食材/调料是数量不定的物料格子，
+ * 保持三列（格子更宽，名称长一些也放得下）。
+ */
+const pickerCols = computed(() => (picker.value === 'spicy' ? 4 : 3))
+/** 辣度格子更窄，行高跟着收一档（样式里 $picker-row-spicy 必须与此一致） */
+const pickerRowRpx = computed(() => (picker.value === 'spicy' ? PICKER_ROW_SPICY_RPX : PICKER_ROW_RPX))
 const pickerListHeight = computed(() => {
-  const rows = Math.min(Math.max(Math.ceil(pickerAllOptions.value.length / PICKER_COLS), 1), PICKER_MAX_ROWS)
-  return rows * PICKER_ROW_RPX + (rows - 1) * PICKER_GAP_RPX + PICKER_GRID_PAD_RPX + 'rpx'
+  const rows = Math.min(Math.max(Math.ceil(pickerAllOptions.value.length / pickerCols.value), 1), PICKER_MAX_ROWS)
+  return rows * pickerRowRpx.value + (rows - 1) * PICKER_GAP_RPX + PICKER_GRID_PAD_RPX + 'rpx'
 })
 let leaveAfterDiscard = false, nextId = 0
 /**
@@ -738,15 +752,21 @@ button { margin:0; padding:0; background:transparent; color:inherit; font:inheri
 // 底色取 $p2-leaf-soft，与紧邻下方的序号方块同色，视觉上能连成一套。
 .category-pill { display:inline-flex; align-items:center; gap:8rpx; padding:6rpx 15rpx 6rpx 12rpx; border-radius:12rpx 15rpx 11rpx 14rpx; background:$p2-leaf-soft; color:$p2-ink; font-size:20rpx; }
 .meta-dot { color:#bdaa94; }
-// 辣度：用辣椒的根数表达档位（不辣时整块都不渲染）。取 $p2-coral —— 既是「辣」的自然语义，
-// 也是页面既有的强调色；gap 收窄到 3rpx，让多根辣椒读起来是一组而不是散开的几个图标。
-.spicy { display:inline-flex; align-items:center; gap:3rpx; color:$p2-coral; }
+// 辣度图案：与菜谱列表卡片、点单抽屉**同一套素材**（`static/images/recipes/spicy/*-v2.svg`），
+// 由 utils/spicy.js 的 spicyMark() 给出；「不辣」是默认状态、整块不渲染。
+//
+// 尺寸：46rpx 是**三处展示位统一的值**（辣椒视觉高约 24rpx）。换算过程、以及
+// 「别拿旧 Icon 的 size 直接当目标高」这条坑，都写在 utils/spicy.js 的注释里，改前先读。
+// 注意这个方框也决定了 .meta 这一行的高度（46rpx，比原先 28rpx 的单色图标高一些）。
+.spicy { width:46rpx; height:46rpx; flex-shrink:0; display:block; }
 .demo-label { margin-left:auto; font-size:18rpx; }
 // 分类 / 辣度的编辑入口：与名称输入框同形的**整行控件**，点它开抽屉去挑。
 // 形制直接落在 .field 上（描边 + 手绘圆角 + 奶油底），本类只负责内容的两端对齐 ——
 // 这样两行选择器与上方的名称输入框读起来是同一组表单。
 .picker-field { display:flex; align-items:center; gap:14rpx; width:100%; text-align:left; }
 .picker-field-art { width:44rpx; height:44rpx; flex-shrink:0; }
+// 三根辣椒仍清晰可辨，使用与抽屉相同的完整图案。
+.picker-field-spicy { width:76rpx; height:64rpx; }
 // 图标走 Icon.vue（SVG mask + 继承 currentColor），颜色跟着控件的文字色走，不另设。
 // 外面套一个和 .picker-field-art **等宽等高**的盒子（44rpx）：分类行是「素材 or 图标兜底」、
 // 辣度行是素材，若两条前导图形宽度不同，下面一行的文字会横向错开几个像素。
@@ -811,6 +831,9 @@ button { margin:0; padding:0; background:transparent; color:inherit; font:inheri
 // 选择器最多显示三行：行高与间距都固定，max-height 由算式推出（+12rpx 是 .picker-grid 的上下 padding），
 // 超出三行由 scroll-view 内部滚动。原来用 48vh，可见行数随屏幕高度浮动，矮屏上第三行会被切掉一半。
 $picker-row: 190rpx;
+// 辣度专用行高：它排四列、格子窄了一档（约 154rpx），保持 190 会显得瘦长、图上下空太多。
+// **改这里要同步改 script 里的 PICKER_ROW_SPICY_RPX**。
+$picker-row-spicy: 176rpx;
 $picker-gap: 18rpx;
 // 搜索框：复用菜谱页 .search-box 的二期输入框规范（奶油底 + 实棕描边 + 聚焦转珊瑚色）
 .picker-search { display:flex; align-items:center; gap:14rpx; height:72rpx; padding:0 24rpx; margin-top:26rpx; color:$p2-ink-soft; background:$p2-surface; border:2rpx solid $p2-line; border-radius:20rpx 24rpx 19rpx 23rpx; transition:border-color $p2-dur-fast $p2-ease; &.is-focused { border-color:$p2-coral; } }
@@ -819,7 +842,15 @@ $picker-gap: 18rpx;
 .picker-scroll { max-height: $picker-row * 3 + $picker-gap * 2 + 12rpx; margin:22rpx 0 24rpx; }
 // 选择器空态：materials 里还没有这个分组的物料时给出原因，避免看起来像功能坏了
 .picker-blank { padding:44rpx 6rpx; text-align:center; color:$p2-ink-soft; font-size:$p2-fs-caption; animation: picker-pop $p2-dur-base $p2-ease backwards; text { display:block; line-height:1.9; } }
-.picker-grid { display:grid; grid-template-columns:repeat(3,1fr); grid-auto-rows:$picker-row; gap:$picker-gap; padding:6rpx; }
+// 默认三列。辣度是**恰好四档、顺序即高低**的一组，排三列会让「特辣」单独掉到第二行，
+// 既断了序列又多占一行高度 —— 所以给它开一个四列变体（列数由 script 的 pickerCols 决定，两处必须一致）。
+// 四列时格子从 211rpx 收到约 154rpx，内宽只剩 120rpx，110rpx 的图案会贴到 padding 边上，
+// 故把图案收到 94rpx（左右各留 13rpx 呼吸）；行高同步降到 $picker-row-spicy，维持接近方形的比例。
+.picker-grid { display:grid; grid-template-columns:repeat(3,1fr); grid-auto-rows:$picker-row; gap:$picker-gap; padding:6rpx;
+  &.cols-4 { grid-template-columns:repeat(4,1fr); grid-auto-rows:$picker-row-spicy;
+    .picker-item { height:$picker-row-spicy; image { width:94rpx; height:94rpx; } .picker-art-box { height:94rpx; } }
+  }
+}
 // 入场动效：关键词一变，:key 里带了关键词 → 列表节点整体重建，卡片依次淡入上浮，
 // 让「筛选」读起来是内容浮现、而不是硬切；配合固定高度的列表，抽屉在搜索全程不跳动。
 // fill-mode 用 backwards 而不是 both/forwards —— 那两个会在动画结束后继续锁定 to 段的
