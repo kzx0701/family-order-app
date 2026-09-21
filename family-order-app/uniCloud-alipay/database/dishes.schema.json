@@ -144,12 +144,6 @@
             "defaultValue": true,
             "label": "上架状态"
         },
-        "isRecommended": {
-            "bsonType": "bool",
-            "description": "是否推荐（推荐菜品显示在点单页推荐区）",
-            "defaultValue": false,
-            "label": "推荐状态"
-        },
         "isSignature": {
             "bsonType": "bool",
             "description": "是否招牌（本家拿手菜，菜谱/菜单上打「家的拿手菜」标记，与「推荐」是两个独立标记）",

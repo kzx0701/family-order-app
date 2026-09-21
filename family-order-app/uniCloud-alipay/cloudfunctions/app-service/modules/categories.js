@@ -8,14 +8,15 @@ const { requireCook } = require('../utils/auth.js')
  *   - list    查询分类（支持 type 筛选），返回列表（按 sortOrder 升序）
  *   - create  新增分类（仅饲养员）
  *   - update  编辑分类（仅饲养员）
- *   - delete  删除分类（仅饲养员，"推荐"分类为系统内置不可删除）
+ *   - delete  删除分类（仅饲养员）。删除会把引用它的菜品 categoryId 置空，见 deleteCategory
  *   - sort    批量更新排序（仅饲养员）
  *
  * 鉴权方式：前端传入 token（openid），查询 users 集合确认 lastMode == 'cook'
  */
 
-// 系统内置分类名，受保护不可删除
-const SYSTEM_CATEGORY_NAMES = ['推荐']
+// 【2026-09-21 已删除】原先这里有一份「系统内置分类名」白名单（值为 ['推荐']），以及配套的两道保护
+// （改名拦截、删除拦截）。云端 categories 集合里**从来没有叫「推荐」的记录** —— 那是 menu-list
+// 接口凭代码构造的虚拟分类（同批已下线），所以这两道判断永远不命中，属纯残留。
 
 exports.main = async (event, context) => {
   const { action, token, ...payload } = event
@@ -112,15 +113,6 @@ async function updateCategory({ _id, ...patch } = {}, catCol) {
     patch.sortOrder = Number(patch.sortOrder) || 0
   }
 
-  // 校验原分类是否为系统内置，系统分类名称不可改
-  const originRes = await catCol.doc(_id).get()
-  if (originRes.data.length > 0) {
-    const origin = originRes.data[0]
-    if (SYSTEM_CATEGORY_NAMES.includes(origin.name) && patch.name && patch.name !== origin.name) {
-      return { code: 403, message: '系统内置分类名称不可修改' }
-    }
-  }
-
   const res = await catCol.doc(_id).update(patch)
   if (res.updated === 0) {
     return { code: 404, message: '分类不存在' }
@@ -130,20 +122,20 @@ async function updateCategory({ _id, ...patch } = {}, catCol) {
 
 /**
  * 删除分类
- * "推荐"分类为系统内置，不可删除
+ *
+ * ⚠️ 原先这里会先拦一道「系统内置分类（名为『推荐』）不可删除」，2026-09-21 随那份白名单一起删除。
+ * 删除后仍会把引用该分类的菜品 `categoryId` 置空 —— 否则会留下挂着旧 id 的「孤儿菜品」，
+ * 在列表页与点单页都查不到分类名（分类删除又重建后 _id 会变，旧 id 永远匹配不上）。
  */
 async function deleteCategory({ _id } = {}, catCol) {
   if (!_id) {
     return { code: 400, message: '缺少 _id' }
   }
 
-  // 查询分类，系统内置不可删除
+  // 先确认存在：remove 对不存在的记录返回 deleted:0，但先查一次能给出更明确的 404
   const originRes = await catCol.doc(_id).get()
   if (originRes.data.length === 0) {
     return { code: 404, message: '分类不存在' }
-  }
-  if (SYSTEM_CATEGORY_NAMES.includes(originRes.data[0].name)) {
-    return { code: 403, message: '系统内置分类不可删除' }
   }
 
   const res = await catCol.doc(_id).remove()

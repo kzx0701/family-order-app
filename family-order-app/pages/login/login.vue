@@ -132,9 +132,9 @@ const onLogin = async () => {
 </script>
 
 <style lang="scss" scoped>
-/* 品牌区标题与副标题使用猫啃什锦黑（与首页、引导页同一只手绘体）。
- * 页面级引入：字体以 base64 内嵌，加进 uni.scss 会让它在每个页面 wxss 里重复一份。 */
-@import '@/scss/font-maoken.scss';
+// 品牌区标题与副标题使用猫啃什锦黑（与首页、引导页同一只手绘体）。
+// 2026-09-21 起 @font-face 统一在 App.vue 里引一次、编进 app.wxss 全局生效 ——
+// 页面侧不要再 @import scss/font-*.scss，否则 base64 会重新被重复打进每个页面的 wxss。
 
 .page-login {
   position: relative;

@@ -232,10 +232,6 @@
   background-color: var(--theme-secondary);
   color: var(--theme-secondary-foreground);
 }
-.info-card .recommend-pill.data-v-f1b4097a {
-  background-color: rgba(251, 191, 36, 0.16);
-  color: #b45309;
-}
 .info-card .name.data-v-f1b4097a {
   display: block;
   font-size: 22px;

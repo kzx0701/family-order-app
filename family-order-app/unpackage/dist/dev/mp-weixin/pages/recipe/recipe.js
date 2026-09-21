@@ -41,35 +41,6 @@ const _sfc_main = {
     const markPhotoReady = (id) => {
       photoReady[id] = true;
     };
-    const CATEGORY_MINUTES = {
-      汤: [40, 45, 60],
-      烧: [35, 40, 45],
-      蒸: [25, 30, 35],
-      主食: [25, 30, 40],
-      炒: [10, 15, 20],
-      凉: [10, 15, 20]
-    };
-    const FALLBACK_MINUTES = [15, 20, 25, 30, 40];
-    const stableHash = (seed) => {
-      const s = String(seed || "");
-      let h = 2166136261;
-      for (let i = 0; i < s.length; i += 1) {
-        h ^= s.charCodeAt(i);
-        h = Math.imul(h, 16777619);
-      }
-      return Math.abs(h);
-    };
-    const fakeMinutes = (seed, categoryName) => {
-      const h = stableHash(seed);
-      const name = String(categoryName || "");
-      for (const key of Object.keys(CATEGORY_MINUTES)) {
-        if (name.includes(key)) {
-          const options = CATEGORY_MINUTES[key];
-          return options[h % options.length];
-        }
-      }
-      return FALLBACK_MINUTES[h % FALLBACK_MINUTES.length];
-    };
     const loadRecipes = async () => {
       if (loading.value)
         return;
@@ -89,11 +60,11 @@ const _sfc_main = {
           // 用 spicyMark 而不是 spicyImage —— 卡片是「标记」语义，「不辣」与「未设置」都不挂图标
           // （斜线辣椒留给点单抽屉那种「字段」语义），模板一个 v-if 就收掉。
           spicyArt: utils_spicy.spicyMark(d.spicy),
+          // 档位值本身也带出来：模板要靠它挂 `pull-*` 类抵掉素材自带的透明留白（见样式区注释）。
+          // 非法值与未设置都拿不到对应类 → 不产生负外边距，图上也不会画（spicyArt 为空）。
+          spicy: d.spicy || "",
           isSignature: !!d.isSignature,
           categoryId: d.categoryId || "",
-          // 所需时间：云端有就先用，没有才落到临时假数据（见上方 fakeMinutes 的说明）。
-          // categoryName 由 list 接口 join 后返回，假数据靠它给一个符合直觉的档位
-          minutes: Number(d.minutes) || fakeMinutes(d._id || d.name, d.categoryName),
           // 卡片副行不再显示它，但**搜索要用**（「找道菜，或搜搜备注…」按 name + tip 匹配），
           // 所以这个字段继续留在视图模型里，别顺手删
           tip: d.note || d.description || ""
@@ -109,7 +80,7 @@ const _sfc_main = {
           activeCategory.value = "all";
         }
       } catch (e) {
-        common_vendor.index.__f__("error", "at pages/recipe/recipe.vue:248", "[recipe] loadRecipes error", e);
+        common_vendor.index.__f__("error", "at pages/recipe/recipe.vue:203", "[recipe] loadRecipes error", e);
         common_vendor.index.showToast({ title: "网络不太好，稍后再试", icon: "none" });
       } finally {
         loading.value = false;
@@ -118,14 +89,18 @@ const _sfc_main = {
     };
     common_vendor.onShow(loadRecipes);
     const categoryTabs = common_vendor.computed(() => [
-      { id: "all", name: "全部", icon: "" },
+      { id: "all", name: "全部", icon: utils_categoryArt.categoryArt("全部") },
       ...categories.value.map((item) => ({ ...item, icon: utils_categoryArt.categoryArt(item.name) }))
     ]);
     const filtered = common_vendor.computed(() => {
       const keyword = search.value.trim().toLocaleLowerCase();
       return dishes.value.filter((dish) => (activeCategory.value === "all" || dish.categoryId === activeCategory.value) && (!keyword || [dish.name, dish.tip].some((value) => String(value).toLocaleLowerCase().includes(keyword))));
     });
-    const openRecipe = (recipe) => common_vendor.index.navigateTo({ url: "/pages/recipe-detail/recipe-detail?id=" + recipe.id, animationType: "slide-in-right", animationDuration: 260 });
+    const preloadSrc = common_vendor.ref("");
+    const openRecipe = (recipe) => {
+      preloadSrc.value = recipe.image ? utils_image.imgUrl(recipe.image, { w: utils_image.IMG_W.dishCover }) : "";
+      common_vendor.index.navigateTo({ url: "/pages/recipe-detail/recipe-detail?id=" + recipe.id, animationType: "slide-in-right", animationDuration: 260 });
+    };
     const createRecipe = () => common_vendor.index.navigateTo({ url: "/pages/recipe-detail/recipe-detail?mode=create", animationType: "slide-in-right", animationDuration: 260 });
     const resetFilters = () => {
       search.value = "";
@@ -179,7 +154,7 @@ const _sfc_main = {
           }, recipe.image ? {
             b: photoReady[recipe.id] ? 1 : "",
             c: common_vendor.unref(utils_image.imgUrl)(recipe.image, {
-              w: 480
+              w: common_vendor.unref(utils_image.IMG_W).dishCard
             }),
             d: common_vendor.o(($event) => markPhotoReady(recipe.id), recipe.id),
             e: common_vendor.o(($event) => markPhotoReady(recipe.id), recipe.id)
@@ -195,9 +170,9 @@ const _sfc_main = {
             i: common_vendor.t(recipe.name),
             j: recipe.spicyArt
           }, recipe.spicyArt ? {
-            k: recipe.spicyArt
+            k: common_vendor.n("pull-" + recipe.spicy),
+            l: recipe.spicyArt
           } : {}, {
-            l: common_vendor.t(recipe.minutes),
             m: recipe.id,
             n: Math.min(index, 5) * 35 + "ms",
             o: "查看" + recipe.name + "菜谱",
@@ -215,13 +190,13 @@ const _sfc_main = {
         v: common_vendor.t(dishes.value.length ? "试试其他菜名、备注，或放宽筛选吧。" : "饲养员添几道拿手菜，就会出现在这里。"),
         w: dishes.value.length
       }, dishes.value.length ? {
-        x: common_vendor.o(resetFilters, "19")
+        x: common_vendor.o(resetFilters, "90")
       } : canAdd.value ? {
         z: common_vendor.p({
           name: "plus",
           size: 16
         }),
-        A: common_vendor.o(createRecipe, "46")
+        A: common_vendor.o(createRecipe, "0e")
       } : {}, {
         y: canAdd.value
       }) : {}, {
@@ -238,9 +213,13 @@ const _sfc_main = {
           size: 20,
           ["stroke-width"]: 2.2
         }),
-        E: common_vendor.o(createRecipe, "6f")
+        E: common_vendor.o(createRecipe, "4f")
       } : {}, {
-        F: showAddBar.value ? 1 : ""
+        F: preloadSrc.value
+      }, preloadSrc.value ? {
+        G: preloadSrc.value
+      } : {}, {
+        H: showAddBar.value ? 1 : ""
       });
     };
   }

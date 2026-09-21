@@ -320,8 +320,9 @@ onPullDownRefresh(async () => {
 </script>
 
 <style lang="scss" scoped>
-/* 顶部主标题的手绘字体（含 base64 数据，按需引入；不可放进 uni.scss，否则会被重复打进每个页面的 wxss） */
-@import '@/scss/font-maoken.scss';
+// 顶部主标题的手绘字体（MaokenAssortedSans）。
+// 2026-09-21 起 @font-face 统一在 App.vue 里引一次、编进 app.wxss 全局生效 ——
+// 页面侧不要再 @import scss/font-*.scss，否则 base64 会重新被重复打进每个页面的 wxss。
 
 .page-home {
   position: relative;

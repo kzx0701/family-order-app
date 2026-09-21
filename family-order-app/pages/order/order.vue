@@ -3,7 +3,7 @@
     <view class="top-area" :style="{ paddingTop: headerTop + 'px' }">
       <view class="heading">
         <view><text class="page-title">{{ mode === 'food' ? '今天，想吃点什么？' : '给今天，加点咖啡香' }}</text><text class="subtitle">{{ mode === 'food' ? '你负责好好吃，我负责用心做。' : '忙里偷个闲，喝杯喜欢的。' }}</text></view>
-        <image class="heading-art" :src="mode === 'food' ? bowlArt : menuItems[4].image" mode="aspectFit" />
+        <image class="heading-art" :src="mode === 'food' ? bowlArt : coffeeArt" mode="aspectFit" />
       </view>
       <view class="mode-tabs" role="tablist" aria-label="点单类型">
         <view class="mode-slider" :class="{ coffee: mode === 'coffee' }" />
@@ -13,7 +13,7 @@
       </view>
       <view class="filter-row">
         <scroll-view scroll-x class="category-scroll" :show-scrollbar="false">
-          <view class="category-list"><button v-for="category in menuCategories[mode]" :key="category.id" class="category" :class="{ selected: categories[mode] === category.id }" :aria-pressed="categories[mode] === category.id" @tap="categories[mode] = category.id"><text>{{ category.name }}</text><view class="category-underline" /></button></view>
+          <view class="category-list"><button v-for="category in categoryTabs" :key="category.id" class="category" :class="{ selected: categories[mode] === category.id }" :aria-pressed="categories[mode] === category.id" @tap="categories[mode] = category.id"><text>{{ category.name }}</text><view class="category-underline" /></button></view>
         </scroll-view>
         <button class="search-toggle" :class="{ active: searchOpen }" aria-label="搜索菜单" :aria-expanded="searchOpen" @tap="toggleSearch"><view class="search-glass" /></button>
       </view>
@@ -51,9 +51,13 @@
             </view>
           </view>
         </view>
-        <view v-if="!visibleItems.length" class="empty-list"><image :src="bowlArt" mode="aspectFit" /><text class="empty-title">这口快乐，还没找到</text><text>换个关键词或分类试试看吧。</text><button class="light-button" @tap="resetFilters">看看全部</button></view>
-        <view class="list-end"><text>—</text><text>{{ mode === 'food' ? '好好吃饭，是今天的小正事' : '日子慢慢过，咖啡慢慢喝' }}</text><text>—</text></view>
-        <text class="mock-label">菜单体验 · 示例数据</text>
+        <!-- 「列表是空的」有三种原因，必须分开说：加载中 / 加载失败 / 真没内容。
+             混成一句「还没找到」会让用户误以为是自己的筛选条件有问题 ——
+             尤其失败时，他无从知道该重试还是该去别的页面加数据。 -->
+        <view v-if="menu.loading && !menu.loaded" class="list-state"><text>菜单正在端上来…</text></view>
+        <view v-else-if="menu.error" class="list-state"><text>{{ menu.error }}</text><button class="light-button" @tap="loadMenu(mode)">再试一次</button></view>
+        <view v-else-if="!visibleItems.length" class="empty-list"><image :src="bowlArt" mode="aspectFit" /><text class="empty-title">{{ menu.dishes.length ? '这口快乐，还没找到' : '菜单还空着' }}</text><text>{{ menu.dishes.length ? '换个关键词或分类试试看吧。' : '在菜谱里点「发布菜品」，它就会出现在这里。' }}</text><button v-if="menu.dishes.length" class="light-button" @tap="resetFilters">看看全部</button></view>
+        <view v-if="visibleItems.length" class="list-end"><text>—</text><text>{{ mode === 'food' ? '好好吃饭，是今天的小正事' : '日子慢慢过，咖啡慢慢喝' }}</text><text>—</text></view>
       </view>
     </scroll-view>
 
@@ -79,29 +83,38 @@
             <image class="detail-image" :src="selected.image" mode="aspectFit" />
             <text class="detail-description">{{ selected.description }}</text>
             <!-- 辣度**只读**：它由菜谱里配好，点单的人只能知道、不能改。
-                 这里刻意不做成按钮组 —— 一旦长得像按钮，用户就会以为能点。 -->
-            <view v-if="spicyText" class="dish-spicy"><image class="spicy-art" :src="spicyArt" mode="aspectFit" /><text>辣度</text><text class="spicy-value">{{ spicyText }}</text></view>
-            <view v-for="(option, index) in selected.options" :key="option.name" class="option-group"><text class="option-label">{{ option.name }}</text><view class="option-values"><button v-for="value in option.values" :key="value" class="option-button" :class="{ selected: selectedOptions[index] === value }" :aria-pressed="selectedOptions[index] === value" @tap="selectedOptions[index] = value">{{ value }}</button></view></view>
+                 这里刻意不做成按钮组 —— 一旦长得像按钮，用户就会以为能点。
+                 **没有「口味选择」**：用户可选的口味（咖啡的温度甜度、青菜的蒜香清淡）
+                 云端 dishes 还没有对应字段，2026-09-20 与主人确认「先不做」；
+                 菜品**固有**的属性（辣度、冷热）照常只读展示。
+                 2026-09-21 改版：标题改用与下方「备注」**同一个 .field-label**（两个字段标题
+                 必须长得一样），值只留档位图案、不再写文字 —— 原先「辣度 微辣」把同一件事
+                 说了两遍，而素材本身就用辣椒根数表达档位（斜线=不辣 / 1=微辣 / 2=中辣 /
+                 3=特辣），**图标即值**；文字退到 aria-label，读屏仍拿得到。 -->
+            <view v-if="spicyArt" class="dish-spicy">
+              <text class="field-label">辣度</text>
+              <image class="spicy-art" :src="spicyArt" :aria-label="'辣度 ' + spicyText" mode="aspectFit" />
+            </view>
             <!-- 单品备注：跟着这一道菜走（整单的「小纸条」在确认页，两者不冲突） -->
             <view class="dish-note-box">
-              <text class="option-label">备注 <text>选填</text></text>
+              <text class="field-label">备注 <text>选填</text></text>
               <textarea v-model="selectedNote" class="note-input" placeholder="这道菜想怎么吃？比如少放一点辣…" maxlength="60" :show-confirm-bar="false" />
             </view>
           </view>
           <template v-else-if="panel === 'cart' || panel === 'review'">
             <view v-if="total" class="cart-content">
               <view v-if="panel === 'cart'" class="cart-toolbar"><text>{{ cart.length }} 种{{ mode === 'food' ? '好味道' : '小快乐' }}</text><button class="clear-cart" @tap="confirmClear = true"><Icon name="trash" :size="14" />清空清单</button></view>
-              <view v-for="line in cart" :key="line.key" class="cart-line"><image :src="line.image" mode="aspectFit" /><view class="line-copy"><text class="line-title">{{ line.name }}</text><text v-if="line.options.length" class="line-options">{{ line.options.join(' · ') }}</text><text v-if="line.note" class="line-note">备注：{{ line.note }}</text></view>
+              <view v-for="line in cart" :key="line.key" class="cart-line"><image :src="line.image" mode="aspectFit" /><view class="line-copy"><text class="line-title">{{ line.name }}</text><text v-if="line.note" class="line-note">备注：{{ line.note }}</text></view>
                 <button v-if="panel === 'cart'" class="line-remove" :aria-label="'把' + line.name + '从清单里去掉'" @tap="removeFromCart(line)"><Icon name="trash" :size="16" /></button>
               </view>
-              <view v-if="panel === 'review'" class="order-notes"><text class="option-label">给{{ mode === 'food' ? '做饭人' : '咖啡师' }}的小纸条 <text>选填</text></text><textarea v-model="notes[mode]" class="note-input" placeholder="比如少一点葱，或者想晚一点吃…" maxlength="120" :show-confirm-bar="false" /><text class="note-counter">{{ notes[mode].length }}/120</text><view class="demo-notice"><Icon name="note" :size="14" /><text>这是模拟点单，不会发送给家人。</text></view></view>
+              <view v-if="panel === 'review'" class="order-notes"><text class="field-label">给{{ mode === 'food' ? '做饭人' : '咖啡师' }}的小纸条 <text>选填</text></text><textarea v-model="notes[mode]" class="note-input" placeholder="比如少一点葱，或者想晚一点吃…" maxlength="120" :show-confirm-bar="false" /><text class="note-counter">{{ notes[mode].length }}/120</text><view class="demo-notice"><Icon name="note" :size="14" /><text>这是模拟点单，不会发送给家人。</text></view></view>
             </view>
             <view v-else class="empty-cart"><image :src="bowlArt" mode="aspectFit" /><text class="empty-title">清单还空着呢</text><text>先挑一点喜欢的吧。</text></view>
           </template>
-          <view v-else-if="panel === 'success'" class="success-content"><view class="success-stamp"><Icon name="check" :size="35" :stroke-width="1.7" /></view><text class="success-title">小纸条，写好啦！</text><text class="success-caption">好味道，值得慢慢等。</text><view class="receipt"><text class="receipt-label">本次模拟点单 · {{ submitted.type === 'food' ? '菜品' : '咖啡' }}</text><view v-for="line in submitted.lines" :key="line.key" class="receipt-line"><view><text>{{ line.name }}</text><text v-if="line.options.length" class="receipt-options">{{ line.options.join(' · ') }}</text><text v-if="line.note" class="receipt-options">备注：{{ line.note }}</text></view></view><text v-if="submitted.note" class="receipt-note">小纸条：{{ submitted.note }}</text><text class="receipt-total">一共 {{ submitted.count }} {{ submitted.type === 'food' ? '道' : '杯' }} · 满满心意</text></view><text class="demo-notice">仅完成本地演示，没有创建真实订单。</text></view>
+          <view v-else-if="panel === 'success'" class="success-content"><view class="success-stamp"><Icon name="check" :size="35" :stroke-width="1.7" /></view><text class="success-title">小纸条，写好啦！</text><text class="success-caption">好味道，值得慢慢等。</text><view class="receipt"><text class="receipt-label">本次模拟点单 · {{ submitted.type === 'food' ? '菜品' : '咖啡' }}</text><view v-for="line in submitted.lines" :key="line.key" class="receipt-line"><view><text>{{ line.name }}</text><text v-if="line.note" class="receipt-options">备注：{{ line.note }}</text></view></view><text v-if="submitted.note" class="receipt-note">小纸条：{{ submitted.note }}</text><text class="receipt-total">一共 {{ submitted.count }} {{ submitted.type === 'food' ? '道' : '杯' }} · 满满心意</text></view><text class="demo-notice">仅完成本地演示，没有创建真实订单。</text></view>
         </scroll-view>
         <view class="sheet-footer">
-          <button v-if="panel === 'dish'" class="primary-button" @tap="addSelected"><Icon :name="selectedInCart ? 'check' : 'plus'" :size="18" />{{ selectedInCart ? '更新口味' : '加入清单' }}</button>
+          <button v-if="panel === 'dish'" class="primary-button" @tap="addSelected"><Icon :name="selectedInCart ? 'check' : 'plus'" :size="18" />{{ selectedInCart ? '更新备注' : '加入清单' }}</button>
           <button v-else-if="panel === 'cart'" class="primary-button" @tap="total ? openReview() : closePanel()">{{ total ? '选好了，去点单 · ' + total + (mode === 'food' ? ' 道' : ' 杯') : '去挑点好吃的' }}<Icon name="chevron-right" :size="17" /></button>
           <template v-else-if="panel === 'review'"><button class="back-to-cart" @tap="panel = 'cart'">再看看</button><button class="primary-button" :disabled="!total || submitting" @tap="submitMock">{{ submitting ? '正在写小纸条…' : '确认点单' }}<Icon name="check" :size="17" /></button></template>
           <button v-else class="primary-button" @tap="closePanel">收好，继续逛逛<Icon name="check" :size="17" /></button>
@@ -118,11 +131,16 @@ import { ref, reactive, computed, onUnmounted } from 'vue'
 import { onLoad, onShow, onHide, onBackPress } from '@dcloudio/uni-app'
 import { useSafeArea } from '@/composables/useSafeArea.js'
 import { useCartStore } from '@/store/cart.js'
-import { bowlArt, menuItems, menuCategories, addToCart, removeLine } from '@/mock/order-menu.js'
+// 装饰插画（头部 + 空态）与购物车行逻辑。**菜单数据本身已不再来自 mock** ——
+// 改为云端 menu-list 聚合接口，见下方 loadMenu。
+import { bowlArt, coffeeArt } from '@/utils/menu-art.js'
+import { addToCart, removeLine } from '@/mock/order-menu.js'
 // 辣度文案取全局唯一那份（菜谱页 / 详情页同源）—— 点单这里虽然是只读，也得用同一套词
 import { SPICY_TEXT, spicyImage, spicyMark } from '@/utils/spicy.js'
 // 卡片上那枚**做法分类图标**的素材映射（与菜谱列表页、编辑抽屉同一份）
 import { categoryArt } from '@/utils/category-art.js'
+// 菜品图来自云存储，必须过 imgUrl 才能拿到按需尺寸的 WebP
+import { imgUrl } from '@/utils/image.js'
 const { statusBarHeight, menuButton } = useSafeArea()
 const headerTop = computed(() => menuButton.value?.bottom ? menuButton.value.bottom + 12 : statusBarHeight.value + 16)
 const types = [{id:'food',label:'吃点好的',icon:'food'},{id:'coffee',label:'喝杯咖啡',icon:'coffee'}]
@@ -133,41 +151,171 @@ const cart = computed(() => carts[mode.value])
 const countFor = type => carts[type].length
 const total = computed(() => countFor(mode.value))
 const inCart = id => cart.value.some(line => line.id === id)
-const visibleItems = computed(() => menuItems.filter(item => item.type === mode.value && (categories[mode.value] === 'all' || (categories[mode.value] === 'signature' ? item.signature : item.category === categories[mode.value])) && (item.name + item.subtitle).includes(queries[mode.value].trim())))
+
+/**
+ * 两个模式的菜单数据
+ *
+ * 云端 `menu-list` 按 type 分开返回，所以按 mode 各存一份。
+ * 为什么不每次切 tab 都重新请求：food/coffee 之间来回切很频繁，每次都请求会闪一下加载态；
+ * 这里有缓存、切回来是瞬时的，新鲜度交给 onShow（见下）。
+ * loaded 与 loading 分开：前者是「拉成功过」、后者是「正在拉」，空态与骨架的显示条件不同。
+ */
+const menus = reactive({
+  food: { dishes: [], categories: [], loading: false, loaded: false, error: '' },
+  coffee: { dishes: [], categories: [], loading: false, loaded: false, error: '' }
+})
+const menu = computed(() => menus[mode.value])
+
+/**
+ * 卡片色块（图片背后那层）的配色
+ *
+ * 云端 dishes **没有** tone 字段 —— 它是展示层装饰、不属于业务数据，所以由 dishId 稳定派生：
+ * 同一道菜每次进来颜色一致，不会跳。用 FNV-1a 而不是 `h*31+code` —— 后者雪崩性太差，
+ * 相邻 id 会算出连续值，整屏卡片呈现规律色带（菜谱页的假时长踩过同一个坑）。
+ */
+const TONES = ['yellow', 'green', 'blue', 'coral']
+const toneFor = (seed) => {
+  const s = String(seed || '')
+  let h = 2166136261
+  for (let i = 0; i < s.length; i += 1) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) }
+  return TONES[Math.abs(h) % TONES.length]
+}
+
+/**
+ * 拉取某个模式的菜单（数据源：app-service 的 `menu-list` 聚合接口）
+ *
+ * 云端已按 `isOnSale: true` 过滤 —— 也就是说**只有菜谱里点过「发布菜品」的才会出现在这里**，
+ * 本页不需要再判一次发布状态。分类栏直接用云端返回的 categories ——
+ * 2026-09-21 起接口**不再构造**虚拟的「推荐」分类，所以这里的顺序与云端完全一致。
+ */
+const loadMenu = async (type) => {
+  const target = menus[type]
+  if (!target || target.loading) return
+  target.loading = true
+  target.error = ''
+  try {
+    const res = await uniCloud.callFunction({ name: 'app-service', data: { module: 'menu-list', type } })
+    const result = res.result || {}
+    if (result.code !== 0) {
+      target.error = result.message || '菜单加载失败'
+      return
+    }
+    target.categories = result.categories || []
+    target.dishes = (result.dishes || []).map(d => ({
+      id: d.dishId,
+      name: d.name,
+      // 云端存的是静态托管域名，过 imgUrl 拿按需尺寸 + WebP
+      // （卡片图约 200rpx 宽、取 480 覆盖 2x/3x 屏）
+      image: imgUrl(d.image, { w: 480 }),
+      description: d.description || '',
+      spicy: d.spicy || 'none',
+      // 做法分类名（炒菜 / 汤类…）→ 卡片上那枚图标的素材，categoryArt 按名匹配
+      recipeCategory: d.categoryName || '',
+      // 菜单分类 id（云端 categories 的 _id），顶部筛选栏按它过滤
+      category: d.categoryId || '',
+      signature: !!d.isSignature,
+      tone: toneFor(d.dishId)
+    }))
+    target.loaded = true
+  } catch (e) {
+    console.error('[order] 菜单加载异常', e)
+    target.error = '网络不太顺，稍后再试'
+  } finally {
+    target.loading = false
+  }
+}
+
+/**
+ * 顶部筛选栏的分类
+ *
+ * =「全部」（前端概念、不过滤）+「拿手菜」+ 云端返回的分类。
+ * 两个虚拟项固定在前，其余按云端 categories 的 sortOrder 排（接口已按 sortOrder asc 查好）。
+ * 「拿手菜」是前端补的：云端 menu-list 不返回它，但 `isSignature`（家的拿手菜）是个有意义的
+ * 筛选维度、改造前也有这个 tab，所以按 `signature` 字段在本地筛（见 visibleItems）。
+ *
+ * ⚠️ 2026-09-21 起没有「推荐」这一项了：云端 menu-list 原先会**凭空构造**一个 recommend 分类
+ * 置于首位，而 categories 集合里从来没有叫「推荐」的记录 —— 那个分类、配套的 isRecommended
+ * 字段、以及管理端的「是否推荐」开关已整套删除（详见 menu-list.js 顶部的说明）。
+ */
+const categoryTabs = computed(() => {
+  const cloud = (menu.value.categories || []).map(c => ({ id: c.id, name: c.name }))
+  return [{ id: 'all', name: '全部' }, { id: 'signature', name: '拿手菜' }, ...cloud]
+})
+
+/**
+ * 列表里实际渲染的菜品：先按分类筛、再按关键词搜（名称 + 描述）
+ *
+ * 两个虚拟分类的判定不同：`all` 不过滤、`signature` 看 isSignature，
+ * 其余一律按 categoryId 匹配云端分类（分类栏里已不存在其它虚拟项）。
+ */
+const visibleItems = computed(() => {
+  const key = categories[mode.value]
+  const keyword = queries[mode.value].trim().toLocaleLowerCase()
+  return menu.value.dishes.filter((item) => {
+    const hitCategory = key === 'all' || (key === 'signature' ? item.signature : item.category === key)
+    if (!hitCategory) return false
+    if (!keyword) return true
+    return (item.name + ' ' + item.description).toLocaleLowerCase().includes(keyword)
+  })
+})
 const searchOpen = ref(false), panel = ref(''), closing = ref(false), confirmClear = ref(false), feedback = ref('')
-const selected = ref(null), selectedOptions = ref([]), selectedNote = ref(''), submitting = ref(false), submitted = ref(null)
+const selected = ref(null), selectedNote = ref(''), submitting = ref(false), submitted = ref(null)
 let closeTimer, feedbackTimer, submitTimer
 onLoad(options => { if (['food','coffee'].includes(options?.type)) mode.value = options.type })
-onShow(() => { const pending = useCartStore().consumePendingType(); if (['food','coffee'].includes(pending)) mode.value = pending })
-const switchMode = type => { if (panel.value || mode.value === type) return; mode.value = type; feedback.value = '' }
+/**
+ * 每次进页面都重新拉当前模式的菜单
+ *
+ * 这是「在菜谱里点了发布 → 回到点单页就能看到」的**唯一**保证：发布发生在另一个页面，
+ * 本页拿不到跨页通知，只能靠 onShow 重拉。同时把另一个模式标记为「已过期」，
+ * 切过去时再拉 —— 发布的菜品可能属于另一个 type。
+ * （loadMenu 自带 loading 守卫，onLoad 后的首次 onShow 不会发两次请求。）
+ */
+onShow(() => {
+  const pending = useCartStore().consumePendingType()
+  if (['food','coffee'].includes(pending)) mode.value = pending
+  menus[mode.value === 'food' ? 'coffee' : 'food'].loaded = false
+  loadMenu(mode.value)
+})
+const switchMode = type => {
+  if (panel.value || mode.value === type) return
+  mode.value = type
+  feedback.value = ''
+  if (!menus[type].loaded) loadMenu(type)
+}
 const resetFilters = () => { queries[mode.value] = ''; categories[mode.value] = 'all' }
 const toggleSearch = () => { searchOpen.value = !searchOpen.value; if (!searchOpen.value) queries[mode.value] = '' }
 const showFeedback = text => { clearTimeout(feedbackTimer); feedback.value = text; feedbackTimer = setTimeout(() => { feedback.value = '' }, 1400) }
 /**
- * 打开「选口味」抽屉
+ * 打开菜品抽屉
  *
- * 卡片上那颗按钮**不再直接加购** —— 加入动作统一收在抽屉底部那颗按钮上，
- * 避免"手一滑就按默认口味加了一份"。若这道菜已在清单里，口味与备注都回填成**上次填的那份**，
- * 底部按钮随之变成「更新口味」，所以点它既能改口味/备注、也不会重复添加。
+ * 卡片上那颗按钮**不直接加购** —— 加入动作统一收在抽屉底部那颗按钮上，避免"手一滑就加了一份"。
+ * 若这道菜已在清单里，备注回填成**上次填的那份**（否则点「更新备注」看到空白会以为备注丢了），
+ * 底部按钮随之变成「更新备注」，所以点它既能改备注、也不会重复添加。
  *
- * 辣度**不在这里给选项**：它由菜谱决定，抽屉里只读展示（见 spicyText）。
+ * 抽屉里**没有可选项**：辣度由菜谱决定、只读展示（见 spicyArt）；
+ * 用户可选的口味（咖啡温度甜度、青菜蒜香清淡）云端还没有字段，2026-09-20 与主人确认「先不做」。
  */
 const openDish = item => {
   const line = cart.value.find(value => value.id === item.id)
   selected.value = item
-  selectedOptions.value = line ? [...line.options] : [...item.defaults]
   selectedNote.value = line ? line.note : ''
   closing.value = false
   panel.value = 'dish'
 }
-/** 抽屉里只读展示的辣度文案：菜单里没配这一项就整行不渲染 */
+/**
+ * 抽屉里只读展示的辣度文案
+ *
+ * 2026-09-21 起这一行**只画图标、不写文字**（档位图案本身就用辣椒根数表达档位），
+ * 文案退居 `aria-label`：屏幕上不再出现它，但读屏仍拿得到「辣度 微辣」。
+ */
 const spicyText = computed(() => (selected.value && SPICY_TEXT[selected.value.spicy]) || '')
 /**
  * 辣度图案：与菜谱列表、菜谱详情**同一套素材**（由 utils/spicy.js 给出）。
  *
- * 这里用 spicyImage 而不是 spicyMark —— 这一行是「字段」语义（图标 + 标签 + 值），
- * 不辣也要画出那枚斜线辣椒与文字「不辣」配对，把整行撑住；「标记」语义的列表/详情
- * 才是不辣就不显示。
+ * 这里用 spicyImage 而不是 spicyMark —— 这一行是「字段」语义，而且改版后
+ * **图标就是这一行的值**：不辣也要画出那枚斜线辣椒（「不辣」是一个要读出来的值）；
+ * 未设置 / 脏值一律得到空串 → 模板用 v-if 把整块（连标题一起）收掉。
+ * 「标记」语义的列表 / 详情才是不辣就不显示。
  */
 const spicyArt = computed(() => (selected.value ? spicyImage(selected.value.spicy) : ''))
 const selectedInCart = computed(() => !!selected.value && inCart(selected.value.id))
@@ -179,7 +327,7 @@ const addSelected = () => {
   if (closing.value || !selected.value) return
   // 已在清单里就是「更新那一条」，不会再添一条新的
   const existed = inCart(selected.value.id)
-  addToCart(cart.value, selected.value, selectedOptions.value, selectedNote.value)
+  addToCart(cart.value, selected.value, selectedNote.value)
   showFeedback(existed ? selected.value.name + '已更新' : selected.value.name + '已加入清单')
   closePanel()
 }
@@ -210,12 +358,13 @@ const panelSubtitle = computed(() => panel.value === 'dish' ? '' : panel.value =
 </script>
 
 <style lang="scss" scoped>
-@import '@/scss/font-menu.scss';
+// 点单页标题的手绘字体（MenuHand）。@font-face 已统一在 App.vue 里引一次、编进 app.wxss
+// 全局生效 —— **页面侧不要再 @import scss/font-*.scss**，否则 base64 会被重复打进本页 wxss。
 .order-page { height:100vh; height:100dvh; display:flex; flex-direction:column; overflow:hidden; background:$p2-paper; color:$p2-ink; padding-bottom:calc(132rpx + env(safe-area-inset-bottom)); box-sizing:border-box; }
 button { background:none; border-radius:0; margin:0; padding:0; line-height:inherit; font:inherit; color:inherit; &::after { border:0; } &:active:not([disabled]) { transform:scale(.95); } transition:transform 110ms $p2-ease; &[disabled] { opacity:.45; } }
 .top-area { padding:0 32rpx; flex-shrink:0; }
 .heading { display:flex; align-items:center; justify-content:space-between; gap:8rpx; padding-bottom:24rpx; }
-.page-title { display:block; font-family:MenuHand,$p2-font-fallback; font-size:46rpx; line-height:1.5; }
+.page-title { display:block; font-family:$p2-font-hand, $p2-font-fallback; font-size:46rpx; line-height:1.5; }
 .subtitle { display:block; margin-top:7rpx; color:$p2-ink-soft; font-size:23rpx; }
 .heading-art { width:112rpx; height:112rpx; flex-shrink:0; transform:rotate(6deg); }
 .mode-tabs { position:relative; display:flex; border:2rpx solid $p2-line; border-radius:22rpx 26rpx 19rpx 23rpx; background:$p2-surface; padding:7rpx; height:96rpx; }
@@ -253,7 +402,7 @@ button { background:none; border-radius:0; margin:0; padding:0; line-height:inhe
 .dish-title-button { display:flex; align-items:center; width:100%; text-align:left; padding:4rpx 0; }
 // 菜名 36 → 32rpx（仍是手写体、仍比正文大一档）。描述**保持 21rpx 不动** ——
 // 收紧是为了让列表更密，不该拿可读性去换，19rpx 在真机上已经开始费眼。
-.dish-name { font-family:MenuHand,$p2-font-fallback; font-size:32rpx; line-height:1.4; }
+.dish-name { font-family:$p2-font-hand, $p2-font-fallback; font-size:32rpx; line-height:1.4; }
 // 卡片副行改显示**描述**（以前是那句短 slogan）。描述是长文本（30~40 字），
 // 所以必须单行截断：卡片高度是收紧过的，让它换行会把整列撑开、一屏又少一道菜。
 // 完整描述在抽屉里看（点卡片打开）。
@@ -275,7 +424,9 @@ button { background:none; border-radius:0; margin:0; padding:0; line-height:inhe
 // 58 → 52rpx：卡片整体收紧后，原尺寸的按钮会显得比它所在的卡片还「重」。
 .dish-add { width:52rpx; height:52rpx; border:2rpx solid $p2-line; border-radius:17rpx 15rpx 18rpx 14rpx; display:flex; justify-content:center; align-items:center; flex-shrink:0; background:$p2-leaf-soft; box-shadow:2rpx 3rpx 0 #62473512; &.added { background:$p2-white; border-color:#91a177; color:#6d8355; } }
 .list-end { display:flex; justify-content:center; gap:14rpx; color:$p2-ink-soft; font-size:21rpx; margin:30rpx 0 15rpx; }
-.mock-label { display:block; text-align:center; font-size:18rpx; color:#a59078; }
+// 列表的「加载中 / 加载失败」态。与空态分开：空态给的是「换个筛选」这类引导，
+// 加载中给引导是错的（还没加载完呢），失败时该给的是「再试一次」。
+.list-state { display:flex; flex-direction:column; align-items:center; gap:18rpx; padding:72rpx 20rpx; text-align:center; color:$p2-ink-soft; font-size:25rpx; }
 .cart-dock { flex-shrink:0; padding:16rpx 25rpx 8rpx; }
 .cart-bar { display:flex; align-items:center; justify-content:space-between; gap:8rpx; padding:14rpx 13rpx; border:2rpx solid $p2-line; border-radius:25rpx 22rpx 20rpx 24rpx; background:$p2-surface; box-shadow:3rpx 4rpx 0 #62473510; &.filled { background:#f3f4e8; } }
 .cart-summary { flex:1; min-width:0; display:flex; align-items:center; gap:16rpx; text-align:left; }
@@ -285,45 +436,57 @@ button { background:none; border-radius:0; margin:0; padding:0; line-height:inhe
 .checkout-button { display:flex; align-items:center; justify-content:center; gap:6rpx; background:$p2-coral-soft; border:2rpx solid $p2-line; padding:18rpx 20rpx; height:76rpx; border-radius:17rpx 21rpx 16rpx 19rpx; font-size:27rpx; flex-shrink:0; }
 .mode-coffee { .dish-add:not(.added) { background:$p2-butter-soft; }.category-underline { background:$p2-butter; }.cart-bar.filled { background:#faf0d7; } }
 .empty-list,.empty-cart { display:flex; flex-direction:column; align-items:center; gap:16rpx; text-align:center; color:$p2-ink-soft; font-size:25rpx; padding:40rpx 10rpx; image { width:150rpx; height:150rpx; } }
-.empty-title { font-family:MenuHand,$p2-font-fallback; font-size:34rpx; color:$p2-ink; }
+.empty-title { font-family:$p2-font-hand, $p2-font-fallback; font-size:34rpx; color:$p2-ink; }
 .light-button { border:2rpx solid #b9c39f; border-radius:15rpx; padding:17rpx 25rpx; background:$p2-leaf-soft; margin-top:12rpx; }
 .sheet-layer { position:fixed; inset:0; z-index:300; }
 .sheet-mask { position:absolute; inset:0; background:#3c2a2059; animation:mask-in 180ms ease; transition:opacity 220ms ease; &.closing { opacity:0; } }
 .sheet { position:absolute; bottom:0; left:0; right:0; background:$p2-paper; border-radius:34rpx 39rpx 0 0; max-height:88vh; display:flex; flex-direction:column; overflow:hidden; padding:18rpx 32rpx calc(24rpx + env(safe-area-inset-bottom)); box-sizing:border-box; animation:sheet-in 260ms $p2-ease; transition:transform 220ms $p2-ease; &.closing { transform:translateY(100%); } }
 .sheet-handle { flex-shrink:0; width:64rpx; height:7rpx; background:#d9cbb4; border-radius:9rpx; margin:0 auto 24rpx; }
 .sheet-heading { display:flex; justify-content:space-between; align-items:center; gap:12rpx; flex-shrink:0; margin-bottom:20rpx; }
-.sheet-title { display:block; font-family:MenuHand,$p2-font-fallback; font-size:39rpx; line-height:1.5; }.sheet-subtitle { display:block; color:$p2-ink-soft; font-size:22rpx; margin-top:5rpx; }
+.sheet-title { display:block; font-family:$p2-font-hand, $p2-font-fallback; font-size:39rpx; line-height:1.5; }.sheet-subtitle { display:block; color:$p2-ink-soft; font-size:22rpx; margin-top:5rpx; }
 .close-button { width:65rpx; height:65rpx; display:flex; align-items:center; justify-content:center; background:$p2-paper-deep; border-radius:50%; flex-shrink:0; }
 .sheet-scroll { flex:1; min-height:0; max-height:calc(88vh - 280rpx - env(safe-area-inset-bottom)); }
 .sheet-footer { display:flex; align-items:center; gap:14rpx; padding-top:22rpx; flex-shrink:0; }
 .primary-button { flex:1; display:flex; align-items:center; justify-content:center; gap:12rpx; padding:24rpx 18rpx; background:$p2-leaf-soft; border:2rpx solid $p2-line; border-radius:20rpx 24rpx 18rpx 22rpx; box-shadow:3rpx 4rpx 0 #62473515; font-size:29rpx; min-height:88rpx; }
 .dish-detail { padding-bottom:4rpx; }.detail-image { display:block; width:350rpx; height:260rpx; margin:0 auto 12rpx; }
 .detail-description { display:block; font-size:25rpx; line-height:1.85; color:$p2-ink-soft; margin:6rpx 0 24rpx; }
-// 辣度只读行 —— 与描述同色系，前面一枚辣椒。**刻意不做成按钮组**：
-// 辣度由菜谱配好、点单的人不能改，一旦长得像按钮，用户就会以为能点。
-.dish-spicy { display:flex; align-items:center; gap:8rpx; margin-bottom:8rpx; font-size:23rpx; color:$p2-ink-soft; }
-// 辣度图案：与菜谱列表、菜谱详情**同一套素材**，由 utils/spicy.js 的 spicyImage() 给出
+// 辣度只读行 —— 2026-09-21 改版：**标题与下方「备注」共用同一个 .field-label**，
+// 值不再是文字、只画档位图案。**刻意不做成按钮组**：辣度由菜谱配好、点单的人不能改，
+// 一旦长得像按钮，用户就会以为能点。
+// 容器只留上下边距：上 4rpx 与 .dish-detail 的收尾对齐、下 8rpx 叠上 .dish-note-box 的
+// 4rpx → 「辣度」「备注」之间 12rpx，读成一组；与上方描述那 24rpx 的间距拉开层次。
+.dish-spicy { padding-top:4rpx; margin-bottom:8rpx; }
+// 档位图案：与菜谱列表、菜谱详情**同一套素材**，由 utils/spicy.js 的 spicyImage() 给出
 // （「字段」语义，不辣时是那枚斜线辣椒）。
 //
-// 尺寸：46rpx 是**三处展示位统一的值**（辣椒视觉高约 24rpx，与同行 23rpx 的文字基本等高）。
-// 换算过程、以及「别拿旧 Icon 的 size 直接当目标高」这条坑，都写在 utils/spicy.js 的注释里。
-.spicy-art { width:46rpx; height:46rpx; flex-shrink:0; display:block; }
-.spicy-value { color:$p2-ink; }
+// 尺寸 56rpx：改版后**图标就是这一行的值**（原先旁边还有 23rpx 的「微辣」文字，46rpx 是
+// 与那行文字配着定的），文字撤掉后按 46rpx 会显得孤零零，故放大一档 —— 56rpx 方框下辣椒
+// 视觉高约 30rpx，与上方 26rpx 的字段标题同一量级；菜谱详情编辑态那个「图标即值」的格子
+// 也是 ~34rpx 的辣椒高，两者量级一致。
+//
+// `margin-top:-13rpx`：素材是方形画布、内容只占中间约 53% 高，于是图标自带
+// `(56 - 56×0.531) ÷ 2 ≈ 13rpx` 的**透明上留白**。不抵掉它，标题到内容的**光学**间距会是
+// 17 + 13 ≈ 30rpx，比「备注」那 17rpx 松近一倍 —— 而这次改版要的正是两个字段读起来一样。
+// 抵掉后光学间距回到 17rpx，与 .field-label 的下边距一致（无论外层是否发生外边距折叠，
+// 算式都是 17 - 13 = 4rpx，结果相同）。
+// 方框**必须正方形**、内容只占画布 53% 这条换算规则见 utils/spicy.js 的注释。
+.spicy-art { width:56rpx; height:56rpx; display:block; margin-top:-13rpx; }
 // 单品备注框：外观复用确认页那张「小纸条」的 .note-input（同一套输入语言），
 // 只把高度收窄一档 —— 单品备注比整单小纸条短，而抽屉里上方已经有一张 260rpx 的大图。
 .dish-note-box { padding-top:4rpx; .note-input { height:112rpx; } }
-.option-group { padding:16rpx 0; }.option-label { display:block; font-size:26rpx; font-weight:600; margin-bottom:17rpx; text { font-size:21rpx; color:$p2-ink-soft; font-weight:400; } }
-.option-values { display:flex; gap:15rpx; flex-wrap:wrap; }.option-button { padding:17rpx 26rpx; font-size:25rpx; border:2rpx solid #d0c4b1; border-radius:16rpx 19rpx 14rpx 18rpx; background:$p2-white; &.selected { border-color:#889b6b; background:$p2-leaf-soft; } }
+// 字段标签（单品备注 / 整单小纸条的行首）。名字原来叫 option-label ——
+// 2026-09-20 起抽屉里不再有「可选项」，它只服务普通表单字段，故改名为 field-label。
+.field-label { display:block; font-size:26rpx; font-weight:600; margin-bottom:17rpx; text { font-size:21rpx; color:$p2-ink-soft; font-weight:400; } }
 .cart-toolbar { display:flex; align-items:center; justify-content:space-between; color:$p2-ink-soft; font-size:23rpx; padding:4rpx 0 18rpx; }.clear-cart { display:flex; align-items:center; gap:7rpx; min-height:52rpx; }
 .cart-line { display:flex; align-items:center; gap:16rpx; padding:20rpx 0; border-top:2rpx dashed #dfd2bd; image { width:100rpx; height:100rpx; flex-shrink:0; } }
-.line-copy { flex:1; min-width:0; }.line-title { display:block; font-size:28rpx; font-weight:600; }.line-options { display:block; font-size:22rpx; color:$p2-ink-soft; margin-top:8rpx; }.line-note { display:block; font-size:21rpx; color:$p2-ink-soft; margin-top:6rpx; }
+.line-copy { flex:1; min-width:0; }.line-title { display:block; font-size:28rpx; font-weight:600; }.line-note { display:block; font-size:21rpx; color:$p2-ink-soft; margin-top:6rpx; }
 // 清单里每条的份数恒为 1，所以这里不是「减一份」而是「整条移除」—— 用垃圾桶图标把语义说清，
 // 免得用户以为点一下只是少一份。改口味走卡片上的 ✓（打开抽屉）。
 .line-remove { width:52rpx; height:52rpx; display:flex; justify-content:center; align-items:center; border:2rpx solid #d5c7b3; border-radius:16rpx 14rpx 17rpx 13rpx; background:$p2-white; color:$p2-ink-soft; flex-shrink:0; }
 .order-notes { padding:28rpx 0 12rpx; border-top:2rpx dashed #dfd2bd; }.note-input { width:100%; height:145rpx; padding:18rpx 22rpx; border:2rpx solid #d9c9b2; border-radius:17rpx 21rpx 16rpx 20rpx; background:$p2-surface; font-size:25rpx; line-height:1.7; box-sizing:border-box; }.note-counter { display:block; text-align:right; font-size:20rpx; color:$p2-ink-soft; margin-top:8rpx; }
 .demo-notice { display:flex; align-items:center; justify-content:center; gap:8rpx; font-size:21rpx; color:$p2-ink-soft; padding:20rpx 0 8rpx; }
 .back-to-cart { padding:24rpx; font-size:26rpx; }
-.success-content { text-align:center; }.success-stamp { display:flex; align-items:center; justify-content:center; width:112rpx; height:112rpx; background:$p2-leaf-soft; border:2rpx solid $p2-line; border-radius:48% 52% 44% 56%; margin:10rpx auto 22rpx; transform:rotate(-7deg); }.success-title { display:block; font-family:MenuHand,$p2-font-fallback; font-size:44rpx; }.success-caption { display:block; margin-top:10rpx; color:$p2-ink-soft; font-size:25rpx; }
+.success-content { text-align:center; }.success-stamp { display:flex; align-items:center; justify-content:center; width:112rpx; height:112rpx; background:$p2-leaf-soft; border:2rpx solid $p2-line; border-radius:48% 52% 44% 56%; margin:10rpx auto 22rpx; transform:rotate(-7deg); }.success-title { display:block; font-family:$p2-font-hand, $p2-font-fallback; font-size:44rpx; }.success-caption { display:block; margin-top:10rpx; color:$p2-ink-soft; font-size:25rpx; }
 .receipt { background:$p2-surface; border:2rpx solid #e0d5c1; border-radius:8rpx; padding:24rpx; margin-top:25rpx; text-align:left; }.receipt-label { display:block; font-size:21rpx; color:$p2-ink-soft; padding-bottom:15rpx; border-bottom:2rpx dashed #e0d5c1; }.receipt-line { display:flex; justify-content:space-between; gap:18rpx; padding:18rpx 0; font-size:26rpx; }.receipt-options { display:block; font-size:21rpx; color:$p2-ink-soft; margin-top:5rpx; }.receipt-note { display:block; font-size:23rpx; color:$p2-ink-soft; margin:10rpx 0; white-space:pre-wrap; overflow-wrap:anywhere; }.receipt-total { display:block; text-align:center; border-top:2rpx dashed #e0d5c1; padding-top:17rpx; font-size:24rpx; }
 .feedback { position:fixed; z-index:1100; bottom:calc(285rpx + env(safe-area-inset-bottom)); left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:10rpx; white-space:nowrap; padding:16rpx 22rpx; border-radius:18rpx; background:#624735ee; color:$p2-white; font-size:23rpx; pointer-events:none; animation:mask-in 130ms ease; }
 @keyframes list-in { from { opacity:0; transform:translateY(8rpx); } to { opacity:1; transform:translateY(0); } }

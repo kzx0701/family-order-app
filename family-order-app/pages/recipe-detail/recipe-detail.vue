@@ -3,10 +3,15 @@
     <view class="nav" :style="{ paddingTop: navTop + 'px' }">
       <button class="icon-button back" aria-label="返回菜谱" @tap="requestBack"><Icon name="arrow-left" :size="20" /></button>
     </view>
-    <view class="hero">
+    <!-- 封面**必传**（见 mock/recipe-editor.js 的 validateRecipe），所以这里**没有兜底插画**：
+         没有封面就不画图，而不是拿一张本地演示图顶上去 —— 那会把「这道菜还没配图」
+         这件事盖住，让人以为图是好的。
+         链接不可用（历史上存过不可访问地址）时同理，不画，不退兜底。
+         框本身留着：`.nav` 是 absolute 定位在页面顶部，没有封面框顶着，标题会钻到返回按钮底下。
+         浏览态无封面时框收窄成一条纯占位（.hero-blank），别留 520rpx 的空洞。 -->
+    <view class="hero" :class="{ 'hero-blank': !heroSrc && !editing }">
       <image v-if="heroSrc" class="dish-art cover-img" :class="{ 'is-loaded': heroReady }" :src="heroSrc" mode="aspectFit" :webp="true" @load="onHeroLoaded" @error="onHeroError" />
-      <image v-else-if="!editing" class="dish-art" :src="FALLBACK_DISH_ART" mode="aspectFit" aria-label="蒜蓉小青菜" />
-      <button v-else class="cover-blank" aria-label="添加菜品封面" @tap="chooseImage"><Icon name="plus" :size="26" /><text>添加封面</text></button>
+      <button v-else-if="editing" class="cover-blank" aria-label="添加菜品封面" @tap="chooseImage"><Icon name="plus" :size="26" /><text>添加封面</text></button>
       <button v-if="editing && heroSrc" class="cover-edit" :disabled="uploading" aria-label="换一张封面" @tap="chooseImage"><Icon name="upload" :size="15" />换封面</button>
     </view>
     <!-- 上传进度：贴在封面图正下方的细横条。
@@ -18,6 +23,20 @@
       <text class="cover-progress-text">{{ uploadProgress }}%</text>
     </view>
     <view class="body">
+      <!-- 取不到云端菜谱时的提示（2026-09-21 按主人要求改）
+           原先这里会**退回落地的演示菜谱**（「蒜蓉小青菜」+ 别人的三步做法），于是用户点 A 进来
+           看到的是 B，而且能进编辑态把演示数据改到本机 —— 比空白更糟：空白是「没有」，
+           演示数据是「错的内容」。
+           现在：数据一律置空（saved 初值就是 blankRecipe 空骨架），这一块只负责说明情况。
+           底栏的编辑 / 发布同时收掉（见 .footer 的 v-if）—— 没有云端数据就无从编辑。
+           内层缩进保持原样，只是多包了一层 <template v-else>。 -->
+      <view v-if="loadFailed" class="load-failed">
+        <view class="failed-art"><Icon name="book-open" :size="40" :stroke-width="1.3" /></view>
+        <text class="failed-title">这道菜谱没有找到</text>
+        <text class="failed-hint">它可能已经被删掉了，也可能只是网络不太顺。</text>
+        <button class="failed-retry" :disabled="retrying" @tap="retryLoad"><Icon name="refresh-cw" :size="16" />{{ retrying ? '正在重试…' : '再试一次' }}</button>
+      </view>
+      <template v-else>
       <view class="intro">
         <template v-if="editing">
           <text class="field-label">菜谱名称 · 必填</text>
@@ -41,7 +60,11 @@
             </view>
           </view>
         </template>
-        <view v-if="!editing && (currentCategoryName || spicyArt || !cloudDishId)" class="meta"><view v-if="currentCategoryName" class="category-pill"><view class="leaf" />{{ currentCategoryName }}</view><text v-if="currentCategoryName && spicyArt" class="meta-dot">·</text><image v-if="spicyArt" class="spicy" :src="spicyArt" mode="aspectFit" /><text v-if="!cloudDishId" class="demo-label">本机体验菜谱</text></view>
+        <!-- 元信息行只剩「分类 · 辣度」两种真实存在的值。
+             原先末尾还有一个「本机体验菜谱」标签，用来解释「页面上的数据没连上云端」——
+             现在没连上云端时整页走上面的失败提示，不存在「有数据、却只是没连上云端」这种中间态，
+             所以那个标签一并退休（`!cloudDishId` 这个判断条件也去掉了）。 -->
+        <view v-if="!editing && (currentCategoryName || spicyArt)" class="meta"><view v-if="currentCategoryName" class="category-pill"><view class="leaf" />{{ currentCategoryName }}</view><text v-if="currentCategoryName && spicyArt" class="meta-dot">·</text><image v-if="spicyArt" class="spicy" :src="spicyArt" mode="aspectFit" /></view>
       </view>
       <view v-for="(section, index) in sections" :key="section.key" class="material-section">
         <view class="section-head"><text class="number" :class="section.key">{{ index + 1 }}</text><text class="section-title">{{ section.title }}</text></view>
@@ -56,7 +79,7 @@
           <view class="material-row">
             <view v-for="item in shown[section.key]" :key="item.id" class="material">
               <button v-if="editing" class="remove" :aria-label="'移除' + lookup(item.id).name" @tap="removeMaterial(section.key, item.id)"><Icon name="minus" :size="13" /></button>
-              <view class="material-art"><image :src="lookup(item.id).image" mode="aspectFit" /></view>
+              <view class="material-art"><image v-if="lookup(item.id).image" :src="materialArt(item.id)" mode="aspectFit" /><view v-else class="material-art-fallback"><Icon name="food" :size="15" /></view></view>
               <text class="material-name">{{ lookup(item.id).name }}</text>
             </view>
           </view>
@@ -88,10 +111,13 @@
       <text v-if="!editing && !shown.steps.length" class="empty">这道菜还没有记录步骤</text>
       <button v-if="editing" class="add-row" :disabled="draft.steps.length >= 30" @tap="addStep"><Icon name="plus" :size="19" />{{ draft.steps.length >= 30 ? '最多 30 个步骤' : '添加步骤' }}</button>
       <view v-else class="end-note"><Icon name="food" :size="16" /><text>认真做饭的人，也要好好吃饭呀。</text></view>
+      </template>
     </view>
-    <view v-if="canEdit" class="footer">
+    <!-- 底栏只在「身份能编辑」且「云端菜谱真拿到了」时出现：取不到菜谱时既没有可编辑的对象、
+         也没有可发布的 _id，留着按钮只会点出一串失败提示（原先要点到「发布」才被告知没连上云端） -->
+    <view v-if="canEdit && !loadFailed" class="footer">
       <template v-if="editing"><button class="cancel" @tap="cancelEditing">取消</button><button class="primary save" :disabled="saving" @tap="save"><Icon name="check" :size="18" />{{ saving ? '正在保存…' : (creating ? '添加菜谱' : '保存菜谱') }}</button></template>
-      <template v-else><button class="ghost" @tap="startEditing"><Icon name="edit" :size="18" />编辑菜谱</button><button class="primary grow"><Icon name="upload" :size="18" />发布菜品</button></template>
+      <template v-else><button class="ghost" @tap="startEditing"><Icon name="edit" :size="18" />编辑菜谱</button><button class="primary grow" :disabled="publishing" @tap="togglePublish"><Icon :name="published ? 'check' : 'upload'" :size="18" />{{ publishing ? '处理中…' : (published ? '取消发布' : '发布菜品') }}</button></template>
     </view>
     <view v-if="picker && editing && canEdit" class="picker-layer">
       <view class="mask" @tap="picker = ''" @touchmove.stop.prevent />
@@ -113,11 +139,14 @@ import { onLoad, onBackPress } from '@dcloudio/uni-app'
 import { useSafeArea } from '@/composables/useSafeArea.js'
 import { useCoverUpload } from '@/composables/useCoverUpload.js'
 import { useUserStore } from '@/store/user.js'
-import { pantry, freshRecipe, blankRecipe, cloneRecipe, validateRecipe } from '@/mock/recipe-editor.js'
+// 编辑器逻辑。文件名里的 mock 是历史遗留 —— 这一份里的 blankRecipe / cloneRecipe / validateRecipe
+// 都是**生产逻辑**，别按名字当演示数据处理。
+// 原先它还导出 freshRecipe / pantry（「本机演示菜谱」的数据源），2026-09-21 随
+// 「取不到云端菜谱时不再回退演示数据」一起删除 —— 页面现在只有「云端真数据」一种来源。
+import { blankRecipe, cloneRecipe, validateRecipe } from '@/mock/recipe-editor.js'
 import { SPICY_OPTIONS, SPICY_LEVELS, spicyMark } from '@/utils/spicy.js'
 import { categoryArt } from '@/utils/category-art.js'
-import { imgUrl } from '@/utils/image.js'
-const STORAGE_KEY = 'fo_recipe_editor_demo_v2'
+import { imgUrl, IMG_W } from '@/utils/image.js'
 const userStore = useUserStore()
 const canEdit = computed(() => userStore.isCook)
 const { statusBarHeight, menuButton, windowWidth } = useSafeArea()
@@ -139,21 +168,52 @@ const navTop = computed(() => {
   }
   return statusBarHeight.value + 10
 })
-const saved = ref(freshRecipe()), draft = ref(null), editing = ref(false), saving = ref(false), attempted = ref(false)
+/**
+ * 浏览态展示的数据
+ *
+ * 初值是**空骨架**（blankRecipe），不再是演示菜谱 —— 取不到云端数据时页面就该是空的，
+ * 由 loadFailed 决定显示「没找到」提示，而不是先摆一份别人的菜谱、等接口回来再换掉
+ * （那会出现「蒜蓉小青菜」一闪而过，2026-09-21 改）。
+ */
+const saved = ref(blankRecipe()), draft = ref(null), editing = ref(false), saving = ref(false), attempted = ref(false)
 const shown = computed(() => editing.value ? draft.value : saved.value)
 const dirty = computed(() => editing.value && JSON.stringify(draft.value) !== JSON.stringify(saved.value))
 
+/**
+ * 云端菜谱是否**没拿到**（路由没带 id / 接口返回非 0 / 菜谱已被删除 / 请求抛错）
+ *
+ * 四种情况并成一个布尔：站在用户角度都是「这道菜看不了」，拆开只会让界面多几层无用的分支；
+ * 真要排查，console 里那几条带接口名的日志足够定位。
+ * ⚠️ 它同时是底栏的显示条件 —— 拿不到菜谱时不该还能编辑或发布。
+ */
+const loadFailed = ref(false)
+/** 重试进行中：按钮禁用 + 换文案，防连点 */
+const retrying = ref(false)
+/** 路由带来的菜品 id：重试要用同一个 id 再请求一次 */
+const routeId = ref('')
+
 /* === 菜品封面 === */
-// 静态兜底图：云端还没有封面时，浏览态拿它当演示（与「本机体验菜谱」那套本地数据是一组）
-const FALLBACK_DISH_ART = '/static/images/recipes/dishes/garlic-bok-choy-v1.png'
 /**
  * 封面图输出宽度
  *
  * 主图框 500rpx，最大机型（430pt 屏、DPR 3）约需 860 物理像素，取 960 留一点余量；
  * 同一个值也作为裁剪器的导出尺寸（见模板里 image-cropper 的 output-size）——
  * 落库的原图就是 960，页面再经 imgUrl 按需取尺寸，不会出现「先压缩再放大」。
+ *
+ * ⚠️ 这里曾经有一张 1.68MB 的本地兜底插画（`dishes/garlic-bok-choy-v1.png`），
+ * 2026-09-21 按主人要求**删掉了**：封面改成必传（validateRecipe 拦截），
+ * 没有封面就不画图，不留兜底。它是主包里最后一张大图。
  */
-const HERO_ART_WIDTH = 960
+/**
+ * 图片输出档位**全部取自 utils/image.js 的 IMG_W**，本页不另写一份数：
+ * 菜谱列表页会在点开卡片时预取本页的封面（隐藏 `<image>`），
+ * 只有两页拼出的 URL 逐字符相同，那次预取才会命中同一份图片缓存。
+ * 各档位的像素换算依据见 IMG_W 的注释 —— 改显示尺寸时要回头重算。
+ */
+const HERO_ART_WIDTH = IMG_W.dishCover
+const MATERIAL_ART_WIDTH = IMG_W.materialArt
+const PICKER_ART_WIDTH = IMG_W.pickerArt
+const FIELD_ART_WIDTH = IMG_W.fieldArt
 const heroReady = ref(false), heroFailed = ref(false)
 /** 当前要显示的封面：统一走 imgUrl（与菜谱列表页卡片同一套口径：OSS 缩略图 + WebP） */
 const heroSrc = computed(() => {
@@ -164,7 +224,8 @@ const heroSrc = computed(() => {
 // 封面换了就让淡入重来一次（is-loaded 还停在上一张的状态），同时清掉上一次的失败标记。
 // 依赖的是**存的值**而不是 heroSrc —— 后者受 heroFailed 影响，互相依赖会反复重试坏链接。
 watch(() => (shown.value && shown.value.image) || '', () => { heroReady.value = false; heroFailed.value = false })
-// 链接不可用（历史上存过不可访问的地址）时不显示破图：退回静态兜底 / 编辑态的添加占位
+// 链接不可用（历史上存过不可访问的地址）时不显示破图：**什么也不画**（不退兜底插画，
+// 见模板里封面块的说明），编辑态下 heroSrc 变空、`.cover-blank` 会自动顶上来当添加入口
 const onHeroError = () => { heroFailed.value = true }
 // 淡入的触发点。写成函数而不是在模板里直接赋值：模板里对 ref 赋值要依赖编译器的引用处理，
 // 万一没生效，图片会停在 opacity:0（看不见）——这种错很难从代码上看出来
@@ -227,7 +288,10 @@ const categories = ref([])
 const FALLBACK_CATEGORY_ICON = 'food'
 const categoryOptions = computed(() => categories.value.map(c => {
   const art = c.image || categoryArt(c.name)
-  return { id: c.id, name: c.name, image: art, icon: art ? '' : FALLBACK_CATEGORY_ICON }
+  // 云端分类图也走 imgUrl：它是用户上传的图，原图尺寸远超抽屉里那 110rpx 的格子。
+  // 本地素材（categoryArt 返回的 static 路径）会被 imgUrl 原样返回，两种来源共用这一行。
+  // 注意 icon 的判断仍用**未处理的** art —— 命不中素材时 art 为空串，才轮到内置图标兜底。
+  return { id: c.id, name: c.name, image: imgUrl(art, { w: PICKER_ART_WIDTH }), icon: art ? '' : FALLBACK_CATEGORY_ICON }
 }))
 
 // 辣度档位（SPICY_OPTIONS / SPICY_LEVELS）与档位图案（spicyImage / spicyMark）都来自
@@ -253,7 +317,9 @@ const spicyArt = computed(() => spicyMark(shown.value && shown.value.spicy))
  */
 const currentCategory = computed(() => categoryOptions.value.find(o => o.id === (shown.value && shown.value.categoryId)) || null)
 const currentCategoryName = computed(() => (currentCategory.value || {}).name || '')
-const currentCategoryImage = computed(() => (currentCategory.value || {}).image || '')
+// 与选择抽屉里那张是同一来源，但显示得更小（44rpx），所以单独一档尺寸；
+// imgUrl('') 返回空串，模板的 v-if 会收掉它（原来的 `|| ''` 兜底并由 v-if 判空，行为一致）
+const currentCategoryImage = computed(() => imgUrl((currentCategory.value || {}).image || '', { w: FIELD_ART_WIDTH }))
 // 一个都没选时也留一个前导图标（餐具）占位：否则「还没选分类」的起点会比下面
 // 辣度行的文字左移一格，同一组表单的左边缘读起来是歪的。
 const currentCategoryIcon = computed(() => {
@@ -273,19 +339,33 @@ const cloudMaterialMap = computed(() => {
 const sections = [{ key: 'ingredients', title: '食材' }, { key: 'seasonings', title: '调料' }]
 
 /**
- * 按 id 取物料的名称与图片：**云端优先、本地兜底**
+ * 按 id 取物料的名称与图片
  *
- * 已入 materials 的物料（当前是调料）显示云端的真实名称与图片；
- * 尚未入库的（当前是食材）回退到内置 pantry —— 页面不会因此出现空白格。
- * 统一返回 { name, image, quantity }，调用方不必关心数据来自哪一侧。
- * quantity 恒为空串：materials 已移除「默认用量」字段，新增物料不再预填用量，
- * 仅在 confirmPicker 里作为 draft 项的初始值占位。
+ * 只查云端 materials —— 页面里所有 `item.id` 都是云端的 `materialId`，
+ * 而原先那份本地演示物料（pantry）用的是 `greens` / `garlic` 这种本地字符串 id，
+ * **两者永远不会匹配**，那条「本地兜底」分支从来就没生效过（2026-09-21 随演示数据一起删除）。
+ * 查不到的只剩「物料被物理删除」一种情形（停用不返回不存在：materials-crud/list 不过滤 isActive，
+ * 已停用的物料照常返回、所以引用它的菜品仍能正常渲染）。
+ * 统一返回 { name, image, quantity }；quantity 恒为空串 —— materials 已移除「默认用量」字段，
+ * 它只在 confirmPicker 里作为 draft 项的初始值占位。
  */
 const lookup = id => {
   const cloud = cloudMaterialMap.value[id]
   if (cloud) return { name: cloud.name, image: cloud.image, quantity: '' }
-  return pantry.find(item => item.id === id) || { name: '食材', image: '', quantity: '' }
+  return { name: '食材', image: '', quantity: '' }
 }
+
+/**
+ * 食材 / 调料卡片里那张小图的地址
+ *
+ * ⚠️ 这里原先直接把 `lookup(id).image` 丢给 `<image>` —— 那条链路拿的是**原图**：
+ * 物料图是用户上传的 PNG，同空间实测原图 1.84MB（1927136B），而卡片只有 100×96rpx。
+ * 一屏 10 个配料就是十几 MB —— 这是「图片多、加载慢」最主要的一处。
+ * 经 imgUrl 按需输出后同一张图约 12KB（实测 w_160 + WebP = 12428B，**省 99.4%**）。
+ *
+ * 返回空串时模板的 v-if 会收掉它（与原来一致）。
+ */
+const materialArt = id => imgUrl(lookup(id).image, { w: MATERIAL_ART_WIDTH })
 
 /**
  * 选择抽屉的四种用途
@@ -334,7 +414,9 @@ const pickerAllOptions = computed(() => {
   if (picker.value === 'spicy') return SPICY_OPTIONS.map(o => ({ id: o.value, name: o.label, image: o.image }))
   return cloudMaterials.value
     .filter(m => m.group === CLOUD_GROUP[picker.value] && m.isActive !== false)
-    .map(m => ({ id: m._id, name: m.name, image: m.image }))
+    // 同样走 imgUrl：抽屉格子只有 110rpx，而物料图是用户上传的原图。
+    // 辣度那一支不处理 —— 它的 image 是本地 static 素材，imgUrl 会原样返回，没必要绕一圈
+    .map(m => ({ id: m._id, name: m.name, image: imgUrl(m.image, { w: PICKER_ART_WIDTH }) }))
 })
 
 /**
@@ -385,11 +467,25 @@ let leaveAfterDiscard = false, nextId = 0
  * 已成功加载的云端菜品 ID
  *
  * **只在详情接口真正返回菜品后才赋值** —— 它是「能不能把修改写回云端」的开关。
- * 若只有跳转参数、菜谱却没取到（接口失败 / 已被删除），就保持空串：
- * 此时页面显示的是本地兜底数据，保存只能落在本机，绝不能把演示数据的 id 当成
- * materialId 写进云端。
+ * 取不到菜谱时（接口失败 / 已被删除）保持空串，同时 loadFailed 置真、整页走「没找到」提示态、
+ * 底栏根本不出现 —— 所以「页面上有数据、却只是没连上云端」这个中间态**已经不存在了**，
+ * save() 与 togglePublish() 里针对它的兜底分支只是防御，正常路径走不到。
  */
 const cloudDishId = ref('')
+
+/**
+ * 这道菜**是否已发布到菜单**（云端 dishes 的 `isOnSale`）
+ *
+ * 「发布」就是把这一个字段置 true —— 点单页的菜单接口 `menu-list` 只返回 `isOnSale: true`
+ * 的菜品，所以它是「是否出现在菜单里」的**唯一**开关，云端无需新增字段、也无需改 schema。
+ *
+ * ⚠️ 它刻意**不进 draft**：draft 是编辑器表单，而 `dirty` 是 draft 与 saved 的 JSON 全量比较 ——
+ * 把 isOnSale 塞进 draft，会让「什么都没改」也被判成「有改动」（进编辑态就弹「要放弃修改吗」）。
+ * 云端旧数据没有这个字段时按 true 处理（与 schema 的 defaultValue 一致）。
+ */
+const published = ref(false)
+/** 发布请求锁：避免连点两次发出两个相反的请求 */
+const publishing = ref(false)
 
 /**
  * 加载云端真实数据
@@ -467,11 +563,18 @@ const loadCloudRecipe = async id => {
    */
   await Promise.all([loadMaterials(), loadCategories()])
 
+  // 新建态（mode=create）不传 id：这一趟只把物料与分类拉回来，没有菜谱要取
   if (!id) return
   try {
     const dishRes = await uniCloud.callFunction({ name: 'app-service', data: { module: 'dishes-crud', action: 'detail', _id: id } })
     const dishResult = dishRes.result || {}
-    if (dishResult.code !== 0 || !dishResult.dish) return
+    if (dishResult.code !== 0 || !dishResult.dish) {
+      // 原先这里只是静默 return，页面于是继续显示那份演示数据 —— 用户点 A 看到 B。
+      // 现在改成显式失败：数据置空 + 提示，并打一条日志（带接口返回的 code/message）便于排查
+      console.warn('[recipe-detail] 菜谱详情没拿到', dishResult.code, dishResult.message || '（接口未返回 dish）')
+      loadFailed.value = true
+      return
+    }
     const dish = dishResult.dish
 
     const pick = list => (Array.isArray(list) ? list : []).filter(item => item && item.materialId).map(materialFromCloud)
@@ -493,8 +596,30 @@ const loadCloudRecipe = async id => {
       steps: (Array.isArray(dish.steps) ? dish.steps : []).map(stepFromCloud)
     }
     cloudDishId.value = id
+    // 发布状态：与 draft 无关，单独存（见 published 的说明）。
+    // 旧数据没有这个字段时按「已发布」处理，与 schema 的 defaultValue:true 保持一致
+    published.value = dish.isOnSale !== false
+    // 成功标记放在最后清：中途任何一步提前 return（上面那两处）都算失败，标记原样保留
+    loadFailed.value = false
   } catch (e) {
     console.error('[recipe-detail] 加载云端菜谱失败', e)
+    loadFailed.value = true
+  }
+}
+
+/**
+ * 失败态里的「再试一次」
+ *
+ * 只重跑 loadCloudRecipe（物料与分类都在它里面，一并刷新），不动 draft / editing ——
+ * 失败态下底栏是收掉的，本来也进不了编辑态。
+ */
+const retryLoad = async () => {
+  if (retrying.value || !routeId.value) return
+  retrying.value = true
+  try {
+    await loadCloudRecipe(routeId.value)
+  } finally {
+    retrying.value = false
   }
 }
 
@@ -511,7 +636,8 @@ const creating = ref(false)
 
 onLoad(async options => {
   const route = options || {}
-  // 新建：直接从空骨架进编辑态，跳过后面的本地缓存恢复与菜品详情请求
+  routeId.value = route.id || ''
+  // 新建：直接从空骨架进编辑态，跳过菜品详情请求
   // （物料与分类仍要拉 —— 选配料、选分类都得有它们；不传 id 时函数内部会跳过详情）
   if (route.mode === 'create') {
     creating.value = true
@@ -522,29 +648,52 @@ onLoad(async options => {
     await loadCloudRecipe('')
     return
   }
-  try {
-    const value = uni.getStorageSync(STORAGE_KEY)
-    // 只校验结构、不校验 id 归属：配料已改用云端的 materialId，
-    // 旧写法要求 id 必须存在于本地 pantry，会让云端数据一律校验失败、退回演示数据
-    if (value?.version === 1 && typeof value.name === 'string' && typeof value.subtitle === 'string'
-      && ['ingredients', 'seasonings'].every(group => Array.isArray(value[group]) && value[group].every(item => item && typeof item.id === 'string' && typeof item.quantity === 'string'))
-      && Array.isArray(value.steps) && value.steps.every(step => typeof step.id === 'string' && ['title', 'description', 'tip'].every(key => typeof step[key] === 'string')) && !validateRecipe(value)) {
-      // image 是后加的字段：旧缓存里没有它，**不能因此把整份丢掉**（那份可能只存在本机、
-      // 云端还没有），缺就补空串。dirty 是 JSON 全量比较，两侧结构一致才不会一进编辑态就误判为有改动
-      saved.value = { ...cloneRecipe(value), image: typeof value.image === 'string' ? value.image : '' }
-    }
-  } catch { /* Corrupted or unavailable local storage falls back to the demo. */ }
-
-  // 云端数据放在最后覆盖：配料以云端为准，步骤等云端没有的字段仍沿用本地那份
-  await loadCloudRecipe((options && options.id) || '')
+  /**
+   * 正常进入只有这一条路：**必须带 ?id=**（菜谱列表页的 openRecipe 会带上）
+   *
+   * 原先这里还有两块兜底，2026-09-21 一并删除，各有各的理由：
+   *   1. 「从 storage 恢复上次编辑的草稿」—— 它是**单键**共用的（所有菜谱一份），
+   *      接口失败时打开另一道菜会看到上一次编辑留下的内容；
+   *   2. 「拿不到云端就退回演示菜谱」—— 点 A 看到 B，比空白更糟：空白是「没有」，
+   *      演示数据是「错的内容」，而且它看起来完全像是真的。
+   * 现在没有 id 就直说拿不到（loadFailed），页面不再有任何「本机数据」兜底。
+   */
+  if (!routeId.value) {
+    console.warn('[recipe-detail] 路由没有带 id，无法取菜谱')
+    loadFailed.value = true
+    return
+  }
+  await loadCloudRecipe(routeId.value)
 })
 const exitEditing = () => { editing.value = false; draft.value = null; picker.value = ''; attempted.value = false }
 watch(canEdit, allowed => { if (!allowed) { exitEditing(); discardDialog.value = false } })
 const startEditing = () => { if (!canEdit.value) return; draft.value = cloneRecipe(saved.value); attempted.value = false; editing.value = true }
 const back = () => getCurrentPages().length > 1 ? uni.navigateBack() : uni.switchTab({ url: '/pages/recipe/recipe' })
-const cancelEditing = () => { leaveAfterDiscard = false; if (dirty.value) discardDialog.value = true; else exitEditing() }
+/**
+ * 「取消」按钮
+ *
+ * 新建态取消 = **直接离开页面**：云端还没有这道菜，退出编辑后只剩一个标题空白的空壳
+ * （原先就是停在这个空壳上，既没内容也没入口）。有改动时先弹确认，确认后同样离开。
+ */
+const cancelEditing = () => {
+  if (creating.value) {
+    creating.value = false
+    if (dirty.value) { leaveAfterDiscard = true; discardDialog.value = true }
+    else back()
+    return
+  }
+  leaveAfterDiscard = false
+  if (dirty.value) discardDialog.value = true
+  else exitEditing()
+}
 const requestBack = () => { if (picker.value) { picker.value = ''; return } if (dirty.value) { leaveAfterDiscard = true; discardDialog.value = true } else { exitEditing(); back() } }
-const discard = () => { discardDialog.value = false; exitEditing(); if (leaveAfterDiscard) back() }
+/** 放弃修改：新建态同样直接离开（不留空壳），编辑态按 leaveAfterDiscard 决定去留 */
+const discard = () => {
+  discardDialog.value = false
+  if (creating.value) { creating.value = false; back(); return }
+  exitEditing()
+  if (leaveAfterDiscard) back()
+}
 onBackPress(() => { if (picker.value) { picker.value = ''; return true } if (dirty.value) { leaveAfterDiscard = true; discardDialog.value = true; return true } return false })
 const openPicker = kind => {
   if (!editing.value || !canEdit.value || !PICKER_KINDS[kind]) return
@@ -628,42 +777,89 @@ const save = async () => {
     // 配料（食材 / 调料）、名称与步骤写回云端 —— 这一步才是编辑真正生效的地方。
     // 云端对 ingredients / seasonings / steps 都是整组替换，所以增、删、改、步骤排序
     // 都由同一次提交表达。
-    // 三种情形：新建态 → create；已连上云端菜品 → update；两者都不是（详情接口没取到）→ 只落本机，
-    // 避免把本地演示数据的 id 当成云端 _id 写进去。
+    //
+    // 原先这里是「云端 / 只落本机」两条路，第二条用来兜「详情接口没取到」那种情形
+    // （把改动 uni.setStorageSync 留在本机）。2026-09-21 起那种中间态**不存在了**：
+    // 取不到菜谱时整页走提示态、底栏收起，根本进不到编辑态。本机存档随之删除 ——
+    // 保存只有「写云端成功」才算成功，失败就留在编辑态让用户重试，不做「看起来保存了」的假动作。
+    // （`creating` 为假、`cloudDishId` 又为空属于理论不可达；真出现时云端会返回 400/404，
+    //   按上面的失败分支提示重试即可。）
+    const action = creating.value ? 'create' : 'update'
+    // 新增必须带 type（云端校验必填），且菜谱页只产美食菜谱 —— 咖啡归点单页管
+    // 新建的菜谱**默认不发布**：它先待在菜谱里，确认没问题再点底栏的「发布菜品」上到菜单。
+    // isOnSale 写在 ...fields 之前，避免将来 fields 里意外出现同名字段把它盖掉
+    const data = action === 'create'
+      ? { module: 'dishes-crud', action, token: userStore.token, type: 'food', isOnSale: false, ...fields }
+      : { module: 'dishes-crud', action, token: userStore.token, _id: cloudDishId.value, ...fields }
+    const res = await uniCloud.callFunction({ name: 'app-service', data })
+    const result = res.result || {}
+    if (result.code !== 0) {
+      // 云端失败就不算保存成功：留在编辑态，用户的修改还在，可以直接重试
+      uni.showToast({ title: result.message || '保存到云端失败，请重试', icon: 'none' })
+      return
+    }
     let toast = '菜谱已保存'
-    if (cloudDishId.value || creating.value) {
-      const action = creating.value ? 'create' : 'update'
-      // 新增必须带 type（云端校验必填），且菜谱页只产美食菜谱 —— 咖啡归点单页管
-      const data = action === 'create'
-        ? { module: 'dishes-crud', action, token: userStore.token, type: 'food', ...fields }
-        : { module: 'dishes-crud', action, token: userStore.token, _id: cloudDishId.value, ...fields }
-      const res = await uniCloud.callFunction({ name: 'app-service', data })
-      const result = res.result || {}
-      if (result.code !== 0) {
-        // 云端失败就不算保存成功：留在编辑态，用户的修改还在，可以直接重试
-        uni.showToast({ title: result.message || '保存到云端失败，请重试', icon: 'none' })
-        return
-      }
-      if (action === 'create') {
-        // 记下新菜品的 _id 并退出新建态：本页随即变成「编辑既有菜谱」，
-        // 用户接着改再保存走的是 update，不会重复创建
-        cloudDishId.value = result._id || ''
-        creating.value = false
-        toast = '菜谱已添加'
-      }
-    } else {
-      toast = '已存到本机（未连接云端菜谱）'
+    if (action === 'create') {
+      // 记下新菜品的 _id 并退出新建态：本页随即变成「编辑既有菜谱」，
+      // 用户接着改再保存走的是 update，不会重复创建
+      cloudDishId.value = result._id || ''
+      creating.value = false
+      // 新建时云端写的 isOnSale 就是 false，本地状态必须跟上 ——
+      // 否则底栏会显示成「取消发布」，用户以为它已经在菜单里了
+      published.value = false
+      toast = '菜谱已添加'
     }
 
-    uni.setStorageSync(STORAGE_KEY, value); saved.value = value; exitEditing()
+    saved.value = value; exitEditing()
     uni.showToast({ title: toast, icon: 'none' })
   } catch { uni.showToast({ title: '保存失败，修改仍在，请重试', icon: 'none' }) }
   finally { saving.value = false }
 }
+/**
+ * 发布到菜单 / 从菜单撤下
+ *
+ * 走云端**专用**的 `dishes-crud/toggleSale`（只写 isOnSale 与 updateTime），而不是 `update` ——
+ * 后者是「编辑菜品」的整表 patch 入口，用它来切一个开关语义不对，也更容易被将来的字段改动牵连。
+ * 注意 toggleSale 收的是**目标值**（`isOnSale: true/false`），不是"取反"。
+ * 点单页的菜单在 onShow 重新拉取，所以发布后切到点单页即可看到（无需额外通知）。
+ */
+const togglePublish = async () => {
+  if (!canEdit.value || editing.value || publishing.value) return
+  // 没连上云端就没有可改的 _id：本地演示菜谱谈不上「发布」
+  if (!cloudDishId.value) {
+    uni.showToast({ title: '这道菜还没连上云端，先保存一次', icon: 'none' })
+    return
+  }
+  const next = !published.value
+  publishing.value = true
+  try {
+    const res = await uniCloud.callFunction({
+      name: 'app-service',
+      data: {
+        module: 'dishes-crud', action: 'toggleSale', token: userStore.token,
+        _id: cloudDishId.value,
+        isOnSale: next
+      }
+    })
+    const result = res.result || {}
+    if (result.code !== 0) {
+      uni.showToast({ title: result.message || '操作失败，请重试', icon: 'none' })
+      return
+    }
+    published.value = next
+    uni.showToast({ title: next ? '已发布，去菜单看看吧' : '已从菜单撤下', icon: 'none' })
+  } catch (e) {
+    console.error('[recipe-detail] 切换发布状态失败', e)
+    uni.showToast({ title: '网络异常，请重试', icon: 'none' })
+  } finally {
+    publishing.value = false
+  }
+}
 </script>
 
 <style lang="scss" scoped>
-@import '@/scss/font-recipe.scss';
+// 菜谱详情标题的手绘字体（RecipeMaoken）。@font-face 已统一在 App.vue 里引一次、编进 app.wxss
+// 全局生效 —— **页面侧不要再 @import scss/font-*.scss**，否则 base64 会被重复打进本页 wxss。
 // position:relative 作为 .nav 绝对定位的参照（参照的是页面内容区顶部，与原来 paddingTop
 // 的起算点一致，所以按钮的绝对位置不变，变的只是它不再占据文档流。
 .detail-page { position:relative; min-height:100vh; background:$p2-paper; color:$p2-ink; padding-bottom:calc(170rpx + env(safe-area-inset-bottom)); }
@@ -686,18 +882,26 @@ button { margin:0; padding:0; background:transparent; color:inherit; font:inheri
 // **图片背后原来有一块 #ebeed7 的绿色斜贴纸（.hero-wash，525×340rpx / 旋转 −9° / opacity .65），
 // 已按主人要求整块去掉**：现在主图是用户上传的真实照片，斜色块只会在照片四角露出来、
 // 和照片抢视线；纯纸色底更干净。色块是绝对定位、不参与布局，去掉后图片位置零位移。
-// 这里有两种图：用户上传的云端封面（裁剪器按 1:1 导出）与静态兜底素材，共用这同一个 500×500 的框，
-// 所以「有没有封面」不会带来任何布局位移 —— 两种图的显示口径一致（aspectFit、透明底抠图）。
+// 这里只有一种图：用户上传的云端封面（裁剪器按 1:1 导出），放进这个 500×500 的框里，
+// 显示口径是 aspectFit + 透明底抠图。**2026-09-21 起没有兜底素材了**（封面必传），
+// 所以「有没有封面」会带来布局位移 —— 无封面时由 .hero-blank 把框收窄，见下。
 // margin-top 64rpx（32px）：导航改绝对定位后主图直接顶到内容区顶部 —— 实测盘子顶端距顶部仅
 // 10.4px，与微信胶囊（占屏幕顶下方 47~83px）齐平、观感很挤。下移 28px 后盘子顶端约在屏幕
 // y=85px，正好落在胶囊下方；留白仍远小于原来 nav 占的 135px，不会回到「上方大片空白」。
 .hero { position:relative; height:520rpx; margin:64rpx 30rpx 6rpx; display:flex; justify-content:center; align-items:center; }
+// 浏览态没有封面的框（历史数据 / 「本机体验菜谱」）：收窄成一条纯占位 —— 里面不留图、
+// 也不给「添加封面」入口（点单的人不该看到编辑入口）。**这一条不能省**：`.nav` 是
+// position:absolute 定位于页面顶部，没有这个框顶着，标题会钻到返回按钮底下。
+// 210rpx 是推出来的最小值：nav 底边 = navTop(状态栏高 + 10px) + 72rpx 按钮，取最矮机型
+// （状态栏 20px → 60rpx + 72rpx = 132rpx）也够；再算上最矮机型到最高机型（状态栏 59px）
+// 的差值，210rpx 在所有机型上都留得住呼吸，且不至于像 520rpx 那样看着像图裂了。
+.hero-blank { height:210rpx; }
 .dish-art { position:relative; width:500rpx; height:500rpx; }
 // 云存储封面的淡入（与菜谱列表页卡片同一套手法）：图片要走网络，直接出现会闪一下。
-// 静态兜底那张**不加这个类** —— 它是本地素材、没有等待的必要，加了反而可能因 @load 时机而不显示
+// 现在这一页只有这一种封面图（本地兜底素材 2026-09-21 已删），所以这个类恒生效。
 .cover-img { opacity:0; transition:opacity $p2-dur-base $p2-ease; &.is-loaded { opacity:1; } }
 // 编辑态且还没有封面：虚线占位（虚线描边 + 苔绿文字的语汇，同三个区的 .add-row），点了去选图。
-// 这里不能沿用静态兜底那张素材 —— 用户会以为那就是这道菜的封面
+// **不能拿什么素材顶上去充数** —— 用户会以为那就是这道菜的封面
 .cover-blank { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14rpx; width:360rpx; height:320rpx; color:#879172; border:3rpx dashed #c3c9ac; border-radius:36rpx 40rpx 34rpx 38rpx; font-size:$p2-fs-caption; }
 // 换封面：浮在主图右下角。质感沿用页面里「可交互控件」那一套 —— 2rpx 实棕描边 + 奶油底 +
 // 手绘不规则圆角 + 硬投影（与 .back / .primary 同源）。用 right/bottom 定位而不是 left + transform
@@ -716,7 +920,7 @@ button { margin:0; padding:0; background:transparent; color:inherit; font:inheri
 .cover-progress-text { width:66rpx; flex-shrink:0; text-align:right; font-size:22rpx; color:$p2-ink-soft; }
 .body { padding:0 38rpx; }
 .intro { padding:5rpx 0 30rpx; }
-.title { display:block; font-family:RecipeMaoken,$p2-font-fallback; font-size:$p2-fs-display; line-height:1.35; }
+.title { display:block; font-family:$p2-font-hand, $p2-font-fallback; font-size:$p2-fs-display; line-height:1.35; }
 .subtitle { display:block; font-size:$p2-fs-body; color:$p2-ink-soft; margin-top:10rpx; line-height:1.7; }
 // 简约小纸条：宽度随文字收拢，淡黄纸面与不规则小圆角延续手绘风格。
 .note-row { display:flex; margin-top:14rpx; }
@@ -731,10 +935,11 @@ button { margin:0; padding:0; background:transparent; color:inherit; font:inheri
 }
 .recipe-note-text {
   display:block;
-  // 系统字体：便签里装的是**用户自由输入**的一段话，而两套手写体都是"子集化内嵌"的
-  // （RecipeMaoken 405 字 / MenuHand 59 字），遇到没收录的字会静默回退 ——
-  // 一句话里半个手写、半个系统，比整句都用系统字体更碎。
-  // 手写体只适合用在**字表可枚举**的地方（菜名、固定文案）。
+  // 系统字体：便签里装的是**用户自由输入**的一段话，子集永远覆盖不全 ——
+  // 包内兜底子集 628 字、网络大子集 1480 字，对「菜名」这种三五字的短词能把覆盖率
+  // 提到 94%，但一段几十字的便签仍会撞上没收录的字；撞上一个就出现
+  // 「半个手写、半个系统」，比整句都用系统字体更碎。
+  // 手写体只适合用在**短、且字表可枚举**的地方（标题、固定文案、三五字的菜名）。
   font-family:$p2-font-fallback;
   font-size:25rpx;
   line-height:1.5;
@@ -759,7 +964,9 @@ button { margin:0; padding:0; background:transparent; color:inherit; font:inheri
 // 「别拿旧 Icon 的 size 直接当目标高」这条坑，都写在 utils/spicy.js 的注释里，改前先读。
 // 注意这个方框也决定了 .meta 这一行的高度（46rpx，比原先 28rpx 的单色图标高一些）。
 .spicy { width:46rpx; height:46rpx; flex-shrink:0; display:block; }
-.demo-label { margin-left:auto; font-size:18rpx; }
+// 【2026-09-21 已删除】「本机体验菜谱」标签的样式（.demo-label）。
+// 它标记的是「页面上是本地数据、只是没连上云端」那种中间态；现在取不到菜谱整页走 .load-failed
+// 提示（见样式末尾），该中间态不再存在，标签、判断条件与这条样式一并移除。
 // 分类 / 辣度的编辑入口：与名称输入框同形的**整行控件**，点它开抽屉去挑。
 // 形制直接落在 .field 上（描边 + 手绘圆角 + 奶油底），本类只负责内容的两端对齐 ——
 // 这样两行选择器与上方的名称输入框读起来是同一组表单。
@@ -773,42 +980,88 @@ button { margin:0; padding:0; background:transparent; color:inherit; font:inheri
 .picker-field-icon { display:flex; align-items:center; justify-content:center; width:44rpx; height:44rpx; flex-shrink:0; }
 .picker-field-value { flex:1; min-width:0; color:$p2-ink; }
 .picker-field-value.is-empty { color:$p2-ink-soft; }
-.material-section { padding:24rpx 0 26rpx; border-top:2rpx dashed #e1d6c3; }
-.section-head { display:flex; align-items:center; gap:13rpx; margin-bottom:20rpx; }
-.number { display:flex; justify-content:center; align-items:center; width:38rpx; height:40rpx; font-size:21rpx; background:$p2-leaf-soft; border-radius:10rpx 13rpx 8rpx 12rpx; transform:rotate(-7deg); }
+// ==== 下方三个区（食材 / 调料 / 步骤）整体缩一档 —— 2026-09-21 按主人要求 ====
+// 目标：整体约 −12%，**图片多降一档**（它是视觉上最压的一处），
+// 同时守住三条底线 ——
+//   ① 正文段落（.description）不低于可读区间：只降 2rpx，不套用 $p2-fs-caption；
+//   ② 触控尺寸不动（底栏按钮仍是 88rpx = 44pt，见 .ghost / .primary）；
+//   ③ 能落到字号 token 档位的一律用 token，落不到的就手调并在此写明理由。
+// 缩放对照（前 → 后）：区标题 36→32 ｜ 图片 120×116→100×96 ｜ 食材名 28→24（=$p2-fs-caption）
+//   步骤名 32→30 ｜ 步骤正文 28→26 ｜ 小提醒 24→22 ｜ 添加按钮 28→24（=$p2-fs-caption）
+// ⚠️ 步骤名与正文只降 2rpx 而不各降一档（32→28 / 28→24）：那样两者会落到相邻档、
+//    且正文的 24rpx 就是「小提醒」的档位，正文与小提醒会挤成同一级，层级反而糊了。
+//    保持「4rpx 字号差」比「各降一档」更重要。
+.material-section { padding:22rpx 0 24rpx; border-top:2rpx dashed #e1d6c3; }
+.section-head { display:flex; align-items:center; gap:12rpx; margin-bottom:17rpx; }
+.number { display:flex; justify-content:center; align-items:center; width:34rpx; height:36rpx; font-size:20rpx; background:$p2-leaf-soft; border-radius:9rpx 12rpx 7rpx 11rpx; transform:rotate(-7deg); }
 .seasonings { background:$p2-butter-soft; }.coral { background:$p2-coral-soft; }
 .section-title { font-size:$p2-fs-title; font-weight:600; }
+// 区标题（食材 / 调料 / 一起慢慢做）降一档。
+// ⚠️ 用 `.section-head .section-title` 而不是直接改 `.section-title` —— 后者还被选择抽屉的标题
+//    （.picker-heading 里的那个）共用，抽屉不在本次调整范围内，别把它一起带小。
+//    只覆盖字号，字重仍由上面那条 `.section-title` 给。
+.section-head .section-title { font-size:32rpx; }
 // 横向滚动：scroll-view 内部的列表行必须用 inline-flex —— 容器宽度由内容决定，内容一多
 // 就必然溢出容器、必然产生可滚动区域。块级 flex 的宽度恒等于父容器宽（内容再多它也不变宽），
 // 其子项的溢出行不行要依赖基础库对 scroll-width 的实现，不可靠：官方文档横向滚动只给了
 // 「scroll-x + enable-flex」与「white-space:nowrap + inline-block」两种写法，都没有块级 flex。
 // 不加 white-space:nowrap：它会连带禁用食材名的自动换行，长名字会横溢到相邻卡片上。
 // vertical-align:top 用于消除 inline 元素固有的基线间隙。
-.material-scroll { width:100%; }.material-row { display:inline-flex; vertical-align:top; gap:19rpx; padding:12rpx 0 6rpx; }
-.material { width:140rpx; flex-shrink:0; text-align:center; position:relative; }
+.material-scroll { width:100%; }.material-row { display:inline-flex; vertical-align:top; gap:16rpx; padding:10rpx 0 5rpx; }
+// 卡片宽 140→118rpx、图框 120×116→**100×96rpx**（比其他元素多降约一档：
+// 食材/调料图标是下方区域里视觉重量最大的一处，主人指的也是这里）。
+// 图与卡的比例保持：图宽 100 对卡宽 118，左右各留 9rpx 呼吸，图片不会顶到相邻卡片。
+.material { width:118rpx; flex-shrink:0; text-align:center; position:relative; }
 // 图标不衬底色：去掉原来的浅色圆片（background:#f2efde + 不规则圆角），素材直接落在纸色底上。
-// 尺寸与下间距保持不变，标题行不会位移。
-.material-art { width:120rpx; height:116rpx; margin:0 auto 8rpx; image { width:100%; height:100%; } }
+.material-art { width:100rpx; height:96rpx; margin:0 auto 7rpx; image { width:100%; height:100%; } }
+// 物料图缺失时的兜底：云端 `materials.image` 允许为空（schema 的 defaultValue 就是空串），
+// 而空 src 的 `<image>` 在小程序里既画不出东西又会报警告 —— 走 v-if 换成一枚同尺寸的居中图标。
+// 与选择抽屉里 `.picker-art-box` 的兜底同一手法（那里兜的是「分类名命不中素材」）。
+// 撑满 100×96 的图位是为了不改变卡片高度。
+.material-art-fallback { display:flex; align-items:center; justify-content:center; width:100%; height:100%; color:$p2-ink-soft; }
 // 卡片只保留「图标 + 名称」：浏览态与编辑态都不再出现用量。
 // 数据结构里的 quantity 字段**保留不动** —— 它与云端 dishes.seasonings 一致、随接口读入，
 // 将来要恢复用量展示或编辑时数据还在，不必迁移。
-.material-name { display:block; font-size:$p2-fs-body; }
+// 名称降到 $p2-fs-caption：它是「图标下的标签」，与分类行图标的标签同一个角色，不是正文段落。
+.material-name { display:block; font-size:$p2-fs-caption; }
 .remove { position:absolute; top:-8rpx; right:2rpx; width:48rpx; height:48rpx; display:flex; align-items:center; justify-content:center; background:#fae4d9; border-radius:50%; z-index:1; }
 // 三个区共用的「添加」按钮：整行虚线长条（食材 / 调料 / 步骤同形，原 .add-material 那格方形的已撤掉）。
 // 在食材与调料区里它落在横向卡片行的**下方、独占一行**，所以卡片行只装已配置的配料 ——
 // 配料再多也不会把入口挤到看不见的地方，三个区的添加入口位置与形态就此一致。
 // 上间距 26rpx；下间距交给容器（食材/调料区自带 padding-bottom:26rpx，步骤区后面是页脚），
 // 原来的 margin-bottom:20rpx 只在编辑态生效，而编辑态它后面没有兄弟元素，去掉不会产生位移。
-.add-row { width:100%; display:flex; align-items:center; justify-content:center; gap:12rpx; padding:26rpx 12rpx; border:2rpx dashed #a8b68b; border-radius:20rpx; color:#63784f; font-size:$p2-fs-body; margin:26rpx 0 0; }
-.empty { display:block; font-size:$p2-fs-caption; color:$p2-ink-soft; padding:20rpx 0; }
-.steps-heading { padding-top:26rpx; border-top:2rpx dashed #e1d6c3; }
-.step { padding:24rpx 0 30rpx; border-bottom:2rpx dashed #e1d6c3; }
-.step-top { display:flex; align-items:center; gap:14rpx; margin-bottom:15rpx; min-height:36rpx; }
-.step-index { color:#7a895e; font-size:$p2-fs-caption; letter-spacing:2rpx; }.dash { width:45rpx; height:3rpx; background:#c3cda8; border-radius:50%; }
-.step-title { display:block; font-size:$p2-fs-control; font-weight:600; line-height:1.6; overflow-wrap:anywhere; }
-.description { display:block; margin-top:12rpx; font-size:$p2-fs-body; color:$p2-ink-soft; line-height:1.95; white-space:pre-wrap; overflow-wrap:anywhere; }
-.tip { display:flex; align-items:flex-start; gap:14rpx; background:#f7edca; border-radius:6rpx 18rpx 14rpx 17rpx; margin-top:22rpx; padding:20rpx; font-size:$p2-fs-caption; line-height:1.85; white-space:pre-wrap; }.tip-label { display:block; font-weight:600; margin-bottom:4rpx; }
-.end-note { display:flex; align-items:center; justify-content:center; gap:12rpx; font-size:22rpx; color:$p2-ink-soft; padding:45rpx 0; }
+.add-row { width:100%; display:flex; align-items:center; justify-content:center; gap:12rpx; padding:22rpx 12rpx; border:2rpx dashed #a8b68b; border-radius:20rpx; color:#63784f; font-size:$p2-fs-caption; margin:24rpx 0 0; }
+.empty { display:block; font-size:22rpx; color:$p2-ink-soft; padding:18rpx 0; }
+.steps-heading { padding-top:24rpx; border-top:2rpx dashed #e1d6c3; }
+.step { padding:22rpx 0 26rpx; border-bottom:2rpx dashed #e1d6c3; }
+.step-top { display:flex; align-items:center; gap:14rpx; margin-bottom:13rpx; min-height:34rpx; }
+.step-index { color:#7a895e; font-size:22rpx; letter-spacing:2rpx; }.dash { width:45rpx; height:3rpx; background:#c3cda8; border-radius:50%; }
+// 步骤名 32→30rpx、说明 28→26rpx：**只降 2rpx 而不是各降一档**（理由见本段开头的说明），
+// 目的是保住两级之间那 4rpx 的字号差 —— 层级靠字号差建立，差值没了就只剩字重能区分了。
+.step-title { display:block; font-size:30rpx; font-weight:600; line-height:1.6; overflow-wrap:anywhere; }
+.description { display:block; margin-top:11rpx; font-size:26rpx; color:$p2-ink-soft; line-height:1.9; white-space:pre-wrap; overflow-wrap:anywhere; }
+.tip { display:flex; align-items:flex-start; gap:14rpx; background:#f7edca; border-radius:6rpx 18rpx 14rpx 17rpx; margin-top:20rpx; padding:18rpx; font-size:22rpx; line-height:1.8; white-space:pre-wrap; }.tip-label { display:block; font-weight:600; margin-bottom:4rpx; }
+.end-note { display:flex; align-items:center; justify-content:center; gap:12rpx; font-size:21rpx; color:$p2-ink-soft; padding:40rpx 0; }
+// === 取不到云端菜谱时的提示（2026-09-21 新增） ===
+// 形态与菜谱列表页的空态（.empty-state / .empty-book / .reset-button）**同族**：
+// 浅黄纸片圆 + 轻微旋转 + 手写体标题 + 浅绿底描边按钮。两页同属菜谱模块，
+// 同类界面用同一套语汇，不该一个页面一个样。
+// ⚠️ 文案分成两层、字体不同，改文案或字体前先读：
+//   · `.failed-title` 走手写体 —— 「这道菜谱没有找到」8 个字已实测全部在子集内
+//     （用 fontTools 读字体 cmap 逐个字符验过，不是估的）；
+//   · `.failed-hint` 走**系统字体** —— 原先是因为说明句里的「删 / 掉 / 经 / 络 / 网 /
+//     者 / 被 / 顺」都不在子集里，才退回系统字体；2026-09-21 这些字已随子集扩充
+//     补入，**技术上可以换手写体了**，但当前刻意保持不变：说明句比标题长得多，
+//     一长句手写体的可读性不如黑体，说明文字以「读得清」优先。
+//     → 要不要换成手写体属设计取舍，改前先问一下主人。
+//   · 按钮同理走系统字体（项目里所有按钮文案都是系统字体）。
+.load-failed { display:flex; flex-direction:column; align-items:center; text-align:center; padding:30rpx 16rpx 70rpx; animation:appear 240ms $p2-ease backwards; }
+// 手绘纸片圆：与列表页空态的 .empty-book 同形（140rpx / 纸片色 / −8° 轻旋）
+.failed-art { display:flex; align-items:center; justify-content:center; width:140rpx; height:140rpx; border-radius:50%; background:$p2-butter-soft; color:$p2-ink-soft; margin-bottom:28rpx; transform:rotate(-8deg); }
+.failed-title { display:block; font-family:$p2-font-hand, $p2-font-fallback; font-size:$p2-fs-title; line-height:1.4; }
+.failed-hint { display:block; margin-top:10rpx; color:$p2-ink-soft; font-size:$p2-fs-caption; line-height:1.7; }
+// 重试按钮：与列表页空态按钮（.reset-button）同一形态 —— 浅绿底 + 实棕描边 + 手绘圆角
+.failed-retry { display:flex; align-items:center; justify-content:center; gap:10rpx; margin-top:30rpx; padding:20rpx 32rpx; background:$p2-leaf-soft; border:2rpx solid $p2-line; border-radius:18rpx; font-size:$p2-fs-body; }
 .footer { position:fixed; bottom:0; left:0; right:0; display:flex; align-items:center; gap:22rpx; justify-content:space-between; padding:22rpx 34rpx calc(22rpx + env(safe-area-inset-bottom)); background:$p2-paper; border-top:2rpx solid #e8dfcd; z-index:30; }
 // 底栏按钮：主次只靠「实底 vs 描边」区分，不引入第二套颜色（同 fo-dialog 的主次按钮规范）。
 // 发布菜品 = 主（.primary：浅绿实底 + 实棕描边 + 硬投影）；编辑菜谱 = 次（.ghost：只留实棕描边、
@@ -864,5 +1117,5 @@ $picker-gap: 18rpx;
 .selection-dot { position:absolute; top:10rpx; right:10rpx; width:28rpx; height:28rpx; border:2rpx solid #a9b695; border-radius:50%; display:flex; align-items:center; justify-content:center; }.confirm { width:100%; }
 @keyframes appear { from { opacity:0; transform:translateY(6rpx); } to { opacity:1; transform:translateY(0); } }
 @keyframes slide-up { from { transform:translateY(100%); } to { transform:translateY(0); } }
-@media (prefers-reduced-motion:reduce) { button { transition:none; }.editor,.sheet,.picker-item,.picker-blank,.cover-progress { animation:none; } }
+@media (prefers-reduced-motion:reduce) { button { transition:none; }.editor,.sheet,.picker-item,.picker-blank,.cover-progress,.load-failed { animation:none; } }
 </style>

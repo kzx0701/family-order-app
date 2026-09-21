@@ -1,43 +1,34 @@
-// Local-only demonstration data. No cloud API or family records are involved.
-const drawing = body => 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none"><g stroke="#765540" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${body}</g></svg>`)
-const greens = drawing('<path d="M48 86C28 82 12 67 17 50Q5 27 26 26Q24 7 41 12Q55 5 60 25Q84 8 87 31Q97 42 79 57Q81 76 55 88Z" fill="#a5c080"/><path d="M49 86Q36 60 32 35M51 84Q65 60 73 32M51 85Q48 57 48 29" stroke="#fff3d6" stroke-width="7"/><path d="m21 39 11 13m41-4 10-9m-43-9 7 8" stroke="#708c52"/></g><g>')
-const garlic = drawing('<path d="M48 17 47 29C41 42 22 42 21 63Q17 85 49 88Q83 88 80 63C80 46 59 39 57 27L58 17Z" fill="#fff0d9"/><path d="M47 33Q30 61 40 82M56 34Q69 62 57 82M49 43 49 83" stroke="#c0a586"/><path d="m41 88-5 5m14-5v6m9-7 5 4"/></g><g>')
-const mushroom = drawing('<path d="m42 51-5 32q12 9 26 0l-5-32" fill="#fff0d9"/><path d="M13 52Q16 15 49 14Q83 14 88 53Q56 69 13 52Z" fill="#cba782"/><path d="m29 35 3-5m22-4 4 1m13 16 4 2" stroke="#f9e8c5" stroke-width="5"/></g><g>')
-const chili = drawing('<path d="M72 28Q88 61 53 78Q30 90 13 81Q53 66 49 36Z" fill="#e98c79"/><path d="m49 36 7-15 15 9-3 9Z" fill="#9bb977"/><path d="M62 23Q59 8 76 10" fill="none"/><path d="M60 43Q68 58 43 70" stroke="#f8b5a0" stroke-width="4"/></g><g>')
-const bottle = (fill, band, cap) => drawing(`<path d="M41 12h20v20q1 5 10 13l2 37q0 7-9 8H35q-9-1-9-8l2-36 12-14Z" fill="${fill}"/><path d="M39 10h24v14H39Z" fill="${cap}"/><path d="m28 49 44 1-1 24-44-1Z" fill="${band}"/><path d="m44 53 12 0-2 15-8-1Z" fill="#fff8e8" stroke="none"/><path d="m34 38-2 9m3 30v5" stroke="#fff8e8" stroke-width="3"/></g><g>`)
-export const pantry = [
-  { id: 'greens', name: '小青菜', group: 'ingredients', image: greens, quantity: '300 g' },
-  { id: 'garlic', name: '蒜', group: 'ingredients', image: garlic, quantity: '4 瓣' },
-  { id: 'mushroom', name: '香菇', group: 'ingredients', image: mushroom, quantity: '3 朵' },
-  { id: 'chili', name: '小米椒', group: 'ingredients', image: chili, quantity: '1 个' },
-  { id: 'oil', name: '食用油', group: 'seasonings', image: bottle('#efd589', '#f6ebc9', '#b6c788'), quantity: '10 ml' },
-  { id: 'salt', name: '盐', group: 'seasonings', image: bottle('#fffdf3', '#dceaf0', '#adc9cf'), quantity: '2 g' },
-  { id: 'soy', name: '生抽', group: 'seasonings', image: bottle('#a77b52', '#f6e7b0', '#db9380'), quantity: '1 小勺' },
-  { id: 'dark-soy', name: '老抽', group: 'seasonings', image: bottle('#816044', '#dfe7c9', '#a0b187'), quantity: '半小勺' }
-]
-// image / categoryId / spicy 都是随菜品一起从云端读回的字段，本地兜底数据给出同样的形状，
-// 让两边在 dirty 比较（JSON.stringify 对比 draft 与 saved）下结构一致 ——
-// 少了任何一个都会「一进编辑态就被判定为有改动」
-export const freshRecipe = () => ({
-  version: 1, name: '蒜蓉小青菜', subtitle: '给餐桌加一点绿意', image: '', categoryId: '', spicy: 'none',
-  ingredients: pantry.filter(x => ['greens', 'garlic'].includes(x.id)).map(({ id, quantity }) => ({ id, quantity })),
-  seasonings: pantry.filter(x => ['oil', 'salt', 'soy'].includes(x.id)).map(({ id, quantity }) => ({ id, quantity })),
-  steps: [
-    { id: 'wash', title: '洗洗青菜，切切蒜', description: '小青菜掰开洗净，沥干水分；蒜瓣剥皮，切成细细的蒜末。', tip: '叶片里也要认真洗一洗。沥干再下锅，就不会溅油啦。' },
-    { id: 'fry', title: '让蒜香先跑出来', description: '锅里倒入食用油，小火加热，放入一半蒜末，轻轻翻炒到闻见香味。', tip: '蒜末很容易焦，保持小火就好。' },
-    { id: 'finish', title: '大火快炒，绿意上桌', description: '放入小青菜，转大火翻炒。菜梗熟透后加入盐、生抽和剩余蒜末，翻匀出锅。', tip: '' }
-  ]
-})
-export const cloneRecipe = value => JSON.parse(JSON.stringify(value))
 /**
- * 空菜谱骨架（新建菜谱的起点）
+ * 菜谱编辑器的**纯逻辑**
  *
- * 与 freshRecipe() 的区别：那份是**演示数据**（有名字、有配料、写了三步做法），
- * 这份只给结构完整、内容全空的骨架 —— 新建时若拿演示数据当起点，用户一进去
- * 就看到「蒜蓉小青菜」和别人的三步做法，得先删干净才能写自己的。
+ * 文件名叫 mock 是历史遗留 —— 这里的三项都是**生产逻辑**，别按名字当演示数据处理。
  *
- * 字段必须与 freshRecipe() **完全一致**（dirty 是 JSON 全量比较，少一个键
- * 就会一进编辑态被判定为「有改动」）。
+ * ⚠️ 2026-09-21 删掉了 `freshRecipe()` 与 `pantry`（原先的「本机演示菜谱」构造器与内置物料）。
+ * 起因：页面在「取不到云端菜谱」时退回到那份演示数据 —— 用户点 A 进来看到的是 B，
+ * 还能进编辑态把演示数据改到本机。现在那种情形整页走「没找到」提示，页面只有
+ * 「云端真数据」一种来源，这两个导出因此失去了全部消费者。
+ * 若将来还想要演示数据，请做成**明确标注的演示模式**，不要再用「静默兜底」这种形态：
+ * 空白是「没有」，兜底数据是「错的内容」，后者更糟。
+ */
+
+/**
+ * 深拷贝
+ *
+ * draft 必须与 saved 完全独立：`dirty` 是两者的 JSON 全量比较，共用引用会让比较恒等。
+ */
+export const cloneRecipe = value => JSON.parse(JSON.stringify(value))
+
+/**
+ * 空菜谱骨架
+ *
+ * 两处用它：
+ *   ① 新建菜谱的起点（`?mode=create`）；
+ *   ② 浏览态的**初值** —— 页面打开先摆一份空的，等云端数据回来再填。
+ *      不再先摆演示数据：那会闪一下「蒜蓉小青菜」，接口失败时更会一直停在那份别人的菜谱上。
+ *
+ * 字段必须齐全：`dirty` 是 JSON 全量比较，少一个键就会一进编辑态被判定为「有改动」。
+ * （`version` 目前不参与任何判断 —— 原先用它校验本地缓存的格式，缓存逻辑已随演示数据一起删除；
+ *   保留它纯粹是结构版本标记，将来真要迁移数据结构时有地方挂。）
  *
  * steps 给 0 条而不是 1 条空步骤：validateRecipe 不强制步骤，用户可以先记个名字
  * 保存、回头再补做法；预置一条空步骤反而会拦住保存（它要求每条步骤都得有名称）。
@@ -48,6 +39,17 @@ export const blankRecipe = () => ({
 })
 export function validateRecipe(value) {
   if (!value.name.trim()) return '给这道菜起个名字吧'
+  /**
+   * 封面**必传**（2026-09-21 主人定的规则）
+   *
+   * 菜谱列表的卡片和菜谱详情的页首都靠这张图认菜，没有封面的菜在两处都是空的。
+   * 拦在这里、而不是拿一张本地插画兜底 —— 那张 1.68MB 的兜底图已一并删除
+   * （封面必传后它再也用不上，却实实在在占着主包体积）。
+   *
+   * ⚠️ 副作用：云端**历史数据里没配过封面**的菜谱，编辑时也会被这条拦住，
+   * 必须先补一张封面才能保存。这是刻意的 —— 不这样拦，兜底图一删就永远补不齐。
+   */
+  if (!String(value.image || '').trim()) return '还差一张封面，给它配一张吧'
   // 不再强制「至少一个步骤」：云端尚未录入步骤的菜谱进来就是 0 步，
   // 若在此拦住，用户只想改配料或名称也无法保存。
   // 「别把步骤删光」由编辑器兜底 —— removeStep 在只剩一步时就不允许再删。

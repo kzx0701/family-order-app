@@ -132,9 +132,7 @@
               <view class="dish-image">
                 <image v-if="dish.image" :src="imgUrl(dish.image, { w: DISH_THUMB_WIDTH })" mode="aspectFill" class="dish-img" :webp="true" />
                 <view v-else class="dish-img-placeholder">{{ dish.type === 'coffee' ? '☕' : '🍲' }}</view>
-                <view class="dish-off-badge" v-if="!dish.isOnSale">已下架</view>
-                <view class="dish-recommend-badge" v-if="dish.isRecommended">推荐</view>
-              </view>
+                <view class="dish-off-badge" v-if="!dish.isOnSale">已下架</view>              </view>
               <view class="dish-info">
                 <view class="dish-name-row">
                   <text class="dish-name">{{ dish.name }}</text>
@@ -167,9 +165,7 @@
               <view class="dish-image">
                 <image v-if="dish.image" :src="imgUrl(dish.image, { w: DISH_THUMB_WIDTH })" mode="aspectFill" class="dish-img" :webp="true" />
                 <view v-else class="dish-img-placeholder">{{ dish.type === 'coffee' ? '☕' : '🍲' }}</view>
-                <view class="dish-off-badge" v-if="!dish.isOnSale">已下架</view>
-                <view class="dish-recommend-badge" v-if="dish.isRecommended">推荐</view>
-              </view>
+                <view class="dish-off-badge" v-if="!dish.isOnSale">已下架</view>              </view>
               <view class="dish-info">
                 <view class="dish-name-row">
                   <text class="dish-name">{{ dish.name }}</text>
@@ -405,14 +401,9 @@
           <fo-switch v-model="dishForm.isOnSale" />
         </view>
 
-        <!-- 是否推荐 -->
-        <view class="sale-row">
-          <view class="sale-label">
-            <text class="sale-title">是否推荐</text>
-            <text class="sale-hint">推荐菜品显示在点单页推荐区</text>
-          </view>
-          <fo-switch v-model="dishForm.isRecommended" />
-        </view>
+        <!-- 「是否推荐」开关 2026-09-21 已删除：它对应的 dish.isRecommended 字段与整套推荐功能
+             （云端 menu-list 凭空构造的推荐分类、点单页的推荐 tab、菜品详情的推荐标签）已全部下线。
+             别再把它加回来 —— 云端 categories 里从来没有「推荐」这条记录，那个分类是代码造出来的。 -->
       </view>
 
       <!-- 操作按钮：固定在 sheet 底部，不随表单内容滚动 -->
@@ -450,7 +441,6 @@
           <view class="cat-item" v-for="(cat, idx) in currentCategories" :key="cat._id">
             <view class="cat-item-name">
               <text>{{ cat.name }}</text>
-              <text class="cat-system-tag" v-if="cat.name === '推荐'">内置</text>
             </view>
             <view class="cat-item-actions">
               <view class="cat-icon-btn" :class="{ disabled: idx === 0 }" @tap="moveCategory(currentCategories, idx, -1)">
@@ -462,7 +452,7 @@
               <view class="cat-icon-btn" @tap="onEditCategory(cat)">
                 <Icon name="edit" :size="16" />
               </view>
-              <view class="cat-icon-btn danger" v-if="cat.name !== '推荐'" @tap="onDeleteCategory(cat)">
+              <view class="cat-icon-btn danger" @tap="onDeleteCategory(cat)">
                 <Icon name="trash" :size="16" />
               </view>
             </view>
@@ -576,7 +566,6 @@ const dishForm = reactive({
   type: 'coffee',
   categoryId: '',
   isOnSale: true,
-  isRecommended: false,
   temp: 'hot' // 冷热配置：仅咖啡有效，ice（冰）/ hot（热）
 })
 
@@ -1283,7 +1272,6 @@ const resetDishForm = () => {
   dishForm.type = menuType.value // 默认使用当前菜单类型
   dishForm.categoryId = ''
   dishForm.isOnSale = true
-  dishForm.isRecommended = false
   dishForm.temp = 'hot'
   dishFormError.value = ''
   editingDishId.value = ''
@@ -1303,7 +1291,6 @@ const onEditDish = (dish) => {
   dishForm.type = dish.type
   dishForm.categoryId = dish.categoryId
   dishForm.isOnSale = dish.isOnSale
-  dishForm.isRecommended = dish.isRecommended || false
   dishForm.temp = dish.temp === 'ice' || dish.temp === 'hot' ? dish.temp : 'hot'
   dishFormVisible.value = true
 }
@@ -1351,7 +1338,6 @@ const onSaveDish = async () => {
       type: dishForm.type,
       categoryId: dishForm.categoryId,
       isOnSale: dishForm.isOnSale,
-      isRecommended: dishForm.isRecommended,
       temp: dishForm.type === 'coffee' ? dishForm.temp : ''
     }
     if (editingDishId.value) {
@@ -2020,17 +2006,8 @@ const moveCategory = async (list, idx, direction) => {
     font-size: $font-size-xs;
   }
 
-  .dish-recommend-badge {
-    position: absolute;
-    top: 8rpx;
-    right: 8rpx;
-    padding: 2rpx 12rpx;
-    border-radius: $radius-full;
-    background-color: rgba(245, 158, 11, 0.9);
-    color: #fff;
-    font-size: $font-size-xs;
-    font-weight: $font-weight-medium;
-  }
+  // 【2026-09-21 已删除】`.dish-recommend-badge`（菜品卡片右上角的「推荐」橙标）——
+  // 它对应的 dish.isRecommended 字段与整套推荐功能已下线，模板里不再有这个角标。
 }
 
 .dish-info {
@@ -2450,14 +2427,8 @@ const moveCategory = async (list, idx, direction) => {
     color: $color-text;
     font-weight: $font-weight-medium;
 
-    .cat-system-tag {
-      padding: 2rpx 12rpx;
-      border-radius: $radius-full;
-      background-color: $color-coffee-100;
-      color: $color-coffee-700;
-      font-size: $font-size-xs;
-      font-weight: $font-weight-medium;
-    }
+    // 【2026-09-21 已删除】`.cat-system-tag`（分类名后面的「内置」小标）——
+    // 它只对名为「推荐」的分类显示，而云端 categories 里从来没有这条记录，判断永远不命中。
   }
 
   .cat-item-actions {

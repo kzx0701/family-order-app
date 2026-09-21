@@ -420,17 +420,6 @@ to {
   color: #fff;
   font-size: 10px;
 }
-.dish-image .dish-recommend-badge.data-v-dbc77958 {
-  position: absolute;
-  top: 8rpx;
-  right: 8rpx;
-  padding: 2rpx 12rpx;
-  border-radius: 9999px;
-  background-color: rgba(245, 158, 11, 0.9);
-  color: #fff;
-  font-size: 10px;
-  font-weight: 500;
-}
 .dish-info.data-v-dbc77958 {
   flex: 1;
   min-width: 0;
@@ -832,14 +821,6 @@ to {
   gap: 12rpx;
   font-size: 14px;
   color: #2C1B14;
-  font-weight: 500;
-}
-.cat-item .cat-item-name .cat-system-tag.data-v-dbc77958 {
-  padding: 2rpx 12rpx;
-  border-radius: 9999px;
-  background-color: #F5E6D3;
-  color: #5C4033;
-  font-size: 10px;
   font-weight: 500;
 }
 .cat-item .cat-item-actions.data-v-dbc77958 {

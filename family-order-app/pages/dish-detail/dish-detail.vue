@@ -65,16 +65,9 @@
 
       <!-- 内容卡：圆角上浮，与大图衔接 -->
       <view class="info-card animate-slide-up" :class="tempClass">
-        <!-- 标签行：分类 / 推荐 -->
-        <view class="tag-row" v-if="categoryName || dish.isRecommended">
-          <view v-if="categoryName" class="pill category-pill">
-            <text>{{ categoryName }}</text>
-          </view>
-          <view v-if="dish.isRecommended" class="pill recommend-pill">
-            <Icon name="star" :size="13" />
-            <text>推荐</text>
-          </view>
-        </view>
+        <!-- 标签行：只剩分类 —— 「推荐」标签 2026-09-21 随 isRecommended 字段一起删除
+             （原先它按 dish.isRecommended 显示一枚星标 + 「推荐」；那个字段与整套推荐功能已下线） -->
+        <view class="tag-row" v-if="categoryName"><view class="pill category-pill"><text>{{ categoryName }}</text></view></view>
 
         <!-- 菜品名称 -->
         <text class="name">{{ dish.name || '菜品名称' }}</text>
@@ -139,8 +132,7 @@ const dish = ref({
   description: '',
   type: 'coffee',
   categoryId: '',
-  temp: '',
-  isRecommended: false
+  temp: ''
 })
 
 /* === 分类名（单独查询，用于分类标签） === */
@@ -245,8 +237,7 @@ const loadDish = async (dishId) => {
       description: d.description || '',
       type: d.type || 'coffee',
       categoryId: d.categoryId || '',
-      temp: d.temp || '',
-      isRecommended: !!d.isRecommended
+      temp: d.temp || ''
     }
     categoryName.value = d.categoryName || ''
   } catch (e) {
@@ -547,11 +538,8 @@ onLoad((options) => {
     background-color: var(--theme-secondary);
     color: var(--theme-secondary-foreground);
   }
-
-  .recommend-pill {
-    background-color: rgba(251, 191, 36, 0.16);
-    color: #b45309;
-  }
+  // 【2026-09-21 已删除】`.recommend-pill`（浅黄底 + 琥珀字的「推荐」标签）——
+  // 它对应的 dish.isRecommended 字段与整套推荐功能已下线，模板里不再有这个 pill。
 
   .name {
     display: block;

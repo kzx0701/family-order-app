@@ -10,18 +10,22 @@
  *   1. 校验 type
  *   2. 查询 categories 集合：按 type 筛选，sortOrder 升序
  *   3. 查询 dishes 集合：按 type 筛选 + isOnSale==true，sortOrder 升序、createTime 降序
- *   4. 构造"推荐"分类（系统内置）：
- *      - 作为分类列表的第一项，id='recommend'，name='推荐'
- *      - 推荐菜品：取 isRecommended=true 的菜品（由管理员在菜品表单中配置）
- *   5. 返回 { code, categories, dishes }
- *      - categories：[{ id, name, type, sortOrder }, ...]，首项为推荐
- *      - dishes：[{ dishId, name, image, description, spicy, note, type, categoryId, categoryName, sortOrder, isRecommended, isSignature }, ...]
- *        其中 isRecommended=true 表示该菜品出现在推荐区，isSignature=true 表示招牌/拿手菜
+ *   4. 返回 { code, categories, dishes }
+ *      - categories：[{ id, name, type, sortOrder }, ...] —— **全部来自 categories 集合**，
+ *        接口不再构造任何虚拟分类
+ *      - dishes：[{ dishId, name, image, description, spicy, note, type, categoryId,
+ *                   categoryName, sortOrder, isSignature }, ...]
+ *        其中 isSignature=true 表示招牌/拿手菜（点单页的「拿手菜」tab 由页面侧按它筛）
+ *
+ * ⚠️ 2026-09-21 删除了「推荐」相关的一切，原因与范围：
+ *   · 这里原先会**凭空构造**一条 `{ id: 'recommend', name: '推荐' }` 置于分类首位，
+ *     但 categories 集合里从来没有叫「推荐」的记录（云端已确认）—— 那个分类是代码造出来的，
+ *     一旦集合里真出现同名分类，界面上就会出现**两个「推荐」**；
+ *   · 同时删掉菜品里的 `isRecommended`，配套改动见 dishes.schema.json（删字段）、
+ *     admin.vue（删「是否推荐」开关与角标）、dish-detail.vue（删「推荐」标签）、
+ *     order.vue（删推荐分类的分支与字段）、categories.js（删「推荐」分类的保护逻辑）。
+ *   · 分类栏现在只反映 categories 集合的真实内容；「拿手菜」不动，仍由 isSignature 表达。
  */
-
-// 推荐分类的系统内置 id 与名称
-const RECOMMEND_ID = 'recommend'
-const RECOMMEND_NAME = '推荐'
 
 exports.main = async (event, context) => {
   const { type } = event
@@ -62,29 +66,28 @@ exports.main = async (event, context) => {
       name: d.name,
       image: d.image || '',
       description: d.description || '',
-      // 辣度：档位与 dishes.schema.json 的 enum 一致，脏值落回不辣
-      spicy: ['none', 'mild', 'medium'].includes(d.spicy) ? d.spicy : 'none',
+      // 辣度：档位必须与 dishes.schema.json 的 enum **逐字一致**（none/mild/medium/hot），
+      // 脏值落回不辣。⚠️ 这里原先漏了 hot，导致「特辣」被静默改写成「不辣」——
+      // 云函数里不能 import 前端的 utils/spicy.js（不同运行环境），所以这份白名单是**第二份拷贝**，
+      // 改档位时必须两边一起改（2026-09-20 修复）。
+      spicy: ['none', 'mild', 'medium', 'hot'].includes(d.spicy) ? d.spicy : 'none',
       note: d.note || '',
       type: d.type,
       categoryId: d.categoryId || '',
       categoryName: (catMap[d.categoryId] && catMap[d.categoryId].name) || '',
       sortOrder: d.sortOrder || 0,
-      isRecommended: !!d.isRecommended,
       isSignature: !!d.isSignature,
       // 冷热配置：仅咖啡有值（ice/hot），美食为空字符串
       temp: d.temp === 'ice' || d.temp === 'hot' ? d.temp : ''
     }))
 
-    // 6. 构造分类列表（推荐置顶）
-    const categories = [
-      { id: RECOMMEND_ID, name: RECOMMEND_NAME, type, sortOrder: -1 },
-      ...catRes.data.map((c) => ({
-        id: c._id,
-        name: c.name,
-        type: c.type,
-        sortOrder: c.sortOrder || 0
-      }))
-    ]
+    // 5. 分类列表：直接映射 categories 集合，**不做任何构造**（排序沿用查询里的 sortOrder asc）
+    const categories = catRes.data.map((c) => ({
+      id: c._id,
+      name: c.name,
+      type: c.type,
+      sortOrder: c.sortOrder || 0
+    }))
 
     return { code: 0, categories, dishes: allDishes }
   } catch (e) {

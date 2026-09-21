@@ -63,9 +63,22 @@ $p2-fs-title: 36rpx;
 $p2-fs-heading: 44rpx;
 $p2-fs-display: 56rpx;
 
-// 手绘标题字体（猫啃什锦黑，OFL 1.1）
-// 此处只声明字体名；@font-face 本体在 scss/font-maoken.scss，
-// 需要使用的页面自行 @import，避免 base64 数据被重复打进每个页面的 wxss
-// 注意：该字体为单字重（usWeightClass 500），使用处不要再设 font-weight: bold
-$p2-font-hand: 'MaokenAssortedSans';
+// 手绘字体栈：MaokenWeb → MaokenHand → 系统字体（猫啃什锦黑，OFL 1.1）
+//
+// · **MaokenWeb** —— 1480 字符的大子集（327KB），由 utils/hand-font.js 用
+//   `uni.loadFontFace` 从云存储加载。**不占包体**，负责菜名 / 食材名这类用户
+//   自由输入的长尾字符（把家常菜名覆盖率从 52% 提到 94%）。
+// · **MaokenHand** —— 628 字符的本地兜底子集，@font-face 在 scss/font-hand.scss，
+//   由 App.vue 统一引一次（编进 app.wxss、全局生效）。随包加载、零网络等待，
+//   保证**首屏不会先闪一下系统字体**。
+//
+// 顺序不能反：把「覆盖率高但需要联网」的那档放前面，它没就绪时自动落到本地那档。
+// 两档**必须不同名** —— 同名会互相覆盖。
+//
+// ⚠️ 页面侧只写 font-family，不要再 @import 字体文件：那会让 base64 在每个页面的
+//    wxss 里各重复一份（2026-09-21 收紧）。
+// ⚠️ 该字体是单字重（usWeightClass 500）。@font-face 里把它声明成 `400 800` 范围是
+//    刻意的 —— 让元素即使写了 font-weight: 700 也直接用这套字形，而不是触发
+//    **合成加粗**把笔触压糊。使用处仍不建议设 font-weight: bold。
+$p2-font-hand: MaokenWeb, MaokenHand;
 $p2-font-fallback: -apple-system, 'PingFang SC', 'Helvetica Neue', sans-serif;

@@ -60,7 +60,7 @@
   display: block;
   text-align: center;
   /* 手绘体：单字重，固定 normal 避免合成加粗糊掉笔触（首页 / 引导页 / 登录页同样处理） */
-  font-family: "MaokenAssortedSans", -apple-system, "PingFang SC", "Helvetica Neue", sans-serif;
+  font-family: MaokenWeb, MaokenHand, -apple-system, "PingFang SC", "Helvetica Neue", sans-serif;
   /* $p2-fs-title（36rpx）。依据不是「看上去该多大」，而是三条：
    * ① 项目一期 fo-sheet 的弹窗标题 = $font-size-lg(32rpx)，二期对齐并上浮一档；
    * ② iOS HIG 的 Alert 标题 17pt ≈ 34rpx（Material 3 的 24sp ≈ 48rpx 属另一套更重的语言，

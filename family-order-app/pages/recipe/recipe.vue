@@ -16,7 +16,7 @@
         <scroll-view scroll-x class="category-scroll" :show-scrollbar="false">
           <view class="categories">
             <button v-for="category in categoryTabs" :key="category.id" class="category" :class="{ selected: activeCategory === category.id }" :aria-pressed="activeCategory === category.id" @tap="activeCategory = category.id">
-              <view class="category-icon-slot"><image v-if="category.icon" class="category-icon" :src="category.icon" mode="aspectFit" /></view><text>{{ category.name }}</text><view class="category-mark" />
+              <view class="category-body"><view class="category-icon-slot"><image v-if="category.icon" class="category-icon" :src="category.icon" mode="aspectFit" /></view><text class="category-label">{{ category.name }}</text></view><view class="category-mark" />
             </button>
           </view>
         </scroll-view>
@@ -27,24 +27,21 @@
     <view v-else-if="filtered.length" :key="activeCategory" class="recipe-grid">
       <button v-for="(recipe, index) in filtered" :key="recipe.id" class="recipe-card" :style="{ animationDelay: Math.min(index, 5) * 35 + 'ms' }" :aria-label="'查看' + recipe.name + '菜谱'" @tap="openRecipe(recipe)">
         <view class="card-picture">
-          <view v-if="recipe.image" class="card-photo-box"><image class="card-photo" :class="{ 'is-loaded': photoReady[recipe.id] }" :src="imgUrl(recipe.image, { w: 480 })" mode="aspectFit" :webp="true" @load="markPhotoReady(recipe.id)" @error="markPhotoReady(recipe.id)" /></view>
+          <view v-if="recipe.image" class="card-photo-box"><image class="card-photo" :class="{ 'is-loaded': photoReady[recipe.id] }" :src="imgUrl(recipe.image, { w: IMG_W.dishCard })" mode="aspectFit" :webp="true" :lazy-load="true" @load="markPhotoReady(recipe.id)" @error="markPhotoReady(recipe.id)" /></view>
           <RecipeArt v-else :index="index % 6" :label="recipe.name" />
           <!-- 角标只说「招牌」这一件事。辣度已经由下方的辣椒表达，同一张卡上说两遍是重复，
                而且角标压在图片上、辣椒在信息行里，两者的读法也不一样（前者是标签、后者是量）。 -->
           <text v-if="recipe.isSignature" class="card-label">家的拿手菜</text>
         </view>
         <view class="card-copy">
-          <text class="dish-name">{{ recipe.name }}</text>
-          <!-- 信息行：左「分类图标 + 辣度」，右「所需时间」。
-               原来是「做法摘要 + 右箭头」—— 摘要被截成一句半、读不出什么，箭头又与整卡可点重复，
-               信息量最低的一行占了卡片最显眼的位置。换成两项一眼能比的元信息。 -->
+          <!-- 菜名与辣度**同一行、两端对齐**：左端菜名、右端辣度。
+               2026-09-21 按主人要求改版：原先「菜名」独占一行、下面再走一行「辣度 + 时长」，
+               卡片平白多出一行高；现在并成一行，并**删掉时长**（那一行原本就是临时假数据，
+               云端 dishes 至今没有 minutes 字段，留在界面上是把假数据当内容读）。
+               行内靠 space-between + 菜名 flex:1 把辣椒顶到右端 —— 无需再留一个空容器占位。 -->
           <view class="card-meta">
-            <view class="card-facts">
-              <image v-if="recipe.spicyArt" class="card-spicy" :src="recipe.spicyArt" mode="aspectFit" />
-            </view>
-            <!-- 时长：一行极简字。数字稍大稍深、单位小一号更浅 —— 层级靠字号与颜色，
-                 不加纸底、不加图标、不加旋转。这一行只该「轻」，它旁边已经有分类图标和辣椒了。 -->
-            <text class="card-time"><text class="card-time-num">{{ recipe.minutes }}</text><text class="card-time-unit">分钟</text></text>
+            <text class="dish-name">{{ recipe.name }}</text>
+            <image v-if="recipe.spicyArt" class="card-spicy" :class="'pull-' + recipe.spicy" :src="recipe.spicyArt" mode="aspectFit" />
           </view>
         </view>
       </button>
@@ -66,6 +63,16 @@
         <text class="add-slot-title">再记一道拿手菜</text>
       </button>
     </view>
+    <!-- 进详情页前的封面预热
+         详情页封面用 IMG_W.dishCover(960)、列表卡片用 IMG_W.dishCard(576) —— 是**两个不同的 URL**，
+         客户端图片缓存不共享。所以点开卡片时先把 960 那份取上：跳转动画（260ms）＋ 详情页
+         onLoad 拉接口这段时间里，它已经在路上了，等详情页拼出同一个 URL 就能直接命中。
+         ⚠️ 必须是**真实的 `<image>` 组件**：uni.getImageInfo / downloadFile 走的是 XHR 通道，
+            与 `<image>` 用的客户端图片缓存不是同一套，预取了也命中不到。
+         ⚠️ 不能用 `display:none`（部分基础库下不渲染的元素根本不发请求，预热会静默失效），
+            也不能挪到屏幕外（视口外的元素可能被跳过）—— 视口内 1px + opacity:0 最稳。
+         只在该页未跳转时按需挂载（v-if 跟着 preloadSrc），页面上没有多余请求。 -->
+    <view v-if="preloadSrc" class="preload-layer"><image class="preload-img" :src="preloadSrc" :webp="true" /></view>
     <custom-tabbar />
   </view>
 </template>
@@ -75,7 +82,7 @@ import { ref, computed, reactive } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { useSafeArea } from '@/composables/useSafeArea.js'
 import { useUserStore } from '@/store/user.js'
-import { imgUrl } from '@/utils/image.js'
+import { imgUrl, IMG_W } from '@/utils/image.js'
 import { spicyMark } from '@/utils/spicy.js'
 import { categoryArt } from '@/utils/category-art.js'
 import RecipeArt from '@/components/recipe-art/recipe-art.vue'
@@ -134,58 +141,6 @@ const markPhotoReady = (id) => {
 }
 
 /**
- * 【临时假数据】所需时间
- *
- * 云端 dishes 目前没有这个字段，先造一组**看起来合理**的值把版式效果做出来。
- *
- * 两条约束，都是为了让"假"不干扰你看设计：
- * 1. **稳定**：每次 onShow 都会重新拉列表，若用随机数，同一道菜的时长每次进来都在跳，像 bug。
- *    → 取值由 id 哈希决定。
- * 2. **合理**：纯哈希会让「排骨玉米汤 10 分钟、凉拌黄瓜 45 分钟」这种组合出现在界面上，
- *    → 先按分类名给一档符合直觉的候选（汤/烧最久、炒/凉最快），命中不了再退回通用档位。
- *
- * 接真实数据时：删掉这一整段，映射里改成 `minutes: Number(d.minutes) || 0`，
- * 并在 dishes 的 schema 里补 `minutes`（int，分钟）。
- */
-const CATEGORY_MINUTES = {
-  汤: [40, 45, 60],
-  烧: [35, 40, 45],
-  蒸: [25, 30, 35],
-  主食: [25, 30, 40],
-  炒: [10, 15, 20],
-  凉: [10, 15, 20]
-}
-const FALLBACK_MINUTES = [15, 20, 25, 30, 40]
-/**
- * 稳定哈希（FNV-1a 32 位）
- *
- * 不用 `h*31 + code` 那种简易哈希：它**雪崩性差** —— 实测只有末位不同的相邻 id
- * 会算出连续的值，`% 3` 之后整齐地循环（…60、40、45、60、40、45…），
- * 几道同期录入的菜会显示成规律的档位，一眼就假。
- * FNV-1a 改一个字符就整串散开，同时仍然是确定性的（同一 id 永远同一结果）。
- */
-const stableHash = (seed) => {
-  const s = String(seed || '')
-  let h = 2166136261
-  for (let i = 0; i < s.length; i += 1) {
-    h ^= s.charCodeAt(i)
-    h = Math.imul(h, 16777619)
-  }
-  return Math.abs(h)
-}
-const fakeMinutes = (seed, categoryName) => {
-  const h = stableHash(seed)
-  const name = String(categoryName || '')
-  for (const key of Object.keys(CATEGORY_MINUTES)) {
-    if (name.includes(key)) {
-      const options = CATEGORY_MINUTES[key]
-      return options[h % options.length]
-    }
-  }
-  return FALLBACK_MINUTES[h % FALLBACK_MINUTES.length]
-}
-
-/**
  * 取菜谱数据
  *
  * 只调 dishes-crud / list 一个接口（无需鉴权，干饭人也要能看菜谱）：
@@ -221,11 +176,11 @@ const loadRecipes = async () => {
       // 用 spicyMark 而不是 spicyImage —— 卡片是「标记」语义，「不辣」与「未设置」都不挂图标
       // （斜线辣椒留给点单抽屉那种「字段」语义），模板一个 v-if 就收掉。
       spicyArt: spicyMark(d.spicy),
+      // 档位值本身也带出来：模板要靠它挂 `pull-*` 类抵掉素材自带的透明留白（见样式区注释）。
+      // 非法值与未设置都拿不到对应类 → 不产生负外边距，图上也不会画（spicyArt 为空）。
+      spicy: d.spicy || '',
       isSignature: !!d.isSignature,
       categoryId: d.categoryId || '',
-      // 所需时间：云端有就先用，没有才落到临时假数据（见上方 fakeMinutes 的说明）。
-      // categoryName 由 list 接口 join 后返回，假数据靠它给一个符合直觉的档位
-      minutes: Number(d.minutes) || fakeMinutes(d._id || d.name, d.categoryName),
       // 卡片副行不再显示它，但**搜索要用**（「找道菜，或搜搜备注…」按 name + tip 匹配），
       // 所以这个字段继续留在视图模型里，别顺手删
       tip: d.note || d.description || ''
@@ -261,8 +216,10 @@ onShow(loadRecipes)
 // 命中不了的分类不显示图标（文字 tab 仍成立），不会因为多了个分类就报错。
 // 这份映射与菜谱详情页编辑态的「菜品分类」**共用同一个文件**：两处曾各存一份，
 // 列表页是彩色素材、编辑页是单色线稿，同一批分类在两个页面长得不一样。
+// 「全部」的图标也走同一张表（2026-09-21 补）—— 它虽然不是菜系，但同样占着第一格，
+// 此前写死 icon:'' 让它在图标行里是空的；现在只是映射表里多一个键，没有特例分支。
 const categoryTabs = computed(() => [
-  { id: 'all', name: '全部', icon: '' },
+  { id: 'all', name: '全部', icon: categoryArt('全部') },
   ...categories.value.map(item => ({ ...item, icon: categoryArt(item.name) }))
 ])
 
@@ -271,7 +228,7 @@ const categoryTabs = computed(() => [
  *
  * 原先是「分类图标 + 辣度」并排。撤掉分类的理由：分类在页面顶部已有筛选栏，
  * 卡片上重复一遍是冗余；而辣度只有卡片能表达（筛选栏里没有）。
- * 所以那条 `.card-facts` 容器**要保留**（见样式注释）—— 它负责把右侧的时长顶到右端。
+ * 2026-09-21 起辣度与菜名并成一行（见模板里的 .card-meta），这一行就只剩辣度一项了。
  */
 
 const filtered = computed(() => {
@@ -279,7 +236,20 @@ const filtered = computed(() => {
   return dishes.value.filter((dish) => (activeCategory.value === 'all' || dish.categoryId === activeCategory.value)
     && (!keyword || [dish.name, dish.tip].some((value) => String(value).toLocaleLowerCase().includes(keyword))))
 })
-const openRecipe = recipe => uni.navigateTo({ url: '/pages/recipe-detail/recipe-detail?id=' + recipe.id, animationType: 'slide-in-right', animationDuration: 260 })
+/** 预热用的封面地址（详情页那一档）；为空时不挂载预热层 */
+const preloadSrc = ref('')
+/**
+ * 打开菜谱详情
+ *
+ * 跳转前先把**详情页封面那一档**预取上（隐藏 `<image>`）：详情页要等 onLoad 里的接口返回
+ * `dish.image` 才知道地址，而列表页**现在就有**（同一个字段）—— 这是唯一能提前的时机。
+ * 两处都取 `IMG_W.dishCover`，所以拼出来是逐字符相同的 URL，详情页能直接命中缓存。
+ * 卡片图本身是 576 档、与 960 档不共享缓存，所以这一步不是"重复下载"而是"提前下载"。
+ */
+const openRecipe = (recipe) => {
+  preloadSrc.value = recipe.image ? imgUrl(recipe.image, { w: IMG_W.dishCover }) : ''
+  uni.navigateTo({ url: '/pages/recipe-detail/recipe-detail?id=' + recipe.id, animationType: 'slide-in-right', animationDuration: 260 })
+}
 /**
  * 新建菜谱：进详情页的**新建态**（`mode=create`）
  *
@@ -293,7 +263,8 @@ const resetFilters = () => { search.value = ''; activeCategory.value = 'all' }
 </script>
 
 <style lang="scss" scoped>
-@import '@/scss/font-recipe.scss';
+// 菜谱页标题的手绘字体（RecipeMaoken）。@font-face 已统一在 App.vue 里引一次、编进 app.wxss
+// 全局生效 —— **页面侧不要再 @import scss/font-*.scss**，否则 base64 会被重复打进本页 wxss。
 .recipe-page { min-height: 100vh; padding: 0 32rpx calc(160rpx + env(safe-area-inset-bottom)); background: $p2-paper; color: $p2-ink; }
 button { padding: 0; margin: 0; background: none; color: inherit; font: inherit; line-height: inherit; border-radius: 0; &::after { border: 0; } }
 // 背景须铺满整屏宽：页面容器带 32rpx 左右 padding，吸顶块作为子元素若只铺内容盒，
@@ -303,7 +274,7 @@ button { padding: 0; margin: 0; background: none; color: inherit; font: inherit;
 .recipe-sticky { position: sticky; top: 0; z-index: 20; background: $p2-paper; margin: 0 -32rpx; padding: 0 32rpx; }
 .recipe-header { padding-bottom: 10rpx; }
 .heading-row { display: flex; align-items: center; }
-.page-title { display: block; font-family: RecipeMaoken, $p2-font-fallback; font-size: $p2-fs-display; line-height: 1.2; letter-spacing: 2rpx; }
+.page-title { display: block; font-family: $p2-font-hand, $p2-font-fallback; font-size: $p2-fs-display; line-height: 1.2; letter-spacing: 2rpx; }
 // 新建入口 = 常驻底栏之上的固定卡槽（v2）。
 // 语汇沿用网格里那一版（虚线 + 手绘不规则圆角 + 手绘贴纸圆 + 手写体），但版式改成
 // **横向单行窄条**：固定元素要长期占着视口，不能像原位版那样占两行。
@@ -319,7 +290,7 @@ button { padding: 0; margin: 0; background: none; color: inherit; font: inherit;
 // 否则绿色加号落在绿贴上会糊成一片。
 .add-slot-art { display: flex; align-items: center; justify-content: center; width: 64rpx; height: 64rpx; flex-shrink: 0; border-radius: 47% 53% 46% 54%; background: $p2-leaf-soft; color: $p2-ink; transform: rotate(-6deg); }
 // 标题用手写体 —— 与卡片上的菜名同源，读起来是「同一本本子上的字」，不是界面文案
-.add-slot-title { font-family: RecipeMaoken, $p2-font-fallback; font-size: $p2-fs-control; line-height: 1.3; }
+.add-slot-title { font-family: $p2-font-hand, $p2-font-fallback; font-size: $p2-fs-control; line-height: 1.3; }
 // 卡槽常驻时正文多让出的底部留白：底栏（128rpx + safe-area）+ 卡槽（14 + 96 + 12 = 122rpx）
 // 再加一点呼吸。**只在卡槽真的显示时才加**（.has-add-bar 类由 showAddBar 控制），
 // 否则干饭人、或家里还没有菜谱的页面底部会凭空多出一大块空白。
@@ -332,28 +303,53 @@ button { padding: 0; margin: 0; background: none; color: inherit; font: inherit;
 .recipe-tools { padding: 4rpx 0 0; }
 // 搜索框：对齐二期输入框规范（同 components/fo-dialog 的 .fo-dialog-field）
 // —— 奶油底 + 实棕描边 + 不规则圆角，聚焦时描边转珊瑚色；图标走 Icon.vue，不再 CSS 手绘。
-// 高度 72rpx（36pt，iOS 搜索栏标准高度），与本页 chip 行（74rpx）同高，不再单独占一条宽带。
+// 高度 72rpx（36pt，iOS 搜索栏标准高度）。
+// （原先此处写「与本页 chip 行同高」，分类行加入图标后早已不成立，2026-09-21 一并订正。）
 .search-box { display: flex; align-items: center; gap: 14rpx; height: 72rpx; padding: 0 24rpx; color: $p2-ink-soft; background: $p2-surface; border: 2rpx solid $p2-line; border-radius: 20rpx 24rpx 19rpx 23rpx; transition: border-color $p2-dur-fast $p2-ease; &.is-focused { border-color: $p2-coral; } }
 .search-input { flex: 1; min-width: 0; height: 64rpx; font-size: $p2-fs-control; color: $p2-ink; }
 .icon-button { display: flex; align-items: center; justify-content: center; width: 60rpx; height: 60rpx; color: $p2-ink-soft; }
-// 分类行：文字 tab + 手绘标记线（同 custom-tabbar 的 .tab-underline 手法：不规则圆角 + 轻微旋转）。
-// 去掉原来的圆角方块（描边 + 实底 + 硬投影），一屏六类共 564rpx，宽 686rpx 放得下、不再被右边缘裁切。
-// 行高由 108rpx 收到 85rpx；未选中为次要文字色，选中转主文字色 + 叶片色标记线。
+// 分类行：文字 tab + **选中贴纸底** + 手绘标记线。
+// 2026-09-21 改版两处：
+//   ① **整体缩小一号** —— 图标 52→44rpx、分类名 $p2-fs-body(28)→$p2-fs-caption(24)、
+//      上下内边距各收 1~4rpx，整行由约 135rpx 收到约 121rpx（内容本身小了一档多）。
+//   ② **选中时给选中区域加浅绿贴纸底**（原先只有「文字转主色 + 叶片色标记线」两个信号）。
+// 贴纸的语汇与 custom-tabbar 的选中贴纸、.add-slot-art 同源：浅绿底 + **无描边** + 手绘不规则圆角
+// （不规则圆角的数值都是四角各不相同的写法，与 .search-box / .primary-button 同一族）。
+// ⚠️ 三处刻意的取舍，改这里前先读：
+//   · 贴纸只画在 .category-body（图标 + 分类名）这一层，**不含 .category 下方那 12rpx** ——
+//     底画在 .category 上的话会把 .category-mark 一起盖进去，变成「浅绿底上再压一条绿线」；
+//   · **不给贴纸加旋转**：这行是 7 块并排，各自歪一点会读成「没对齐」；tabbar 那枚 wash 敢转，
+//     是因为它后面只有一张图标、没有文字跟着歪；
+//   · 标记线**保留**（不是被贴纸取代）—— 它是菜谱页的强调线语汇，与贴纸一上一下、不重叠。
 .category-scroll { width: 100%; white-space: nowrap; }
 // 与详情页食材行同一处理：横向滚动列表必须用 inline-flex —— 容器宽度由内容决定，
 // 分类一多必然溢出容器、必然可滚。块级 flex 的宽度恒等于父容器宽，靠子项溢出不可靠。
 // vertical-align:top 消除 inline 元素固有的基线间隙（本行已有 white-space:nowrap，
 // 分类名短、不涉及长文本折行问题，故保留）。
-.categories { display: inline-flex; vertical-align: top; gap: 16rpx; padding: 10rpx 0 14rpx; }
-.category { position: relative; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 2rpx; padding: 4rpx 10rpx 14rpx; font-size: $p2-fs-body; line-height: 1.4; color: $p2-ink-soft; transition: color $p2-dur-fast $p2-ease; &:active { opacity: .55; } &.selected { color: $p2-ink; .category-mark { opacity: 1; transform: rotate(-2deg) scaleX(1); } } }
-// 图标槽：**没有图标时也要占住这 52rpx**。「全部」不在图标映射里（它不是一个菜系），
+.categories { display: inline-flex; vertical-align: top; gap: 16rpx; padding: 8rpx 0 12rpx; }
+// .category 只负责「一列 = 贴纸 + 标记线让位」：下方 12rpx 是留给 .category-mark 的
+// （标记线 bottom:3rpx + 高 6rpx，与贴纸底边之间留 3rpx）。横向内边距移到 .category-body。
+.category { position: relative; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; padding: 0 0 12rpx; font-size: $p2-fs-caption; line-height: 1.4; color: $p2-ink-soft; transition: color $p2-dur-fast $p2-ease; &:active { opacity: .55; } &.selected { color: $p2-ink; .category-body { background: $p2-leaf-soft; } .category-mark { opacity: 1; transform: rotate(-2deg) scaleX(1); } } }
+// 贴纸承载体：图标槽 + 分类名包在这层，底色只画它。
+// 左右 12rpx 是贴纸的内边距 —— 分类名短（两字），靠它把色块撑出可读的形状，
+// 也让相邻两块贴纸之间留出 16(gap) + 24 = 40rpx 的呼吸，不至于连成一条色带。
+// 未选中时背景是 transparent：这一层始终存在、只换底色，**不靠 v-if 增删节点**，
+// 否则选中时节点进出会让整行重排、位置跳一下。
+.category-body { display: flex; flex-direction: column; align-items: center; gap: 2rpx; padding: 4rpx 12rpx 5rpx; border-radius: 15rpx 19rpx 14rpx 18rpx; background: transparent; transition: background $p2-dur-fast $p2-ease; }
+// 图标槽：**没有图标时也要占住这 44rpx**（云端自定义分类、或映射表命中不了的名字会走到这里）。
 // 少了这一格它的文字就会顶到行首 —— .categories 是 flex 行、子项被拉伸到同一高度后
-// 内容默认从顶排起，于是「全部」二字会比右侧同排的分类名高出一个图标的高度，整行读起来是歪的。
-// 槽固定高度 + 居中，六类与「全部」的文字基线就永远在同一行。
-.category-icon-slot { display: flex; align-items: center; justify-content: center; height: 52rpx; }
-.category-icon { width: 52rpx; height: 52rpx; display: block; }
+// 内容默认从顶排起，于是这类分类的名字会比右侧同排的分类名高出一个图标的高度，整行读起来是歪的。
+// 槽固定高度 + 居中，所有分类的文字基线就永远在同一行。尺寸与 .category-icon 一致。
+// 注：「全部」2026-09-21 起也有图标了（见 utils/category-art.js），但这一格不能删 ——
+// 它的存在是为了「没有图标」这种情形，而不是为了「全部」。
+.category-icon-slot { display: flex; align-items: center; justify-content: center; height: 44rpx; }
+// 44rpx：与菜谱详情编辑态那枚 .picker-field-art 同档。素材内容占画布约 62% → 视觉高约 27rpx，
+// 与下方 24rpx 的分类名同一量级而略大，读起来仍是「图标在上、名字在下」的从属关系。
+.category-icon { width: 44rpx; height: 44rpx; display: block; }
+// 分类名（.category-label）**没有自己的样式规则**：字号、颜色、行高全部从 .category 继承。
+// 模板里保留这个类名，只是为了把「图标槽 / 分类名」两块分开、将来要单独微调有个钩子。
 .category-mark { position: absolute; left: 10rpx; right: 10rpx; bottom: 3rpx; height: 6rpx; border-radius: 55% 45% 60% 40%; background: $p2-leaf; opacity: 0; transform: rotate(-2deg) scaleX(.5); transition: opacity $p2-dur-fast $p2-ease, transform $p2-dur-settle $p2-ease; }
-.section-title { font-family: RecipeMaoken, $p2-font-fallback; font-size: $p2-fs-title; }
+.section-title { font-family: $p2-font-hand, $p2-font-fallback; font-size: $p2-fs-title; }
 .recipe-skeleton { padding-top: 24rpx; }
 .recipe-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 26rpx 22rpx; padding-top: 16rpx; }
 .recipe-card { text-align: left; min-width: 0; overflow: hidden; background: $p2-surface; border: 2rpx solid rgba(118,85,64,.7); border-radius: 24rpx 20rpx 26rpx 19rpx; box-shadow: 3rpx 4rpx 0 rgba(98,71,53,.08); animation: card-arrive 300ms $p2-ease backwards; transition: transform $p2-dur-tap $p2-ease, box-shadow $p2-dur-tap; &:active { transform: scale(.97); box-shadow: none; } &:nth-child(even) { border-radius: 19rpx 26rpx 21rpx 25rpx; } }
@@ -368,43 +364,55 @@ button { padding: 0; margin: 0; background: none; color: inherit; font: inherit;
 // 角标现在只有「家的拿手菜」一种（辣度已交给信息行的辣椒），配色即原来的 signature 变体
 .card-label { position: absolute; bottom: 12rpx; left: 18rpx; font-size: 18rpx; padding: 5rpx 12rpx; background: $p2-butter-soft; border-radius: 7rpx 10rpx 7rpx 9rpx; color: $p2-ink; }
 .card-copy { padding: 19rpx 18rpx 20rpx; }
-.dish-name { display: block; font-family: RecipeMaoken, $p2-font-fallback; font-size: $p2-fs-title; line-height: 1.3; }
-// 卡片信息行：左「辣度图案」，右「所需时间」。
-// 两端对齐：右侧时长固定贴右 —— 同一屏里时长会自然成一列，扫视时能横向比较。
-//
-// ⚠️ `.card-facts` 这个容器**即使里面没东西也要留着**：它是「左组」，靠 space-between 把时长
-//    顶到右端。删掉它的话，没有辣度的菜（不辣 / 未设置 → 空串）那一行就只剩一个子元素，
-//    space-between 对单个元素等同于 flex-start，**时长会掉到左边**。
-//    空容器在这里是安全的：block 级 flex 没有内容时高度为 0，不会像 inline-flex 那样撑出行盒高度。
-//    原来是「分类图标 + 辣度」并排、所以有 gap:10rpx；现在只剩辣度一项，gap 已无意义，去掉。
-.card-meta { display: flex; align-items: center; justify-content: space-between; gap: 14rpx; margin-top: 20rpx; color: $p2-ink-soft; font-size: 21rpx; }
-.card-facts { display: flex; align-items: center; min-width: 0; }
+// 菜名与辣度**同一行**：菜名吃满左侧、辣椒贴右端。
+// 2026-09-21 按主人要求改版（原先菜名独占一行，下面再走一行「辣度 + 时长」）。
+// 字号由 $p2-fs-title(36rpx) 降一档到 $p2-fs-control(32rpx) —— 与辣椒同处一行后，
+// 36rpx 的手写体会把 46rpx 的辣椒衬得很小，降一档两者才是「名字为主、辣度为辅」。
+// ⚠️ **必须 flex:1 + min-width:0**：flex 子项的 min-width 默认是 auto，不写 min-width:0
+//    长菜名不会收缩、会把辣椒顶出卡片（.recipe-card 是 overflow:hidden，辣椒会直接看不见）。
+//    未加 nowrap/ellipsis —— 长菜名照旧折行，这是本卡一直以来的行为，本次不动它。
+.dish-name { display: block; flex: 1; min-width: 0; font-family: $p2-font-hand, $p2-font-fallback; font-size: $p2-fs-control; line-height: 1.3; }
+// 菜名行：space-between 把辣椒顶到右端（菜名自身 flex:1 已吃满左侧，两者等效、留个双保险）。
+// ⚠️ 原先这里挂着一个**空的** `.card-facts` 左组容器，靠它把右侧的「时长」顶到右端；
+//    时长删掉后它没有存在意义，已一并移除 —— 现在左组就是菜名本身。
+//    另：这一行不再需要 margin-top（上面已经没有独立的一行菜名了）。
+// **min-height 取辣度的 46rpx**：没有辣度的菜（不辣 / 未设置 → 空串，卡片上不画）行高只有
+// 菜名的 41.6rpx，会让「同一行有辣度、另一行没有」的两排卡片差 4rpx、网格行高不齐。
+// 占住 46rpx 后每排高度完全一致（与分类行图标槽「没有图标也要占住高度」同一个道理）。
+.card-meta { display: flex; align-items: center; justify-content: space-between; gap: 14rpx; min-height: 46rpx; }
 // 辣度图案：与详情页、点单抽屉**同一套素材**（`static/images/recipes/spicy/*-v2.svg`），
 // 由 utils/spicy.js 的 spicyMark() 给出；「不辣」与未设置都拿到空串 → 模板 v-if 收掉。
 //
-// 尺寸：46rpx 是**三处展示位统一的值**（辣椒视觉高约 24rpx）。换算过程、以及
-// 「别拿旧 Icon 的 size 直接当目标高」这条坑，都写在 utils/spicy.js 的注释里，改前先读。
+// 尺寸：46rpx 是**三处展示位统一的值**。实测辣椒视觉高 25.4rpx（内容高恒为画布 55.2%）。
+// 换算过程、四档的实测内容边界、以及「别拿旧 Icon 的 size 直接当目标高」这条坑，
+// 都写在 utils/spicy.js 的注释里 —— **改素材或改这个边长前必须先读那一节**。
 // **必须是正方形**：给长方形时 aspectFit 按短边铺满，辣椒反而更小。
 .card-spicy { width: 46rpx; height: 46rpx; flex-shrink: 0; display: block; }
-// 「所需时间」= 一行极简字：数字稍大稍深、单位小一号更浅。
+// 【右端贴边】素材是方形画布，辣椒只占中间一块，**左右留白还随档位剧烈变化**：
+// 微辣内容仅占画布 26% 宽（左右各留 35/96），特辣占 91%（左右只留 3~6/96）。
+// 不抵掉的话，卡片右侧的视觉间距会随辣度在 19~35rpx 之间跳 —— 而左侧「文字到边框」恒定 18rpx，
+// 于是「微辣」那道菜的辣椒看着就是往里缩了一大截（主人 2026-09-21 就是这么发现的）。
 //
-// ⚠️ 这一处连续被否过两次，结论记在这里，免得再走回头路：
-//   第一版 `{{ minutes }} 分钟` —— 一行同字号、同灰度的字，被读成「没有设计」：
-//     没有层级，最关键的数值被埋在单位里，整行看着就是数据库字段。
-//   第二版加了浅绿纸底 + 时钟图标 + 旋转 —— 被读成「太大、不简约」：
-//     这一行旁边已经有分类图标和辣椒，再塞一个色块进去，卡片的呼吸就没了。
-//   两次的交集 = **不加任何容器，只把层级做出来**。粒度落在 24rpx 数字 + 18rpx 单位，
-//   整行高度约 24rpx（比纸片版矮四成）；「设计」体现在字号比与颜色深浅差
-//   （$p2-ink → $p2-ink-soft），而不是体现在有没有一个形状。
-//
-// 三条不做：
-//   1) 不加底色 / 圆角 / 旋转 —— 容器是「标签」的语法，这里只是一行注记；
-//   2) 不加 font-weight —— 本项目层级一律靠字号差建立（手写体一加粗就糊笔触）；
-//   3) 数字不用 RecipeMaoken 手写体 —— 子集（405 字）**不含 0-9**，会静默回退成系统字体，
-//      变成「单位手写、数字不是」，比全用系统字体更碎（要手写数字得先重新子集化）。
-.card-time { flex-shrink: 0; white-space: nowrap; color: $p2-ink; font-variant-numeric: tabular-nums; }
-.card-time-num { font-size: 24rpx; }
-.card-time-unit { margin-left: 4rpx; font-size: 18rpx; color: $p2-ink-soft; }
+// 做法：**逐档**给左右各一份负外边距，让「图标可视框 = 图标布局框」。这样同一个 flex 间隙
+// （14rpx）与同一个右端内边距（18rpx）对每一档都成立，卡片右列才真正对齐。
+// 数值 = 左右留白均值 ÷ 96 × 46rpx（原始边界见 utils/spicy.js 的实测表）：
+//   微辣 (35.8+35.0)/2 = 35.4 → 17.0rpx ｜ 中辣 (20.8+19.0)/2 = 19.9 → 9.5rpx ｜
+//   特辣 (5.8+3.0)/2 = 4.4 → 2.1rpx
+// ⚠️ 「不辣」没有对应的类 —— 卡片用 spicyMark 语义，不辣与未设置根本不画这个图标。
+// ⚠️ 两侧都拉而不是只拉右侧：只拉右侧的话，菜名与辣椒之间的空隙会随档位变化（微辣那 35 单位
+//    的左侧留白会挤进间隙里），同一屏里读起来仍然是不齐的。
+.card-spicy.pull-mild { margin-right: -17rpx; margin-left: -17rpx; }
+.card-spicy.pull-medium { margin-right: -9.5rpx; margin-left: -9.5rpx; }
+.card-spicy.pull-hot { margin-right: -2rpx; margin-left: -2rpx; }
+// 【2026-09-21 已删除】「所需时间」整行的样式（.card-time / .card-time-num / .card-time-unit）。
+// 它对应的假数据链路（CATEGORY_MINUTES / FALLBACK_MINUTES / stableHash / fakeMinutes
+// 与视图模型里的 `minutes` 字段）也一并删了 —— 云端 dishes 至今没有 minutes 字段，
+// 留着就是永远渲染不出来的死代码。
+// ⚠️ 若将来要重新显示时长，先记住它当年踩过的两点：
+//   ① 层级只能靠字号比与颜色深浅差（$p2-ink → $p2-ink-soft），**别加容器**（试过纸底 + 图标 + 旋转，被否）；
+//   ② **数字可以用手写体了（2026-09-21 起）** —— 原先子集不含 0-9，手写体的阿拉伯数字
+//      会静默回退成系统字体（「单位手写、数字不是」）。子集已补入 0-9，且手绘数字与中文
+//      笔触同族，实测「共 3 道菜 · 45 分钟 · ¥28」整句笔触统一，可以放心用。
 .page-footnote { display: flex; align-items: center; justify-content: center; gap: 13rpx; color: $p2-ink-soft; font-size: 21rpx; margin: 46rpx 0 22rpx; }
 .empty-state { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 94rpx 16rpx 70rpx; }
 .empty-book { display: flex; align-items: center; justify-content: center; width: 140rpx; height: 140rpx; border-radius: 50%; background: $p2-butter-soft; margin-bottom: 28rpx; transform: rotate(-8deg); }
@@ -414,6 +422,13 @@ button { padding: 0; margin: 0; background: none; color: inherit; font: inherit;
 // 否则新用户读完提示却无处可点。display:flex 是给带前导加号的后者排版用。
 .reset-button { display: flex; align-items: center; gap: 10rpx; background: $p2-leaf-soft; border: 2rpx solid $p2-line; padding: 20rpx 32rpx; margin-top: 30rpx; border-radius: 18rpx; font-size: $p2-fs-body; transition: transform $p2-dur-tap $p2-ease; &:active { transform: scale(.96); } }
 @keyframes card-arrive { from { opacity: 0; transform: translateY(12rpx); } to { opacity: 1; transform: translateY(0); } }
-@media (prefers-reduced-motion: reduce) { .recipe-card, .add-slot { animation: none; } .recipe-card, .category, .card-photo, .add-slot, .reset-button { transition: none; } }
-@media screen and (max-width: 360px) { .page-title { font-size: 49rpx; } .section-title { font-size: 32rpx; } .dish-name { font-size: 33rpx; } }
+@media (prefers-reduced-motion: reduce) { .recipe-card, .add-slot { animation: none; } .recipe-card, .category, .category-body, .card-photo, .add-slot, .reset-button { transition: none; } }
+// 窄屏（≤360px）的字号下调：比例沿用各元素原本的收缩幅度，**改基准字号时要回头重算这里**
+// （2026-09-21 菜名基准 36→32rpx，此处同步 33→29rpx，保持同一收缩比 0.917）。
+@media screen and (max-width: 360px) { .page-title { font-size: 49rpx; } .section-title { font-size: 32rpx; } .dish-name { font-size: 29rpx; } }
+// === 进详情页前的封面预热层（模板里有完整说明） ===
+// 1px + opacity:0 **留在视口内**：`display:none` 或挪到屏幕外都可能让基础库跳过这次请求，
+// 预热就静默失效了。pointer-events:none 保证它不会挡住任何点击。
+.preload-layer { position:fixed; top:0; left:0; width:1px; height:1px; overflow:hidden; opacity:0; pointer-events:none; }
+.preload-img { width:1px; height:1px; display:block; }
 </style>

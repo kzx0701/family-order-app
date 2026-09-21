@@ -395,8 +395,7 @@ const _sfc_main = {
       description: "",
       type: "coffee",
       categoryId: "",
-      temp: "",
-      isRecommended: false
+      temp: ""
     });
     const categoryName = common_vendor.ref("");
     const quantity = common_vendor.ref(1);
@@ -458,12 +457,11 @@ const _sfc_main = {
           description: d.description || "",
           type: d.type || "coffee",
           categoryId: d.categoryId || "",
-          temp: d.temp || "",
-          isRecommended: !!d.isRecommended
+          temp: d.temp || ""
         };
         categoryName.value = d.categoryName || "";
       } catch (e) {
-        common_vendor.index.__f__("error", "at pages/dish-detail/dish-detail.vue:253", "[dish-detail] loadDish error", e);
+        common_vendor.index.__f__("error", "at pages/dish-detail/dish-detail.vue:244", "[dish-detail] loadDish error", e);
         loadError.value = "加载失败，请稍后重试";
       } finally {
         loading.value = false;
@@ -527,46 +525,37 @@ const _sfc_main = {
         r: common_vendor.t(dish.value.temp === "ice" ? "冰饮" : "热饮"),
         s: common_vendor.n(dish.value.temp)
       } : {}, {
-        t: categoryName.value || dish.value.isRecommended
-      }, categoryName.value || dish.value.isRecommended ? common_vendor.e({
-        v: categoryName.value
+        t: categoryName.value
       }, categoryName.value ? {
-        w: common_vendor.t(categoryName.value)
+        v: common_vendor.t(categoryName.value)
       } : {}, {
-        x: dish.value.isRecommended
-      }, dish.value.isRecommended ? {
-        y: common_vendor.p({
-          name: "star",
-          size: 13
-        })
-      } : {}) : {}, {
-        z: common_vendor.t(dish.value.name || "菜品名称"),
-        A: dish.value.description
+        w: common_vendor.t(dish.value.name || "菜品名称"),
+        x: dish.value.description
       }, dish.value.description ? {
-        B: common_vendor.t(dish.value.description)
+        y: common_vendor.t(dish.value.description)
       } : {}, {
-        C: common_vendor.p({
+        z: common_vendor.p({
           name: "minus",
           size: 14
         }),
-        D: quantity.value <= 1 ? 1 : "",
-        E: common_vendor.o(onMinus, "45"),
-        F: common_vendor.t(quantity.value),
-        G: quantity.value,
-        H: common_vendor.p({
+        A: quantity.value <= 1 ? 1 : "",
+        B: common_vendor.o(onMinus, "3d"),
+        C: common_vendor.t(quantity.value),
+        D: quantity.value,
+        E: common_vendor.p({
           name: "plus",
           size: 14,
           color: "#fff"
         }),
-        I: common_vendor.o(onPlus, "dd"),
-        J: common_vendor.n(tempClass.value)
+        F: common_vendor.o(onPlus, "43"),
+        G: common_vendor.n(tempClass.value)
       }), {
         f: loadError.value,
-        K: !loading.value && !loadError.value
+        H: !loading.value && !loadError.value
       }, !loading.value && !loadError.value ? {
-        L: common_vendor.o(onAddToCart, "e9")
+        I: common_vendor.o(onAddToCart, "9f")
       } : {}, {
-        M: common_vendor.n(themeClass.value)
+        J: common_vendor.n(themeClass.value)
       });
     };
   }

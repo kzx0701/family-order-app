@@ -2,8 +2,9 @@
 const { requireCook } = require('../utils/auth.js')
 
 // 辣度档位：四档（不辣 / 微辣 / 中辣 / 特辣）。不在档位内的值一律落回 none。
-// 注：不再与 mock/recipes.js 的 flavors 对齐 —— 那份演示数据里的「口味」是三档的（清淡/蒜香等），
-// 与辣度是两回事，不要混用
+// 注：别把「辣度」与**口味**混为一谈。一期那份演示数据（`mock/recipes.js`，2026-09-21 已删）
+// 里的 flavors 是三档口味（清淡 / 蒜香等），与辣度是两回事 —— 它已随演示数据一起下线，
+// 此处留个记录，免得后来者又把两者并在一起。
 const SPICY_LEVELS = ['none', 'mild', 'medium', 'hot']
 
 // 单条配料用量的长度上限（自由文本，与 note 同思路做保护性截断）
@@ -72,7 +73,7 @@ function normalizeSteps(input) {
  * 与菜谱业务对齐的字段（写入时统一归一化，见 createDish / updateDish）：
  *   - image        菜品图片（uniCloud 云存储 URL）
  *   - name         菜品名称
- *   - spicy        辣度：none 不辣 / mild 微辣 / medium 中辣
+ *   - spicy        辣度：none 不辣 / mild 微辣 / medium 中辣 / hot 特辣（四档，与 SPICY_LEVELS 一致）
  *   - isSignature  是否招牌（本家拿手菜）
  *   - note         菜品备注（做饭人的经验提醒，≤200 字）
  *
@@ -218,7 +219,7 @@ async function listDishes({ type, categoryId, isOnSale } = {}, dishCol, catCol) 
  * 新增菜品
  * 必填：name、type
  */
-async function createDish({ name, image, description, spicy, note, ingredients, seasonings, steps, type, categoryId, isOnSale, isRecommended, isSignature, sortOrder, temp } = {}, dishCol) {
+async function createDish({ name, image, description, spicy, note, ingredients, seasonings, steps, type, categoryId, isOnSale, isSignature, sortOrder, temp } = {}, dishCol) {
   if (!name || !String(name).trim()) {
     return { code: 400, message: '菜品名称必填' }
   }
@@ -243,7 +244,6 @@ async function createDish({ name, image, description, spicy, note, ingredients, 
     type,
     categoryId: categoryId || '',
     isOnSale: isOnSale !== false,
-    isRecommended: !!isRecommended,
     isSignature: !!isSignature,
     sortOrder: Number(sortOrder) || 0,
     // 冷热配置：仅咖啡有效，美食留空
@@ -304,9 +304,6 @@ async function updateDish({ _id, ...patch } = {}, dishCol) {
   }
   if (patch.isOnSale !== undefined) {
     patch.isOnSale = !!patch.isOnSale
-  }
-  if (patch.isRecommended !== undefined) {
-    patch.isRecommended = !!patch.isRecommended
   }
   if (patch.isSignature !== undefined) {
     patch.isSignature = !!patch.isSignature

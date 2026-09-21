@@ -1,6 +1,7 @@
 <script>
 import { useUserStore } from '@/store/user.js'
 import { ensureAuth } from '@/utils/auth-guard.js'
+import { loadHandFont } from '@/utils/hand-font.js'
 
 // 启动恢复是否已完成
 // App.onShow 早于 bootstrap 里的 restore() 完成，此时 state.token 仍为空，
@@ -27,6 +28,11 @@ export default {
     // 内置弹窗的"同意"按钮即为 <button open-type="agreePrivacyAuthorization">，可直接授权
 
     this.bootstrap()
+
+    // 手绘字体的网络大子集（菜名等长尾字符靠它，见 utils/hand-font.js）。
+    // **刻意不 await**：字体是异步加载的，不该阻塞启动；加载完成时字体栈自然接管，
+    // 首屏由包内那份子集兜住，不会先闪系统字体。
+    loadHandFont()
   },
   onShow() {
     console.log('[App] onShow')
@@ -67,6 +73,21 @@ export default {
 @import '@/scss/tokens.scss';
 @import '@/scss/themes.scss';
 @import '@/scss/animations.scss';
+
+// 手绘字体：本地兜底子集，@font-face 统一在这里引一次（编进 app.wxss，全局生效）
+//
+// 原先由用到字体的页面各自 @import，同一份 base64 被重复打进多个页面的 wxss
+// （font-recipe 119.6KB × 2 页 + font-maoken 25.5KB × 3 页 + font-menu 18.2KB × 1 页 = 333.9KB），
+// 已收到这里。**页面侧只写 font-family，不要再 @import 字体文件。**
+//
+// 2026-09-21 又合并了一次：原先三份子集（RecipeMaoken / MenuHand / MaokenAssortedSans）本是
+// **同一款字体的三个切片**，现并成一份 `MaokenHand` —— 628 字符（含 0-9 与全部会渲染的
+// 文案用字），三份 122.4KB → 一份 123KB，字符更多而体积持平，维护只剩一处。
+// 长尾字符（菜名 / 食材名等用户自由输入）由 utils/hand-font.js 网络加载的大子集接管。
+//
+// ⚠️ 字体栈是 MaokenWeb → MaokenHand → 系统字体，定义在 scss/phase2-tokens.scss 的 $p2-font-hand。
+// ⚠️ 这段注释用 // 而不是 /* */：本文件属于全局样式，块注释会被原样编进 app.wxss。
+@import '@/scss/font-hand.scss';
 
 page {
   background-color: $color-bg;
