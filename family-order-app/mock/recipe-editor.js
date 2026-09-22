@@ -37,8 +37,18 @@ export const blankRecipe = () => ({
   version: 1, name: '', subtitle: '', image: '', categoryId: '', spicy: 'none',
   ingredients: [], seasonings: [], steps: []
 })
-export function validateRecipe(value) {
-  if (!value.name.trim()) return '给这道菜起个名字吧'
+/**
+ * 编辑器校验
+ *
+ * @param {Object} value - 编辑器里的 draft
+ * @param {'dish'|'coffee'} [kind] - **只影响提示语里的称呼**（「这道菜」/「这杯咖啡」）。
+ *   默认 'dish' —— 不带第二个参数时行为与从前逐字一致，不影响既有调用。
+ *   咖啡与美食共用同一个编辑器（见 recipe-detail 的 isCoffee），校验规则完全相同，
+ *   差别只在「用户看到的那句话该怎么说」：咖啡页提示「给这道菜起个名字吧」是错的。
+ */
+export function validateRecipe(value, kind = 'dish') {
+  const what = kind === 'coffee' ? '这杯咖啡' : '这道菜'
+  if (!value.name.trim()) return `给${what}起个名字吧`
   /**
    * 封面**必传**（2026-09-21 主人定的规则）
    *

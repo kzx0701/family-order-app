@@ -39,18 +39,24 @@
       <template v-else>
       <view class="intro">
         <template v-if="editing">
-          <text class="field-label">菜谱名称 · 必填</text>
-          <input v-model="draft.name" class="field title-field" maxlength="24" placeholder="给这道菜起个名字" aria-label="菜谱名称" />
-          <text class="field-label">菜品分类 <text>选填</text></text>
-          <button class="field picker-field" aria-label="选择菜品分类" @tap="openPicker('category')"><image v-if="currentCategoryImage" class="picker-field-art" :src="currentCategoryImage" mode="aspectFit" /><Icon v-else-if="currentCategoryIcon" class="picker-field-icon" :name="currentCategoryIcon" size="36rpx" /><text class="picker-field-value" :class="{ 'is-empty': !currentCategoryName }">{{ currentCategoryName || '还没选分类' }}</text><Icon name="chevron-right" :size="15" /></button>
-          <text class="field-label">辣度 <text>选填</text></text>
-          <button class="field picker-field" aria-label="选择辣度" @tap="openPicker('spicy')"><image class="picker-field-art picker-field-spicy" :src="currentSpicy.image" mode="aspectFit" /><text class="picker-field-value">{{ currentSpicy.label }}</text><Icon name="chevron-right" :size="15" /></button>
+          <text class="field-label">{{ kindText.nameLabel }} · 必填</text>
+          <input v-model="draft.name" class="field title-field" maxlength="24" :placeholder="kindText.namePlaceholder" :aria-label="kindText.nameLabel" />
+          <text class="field-label">{{ kindText.categoryLabel }} <text>选填</text></text>
+          <button class="field picker-field" :aria-label="'选择' + kindText.categoryLabel" @tap="openPicker('category')"><image v-if="currentCategoryImage" class="picker-field-art" :src="currentCategoryImage" mode="aspectFit" /><Icon v-else-if="currentCategoryIcon" class="picker-field-icon" :name="currentCategoryIcon" size="36rpx" /><text class="picker-field-value" :class="{ 'is-empty': !currentCategoryName }">{{ currentCategoryName || '还没选分类' }}</text><Icon name="chevron-right" :size="15" /></button>
+          <!-- 辣度：**只有美食有**（2026-09-22 按主人要求收掉咖啡的这一格）。
+               咖啡没有辣度这个概念 —— 点单页的咖啡卡片也不读这个字段，云端 dishes.spicy 对咖啡恒为 none。
+               整个字段收掉，而不是留着显示成「不辣」：一个永远只能选「不辣」的选择器，
+               比没有这个字段更让人困惑，而且会诱导用户去点它。 -->
+          <template v-if="!isCoffee">
+            <text class="field-label">辣度 <text>选填</text></text>
+            <button class="field picker-field" aria-label="选择辣度" @tap="openPicker('spicy')"><image class="picker-field-art picker-field-spicy" :src="currentSpicy.image" mode="aspectFit" /><text class="picker-field-value">{{ currentSpicy.label }}</text><Icon name="chevron-right" :size="15" /></button>
+          </template>
           <!-- 菜谱描述：对应云端的 dishes.description（本来就有这个字段，此前只有管理端能写）。
                它是菜谱列表页**卡片副行**的来源（note 为空时回退它），所以限 40 字 ——
                再长在卡片上也会被省略号截掉，不如让用户在写的时候就看得见长度。
                字段本身与 draft.subtitle 同源：读回、保存、dirty 比较三处早已接通，这里只补入口。 -->
-          <text class="field-label">菜谱描述 <text>选填</text></text>
-          <input v-model="draft.subtitle" class="field" maxlength="40" placeholder="一句话说说它，比如：酸酸甜甜，拌饭刚刚好" aria-label="菜谱描述" />
+          <text class="field-label">{{ kindText.descLabel }} <text>选填</text></text>
+          <input v-model="draft.subtitle" class="field" maxlength="40" placeholder="一句话说说它，比如：酸酸甜甜，拌饭刚刚好" :aria-label="kindText.descLabel" />
         </template>
         <template v-else>
           <text class="title">{{ shown.name }}</text>
@@ -89,7 +95,10 @@
         <!-- 编辑态不再出提示句：入口按钮本身就把话说完了，多一行字反而占版面 -->
         <text v-if="!editing && !shown[section.key].length" class="empty">暂未记录{{ section.title }}</text>
       </view>
-      <view class="section-head steps-heading"><text class="number coral">3</text><text class="section-title">一起慢慢做</text></view>
+      <!-- 步骤区的序号**必须算出来**（`sections.length + 1`），不能写死 3：
+           美食是「① 食材 ② 调料 ③ 步骤」，咖啡只有「① 原料 ② 步骤」——
+           写死 3 的话咖啡页会出现「① 原料 ② 一起慢慢做」，序号在视觉上是个坑。 -->
+      <view class="section-head steps-heading"><text class="number coral">{{ sections.length + 1 }}</text><text class="section-title">一起慢慢做</text></view>
       <view v-for="(step, index) in shown.steps" :id="'step-' + step.id" :key="step.id" class="step" :class="{ editor: editing, invalid: editing && attempted && !step.title.trim() }">
         <view class="step-top"><text class="step-index">步骤 {{ index + 1 }}</text><view v-if="editing" class="step-actions">
           <button class="small-icon" :disabled="index === 0" :aria-label="'上移步骤' + (index + 1)" @tap="moveStep(index, -1)"><Icon name="chevron-up" :size="17" /></button>
@@ -116,8 +125,8 @@
     <!-- 底栏只在「身份能编辑」且「云端菜谱真拿到了」时出现：取不到菜谱时既没有可编辑的对象、
          也没有可发布的 _id，留着按钮只会点出一串失败提示（原先要点到「发布」才被告知没连上云端） -->
     <view v-if="canEdit && !loadFailed" class="footer">
-      <template v-if="editing"><button class="cancel" @tap="cancelEditing">取消</button><button class="primary save" :disabled="saving" @tap="save"><Icon name="check" :size="18" />{{ saving ? '正在保存…' : (creating ? '添加菜谱' : '保存菜谱') }}</button></template>
-      <template v-else><button class="ghost" @tap="startEditing"><Icon name="edit" :size="18" />编辑菜谱</button><button class="primary grow" :disabled="publishing" @tap="togglePublish"><Icon :name="published ? 'check' : 'upload'" :size="18" />{{ publishing ? '处理中…' : (published ? '取消发布' : '发布菜品') }}</button></template>
+      <template v-if="editing"><button class="cancel" @tap="cancelEditing">取消</button><button class="primary save" :disabled="saving" @tap="save"><Icon name="check" :size="18" />{{ saving ? '正在保存…' : (creating ? kindText.createLabel : kindText.saveLabel) }}</button></template>
+      <template v-else><button class="ghost" @tap="startEditing"><Icon name="edit" :size="18" />{{ kindText.editLabel }}</button><button class="primary grow" :disabled="publishing" @tap="togglePublish"><Icon :name="published ? 'check' : 'upload'" :size="18" />{{ publishing ? '处理中…' : (published ? '取消发布' : kindText.publishLabel) }}</button></template>
     </view>
     <view v-if="picker && editing && canEdit" class="picker-layer">
       <view class="mask" @tap="picker = ''" @touchmove.stop.prevent />
@@ -127,7 +136,7 @@
         <button class="primary confirm" @tap="confirmPicker">{{ pickerConfirmText }}</button>
       </view>
     </view>
-    <fo-dialog :visible="discardDialog" title="收起这次修改？" subtitle="未保存的内容会丢失，原来的菜谱仍会保留。" cancel-text="继续编辑" confirm-text="放弃修改" @close="discardDialog = false" @confirm="discard" />
+    <fo-dialog :visible="discardDialog" title="收起这次修改？" :subtitle="kindText.discardHint" cancel-text="继续编辑" confirm-text="放弃修改" @close="discardDialog = false" @confirm="discard" />
     <!-- 封面裁剪器：与管理页同一个组件，导出尺寸对齐主图框所需物理像素 -->
     <image-cropper :visible="cropperVisible" :image-src="cropperSrc" :ratio="1" :output-size="HERO_ART_WIDTH" @confirm="onCropConfirm" @cancel="onCropCancel" />
   </view>
@@ -149,6 +158,45 @@ import { categoryArt } from '@/utils/category-art.js'
 import { imgUrl, IMG_W } from '@/utils/image.js'
 const userStore = useUserStore()
 const canEdit = computed(() => userStore.isCook)
+/**
+ * 这一页当前编的是**咖啡**还是**美食**（由路由 `?type=coffee` 决定）
+ *
+ * 咖啡与菜品共用这一个编辑器 —— 表单、校验、抽屉、封面上传、保存链路全部同源，
+ * 只有「几块区怎么摆」和「少数几处称呼」不同：
+ *
+ *   |          | 美食                          | 咖啡            |
+ *   | 区       | ① 食材 ② 调料 ③ 一起慢慢做      | ① 原料 ② 一起慢慢做 |
+ *   | 字段     | ingredients + seasonings       | ingredients（即「原料」）|
+ *   | 物料分组 | ingredient / seasoning         | ingredient      |
+ *   | 分类     | categories.type = food         | categories.type = coffee |
+ *   | create   | dishes.type = 'food'           | dishes.type = 'coffee' |
+ *
+ * **不复制第二个页面**的理由见 pages/recipe/recipe.vue 的 createCoffee 注释（主包体积 + 口径唯一）。
+ * ⚠️ 咖啡的「原料」**复用 `ingredients` 字段与 `ingredient` 物料分组**，没有新字段也没有新分组：
+ *    咖啡原料（咖啡豆 / 牛奶 / 糖浆）在材料表里本来就归 ingredient，另立一套只会让
+ *    materials 的枚举、两条查询链路、菜单接口跟着一起改，而它们要表达的是同一件事。
+ */
+const isCoffee = ref(false)
+/**
+ * 按类型切换的文案
+ *
+ * 咖啡页写「菜谱名称 / 菜品分类 / 保存菜谱」都不准确，但这些差异很小、散在模板里就是
+ * 一堆三元判断。集中在这张表里，模板只读字段名；将来真出现第三种类型，也只需在这里补一条。
+ *
+ * ⚠️ 这张表**只装称呼**，不装业务规则：区数、分类的 type、写库的 type 都跟着 `isCoffee` 走，
+ *    与文案无关（文案改错只是读起来别扭，那三处改错是写错数据）。
+ */
+const kindText = computed(() => (isCoffee.value
+  ? {
+    nameLabel: '咖啡名称', namePlaceholder: '给这杯咖啡起个名字', categoryLabel: '咖啡分类', descLabel: '咖啡描述',
+    createLabel: '添加咖啡', saveLabel: '保存咖啡', editLabel: '编辑咖啡', publishLabel: '发布咖啡',
+    discardHint: '未保存的内容会丢失，原来的咖啡仍会保留。'
+  }
+  : {
+    nameLabel: '菜谱名称', namePlaceholder: '给这道菜起个名字', categoryLabel: '菜品分类', descLabel: '菜谱描述',
+    createLabel: '添加菜谱', saveLabel: '保存菜谱', editLabel: '编辑菜谱', publishLabel: '发布菜品',
+    discardHint: '未保存的内容会丢失，原来的菜谱仍会保留。'
+  }))
 const { statusBarHeight, menuButton, windowWidth } = useSafeArea()
 /**
  * 返回按钮的纵向位置（.nav 的 paddingTop）
@@ -306,8 +354,12 @@ const categoryOptions = computed(() => categories.value.map(c => {
  *
  * 用 spicyMark（不是 spicyImage）：浏览态是「标记」语义，**「不辣」是默认状态、不挂图标**；
  * 未设置与脏值同样得到空串 → 模板一个 v-if 收掉。斜线辣椒只出现在「字段」语义的点单抽屉里。
+ *
+ * **咖啡恒为空串**（2026-09-22 起）：咖啡不显示辣度，编辑态里那一格也已收掉。
+ * 收在这一层而不是只靠编辑态不显示 —— 将来给咖啡补上浏览态入口时，历史脏数据里若带着
+ * `spicy: 'hot'`，也不会在页面上冒出一枚辣椒。同一行的分隔点跟着它一起收（模板里依赖它判断）。
  */
-const spicyArt = computed(() => spicyMark(shown.value && shown.value.spicy))
+const spicyArt = computed(() => (isCoffee.value ? '' : spicyMark(shown.value && shown.value.spicy)))
 
 /**
  * 当前菜品的分类（编辑态取 draft、浏览态取 saved）
@@ -336,7 +388,19 @@ const cloudMaterialMap = computed(() => {
   return map
 })
 
-const sections = [{ key: 'ingredients', title: '食材' }, { key: 'seasonings', title: '调料' }]
+/**
+ * 正文里的「物料区」清单
+ *
+ * 美食三步：食材 + 调料；咖啡两步：只有**原料**（复用 ingredients 这一块，只换标题）。
+ * 步骤区不在这张表里（它结构不同：可增删、可排序、带序号），它的序号由 `sections.length + 1` 推出。
+ *
+ * ⚠️ 咖啡的原料**不能只改标题而把 seasonings 也留着**：那样页面会多出一块永远为空的
+ *    「调料」区，而咖啡根本没有调料这个概念 —— 空区不是"零高度"，它会连着标题与
+ *    添加按钮一起占掉几十 rpx（见模板里 .material-section 那段注释）。
+ */
+const sections = computed(() => (isCoffee.value
+  ? [{ key: 'ingredients', title: '原料' }]
+  : [{ key: 'ingredients', title: '食材' }, { key: 'seasonings', title: '调料' }]))
 
 /**
  * 按 id 取物料的名称与图片
@@ -373,14 +437,27 @@ const materialArt = id => imgUrl(lookup(id).image, { w: MATERIAL_ART_WIDTH })
  * 「食材 / 调料」是多选（一道菜可以有很多配料）且带搜索；「分类 / 辣度」是单选、
  * 选项少而固定，不需要搜索框 —— 这些差异全部收敛到这张表里，模板只读它，
  * 不再散落一堆 `picker === 'ingredients' ? … : …` 的三元判断。
+ *
+ * 2026-09-22：改成**按类型求值**（computed），因为咖啡页的「原料」抽屉与美食页的
+ * 「食材」抽屉是**同一条数据链路**（都取 `group=ingredient` 的物料），只有称呼不同；
+ * 分类抽屉的空态提示也要跟着说对 `type`（coffee / food），否则排查时会照着错的那句去查库。
  */
-const PICKER_KINDS = {
-  ingredients: {
-    noun: '食材', title: '挑一点食材', subtitle: '厨房的小伙伴，都在这里',
-    searchable: true, multiple: true,
-    emptyTitle: '这里还没有可选的食材',
-    emptyHint: '请先在云端的 materials 集合里添加，group 填 ingredient'
-  },
+const PICKER_KINDS = computed(() => ({
+  ingredients: isCoffee.value
+    ? {
+      noun: '原料', title: '挑一点原料', subtitle: '这杯咖啡用什么，都在这里',
+      searchable: true, multiple: true,
+      emptyTitle: '这里还没有可选的原料',
+      emptyHint: '请先在云端的 materials 集合里添加，group 填 ingredient'
+    }
+    : {
+      noun: '食材', title: '挑一点食材', subtitle: '厨房的小伙伴，都在这里',
+      searchable: true, multiple: true,
+      emptyTitle: '这里还没有可选的食材',
+      emptyHint: '请先在云端的 materials 集合里添加，group 填 ingredient'
+    },
+  // 咖啡页没有「调料」这一区，这个 kind 不会被打开；保留它是为了这张表结构完整，
+  // 万一将来某条路径仍带着 seasonings 进来，抽屉也能正常显示而不是读到 undefined
   seasonings: {
     noun: '调料', title: '挑一点调料', subtitle: '好味道的秘密，都在这里',
     searchable: true, multiple: true,
@@ -391,16 +468,18 @@ const PICKER_KINDS = {
     noun: '分类', title: '挑一个最像它的', subtitle: '先归好类，翻菜谱时更好找',
     searchable: false, multiple: false,
     emptyTitle: '这里还没有可选的分类',
-    emptyHint: '请先在云端的 categories 集合里添加，type 填 food'
+    emptyHint: isCoffee.value
+      ? '请先在云端的 categories 集合里添加，type 填 coffee'
+      : '请先在云端的 categories 集合里添加，type 填 food'
   },
   spicy: {
     noun: '辣度', title: '这道菜有多辣', subtitle: '挑一档，做的时候照着来',
     searchable: false, multiple: false,
     emptyTitle: '', emptyHint: ''
   }
-}
+}))
 /** 当前抽屉的配置（picker 为空时给个安全默认，避免模板读到 undefined） */
-const pickerKind = computed(() => PICKER_KINDS[picker.value] || PICKER_KINDS.ingredients)
+const pickerKind = computed(() => PICKER_KINDS.value[picker.value] || PICKER_KINDS.value.ingredients)
 
 /**
  * 当前抽屉的全部选项（**不受搜索词影响**）
@@ -517,22 +596,26 @@ const loadMaterials = async () => {
 }
 
 /**
- * 基础数据二：菜品分类（categories 里 type=food 的那些）
+ * 基础数据二：分类（**跟着当前类型走**：美食取 type=food，咖啡取 type=coffee）
  *
  * 两步查询，**都不能省**：
- * 1. 先按 `type: 'food'` 查（正常路径，只取菜品分类）；
- * 2. 结果为空时再不带 type 查一次全量，在页面侧按 `!c.type || c.type === 'food'` 筛 ——
+ * 1. 先按 `type: food / coffee` 查（正常路径，只取本类型的分类）；
+ * 2. 结果为空时再不带 type 查一次全量，在页面侧按 `!c.type || c.type === kind` 筛 ——
  *    菜谱列表页就是这么做的（它拿的是 dishes-crud/list 顺带返回的分类，同样靠这句兜底），
  *    **两页口径必须一致**，否则会出现「列表页有 6 个分类、编辑页抽屉却是空的」这种裂缝。
+ *
+ * ⚠️ 咖啡页若仍按 food 查，抽屉里会列出一堆「炒菜 / 蒸菜 / 汤羹」，而咖啡分类一个都看不到 ——
+ *    这类错误不会报错、页面也照常渲染，只能靠口径本身守住。
  *
  * 为什么两处都要打 warn：原先这里只有一句 `if (code === 0)`，接口异常时**完全静默** ——
  * 2026-09-20 排查「抽屉空」时，就是因为没有任何输出才绕了弯路。
  */
 const loadCategories = async () => {
+  const kind = isCoffee.value ? 'coffee' : 'food'
   try {
-    const res = await uniCloud.callFunction({ name: 'app-service', data: { module: 'categories-crud', action: 'list', type: 'food' } })
+    const res = await uniCloud.callFunction({ name: 'app-service', data: { module: 'categories-crud', action: 'list', type: kind } })
     const result = res.result || {}
-    if (result.code !== 0) console.warn('[recipe-detail] 分类(type=food)查询失败', result.code, result.message)
+    if (result.code !== 0) console.warn(`[recipe-detail] 分类(type=${kind})查询失败`, result.code, result.message)
     let list = result.code === 0 ? result.list || [] : []
     if (!list.length) {
       const allRes = await uniCloud.callFunction({ name: 'app-service', data: { module: 'categories-crud', action: 'list' } })
@@ -544,7 +627,7 @@ const loadCategories = async () => {
       }
     }
     categories.value = list
-      .filter(c => !c.type || c.type === 'food')
+      .filter(c => !c.type || c.type === kind)
       .map(c => ({ id: c._id, name: c.name, image: c.image || '' }))
     if (!categories.value.length) console.warn('[recipe-detail] 分类结果为空，抽屉会显示空态')
   } catch (e) {
@@ -588,7 +671,11 @@ const loadCloudRecipe = async id => {
       // 分类与辣度：云端是旧数据、没有这两个字段时就落回本地那份，
       // 不要在界面上把「本来就没有」显示成「被清空了」
       categoryId: typeof dish.categoryId === 'string' ? dish.categoryId : saved.value.categoryId,
-      spicy: SPICY_LEVELS.includes(dish.spicy) ? dish.spicy : saved.value.spicy,
+      // 咖啡恒为「不辣」（= 没有辣度这个概念），**不读云端值** —— 与 save 里的强制归零同一口径。
+      // 两头都归零，是为了让「咖啡的 spicy 永远是 none」成为一条贯穿的规则：
+      // 只在写库那一头归零的话，编辑态里 draft.spicy 仍可能是个 'hot'，将来任何一处
+      // 忘了判断类型的新展示位都会把它画出来。
+      spicy: isCoffee.value ? 'none' : (SPICY_LEVELS.includes(dish.spicy) ? dish.spicy : saved.value.spicy),
       ingredients: pick(dish.ingredients),
       seasonings: pick(dish.seasonings),
       // 步骤同样以云端为准。云端还没有这个字段时（旧数据、尚未录入步骤的菜谱）落回空数组，
@@ -624,8 +711,9 @@ const retryLoad = async () => {
 }
 
 /**
- * 新建态（路由带 `mode=create`，来自菜谱列表页的「加一道菜」）
+ * 新建态（路由带 `mode=create`，来自菜谱列表页底部卡槽的两个入口）
  *
+ * 两个入口共用这一态：**不带 type 建美食、带 `type=coffee` 建咖啡**（见 isCoffee 的说明）。
  * 与「编辑既有菜谱」共用同一份表单与校验，只有两处不同：
  * 1. 起点数据 —— 空骨架，既不取演示数据也不取本地缓存（缓存里是上一次编辑的残留）；
  * 2. 保存动作 —— 走 dishes-crud / create 而不是 update。
@@ -636,6 +724,16 @@ const creating = ref(false)
 
 onLoad(async options => {
   const route = options || {}
+  /**
+   * ⚠️ **必须放在任何一次接口调用之前**
+   *
+   * `isCoffee` 决定三件事：① 分类查询的 type（food / coffee）、② 正文的区数与标题
+   * （原料+步骤 / 食材+调料+步骤）、③ 新建时写回云端的 `type`。
+   * 它在路由参数里（`?type=coffee`，由菜谱页的「再添一杯咖啡」带上），
+   * 晚一步定就会先按美食发一次分类请求 —— 抽屉里会闪一下美食分类再换掉。
+   * 缺省是美食：不带 type 的入口（编辑既有菜谱那条路）行为与改动前完全一致。
+   */
+  isCoffee.value = route.type === 'coffee'
   routeId.value = route.id || ''
   // 新建：直接从空骨架进编辑态，跳过菜品详情请求
   // （物料与分类仍要拉 —— 选配料、选分类都得有它们；不传 id 时函数内部会跳过详情）
@@ -696,7 +794,7 @@ const discard = () => {
 }
 onBackPress(() => { if (picker.value) { picker.value = ''; return true } if (dirty.value) { leaveAfterDiscard = true; discardDialog.value = true; return true } return false })
 const openPicker = kind => {
-  if (!editing.value || !canEdit.value || !PICKER_KINDS[kind]) return
+  if (!editing.value || !canEdit.value || !PICKER_KINDS.value[kind]) return
   // 打开时把当前值带进去 —— 单选带一个、多选带上已有的全部
   if (kind === 'category') selection.value = draft.value.categoryId ? [draft.value.categoryId] : []
   else if (kind === 'spicy') selection.value = [SPICY_LEVELS.includes(draft.value.spicy) ? draft.value.spicy : 'none']
@@ -739,7 +837,7 @@ const moveStep = (index, direction) => {
 const save = async () => {
   if (!canEdit.value || !editing.value || saving.value) return
   attempted.value = true
-  const error = validateRecipe(draft.value)
+  const error = validateRecipe(draft.value, isCoffee.value ? 'coffee' : 'dish')
   if (error) {
     uni.showToast({ title: error, icon: 'none' })
     const invalid = draft.value.steps.find(step => !step.title.trim())
@@ -766,8 +864,10 @@ const save = async () => {
       description: value.subtitle,
       // 分类：没选就是空串（合法状态 —— 菜品可以不归类）
       categoryId: value.categoryId || '',
-      // 辣度：只有四档之内才写库，脏值落回不辣
-      spicy: SPICY_LEVELS.includes(value.spicy) ? value.spicy : 'none',
+      // 辣度：只有四档之内才写库，脏值落回不辣。
+      // **咖啡恒写 none** —— 咖啡态已经没有辣度入口，draft.spicy 正常就是 'none'；
+      // 但编辑一条历史脏数据（spicy 被写成 hot）时，不强制归零就会把这个无意义的辣度一路带下去。
+      spicy: isCoffee.value ? 'none' : (SPICY_LEVELS.includes(value.spicy) ? value.spicy : 'none'),
       ingredients: value.ingredients.map(materialToCloud),
       seasonings: value.seasonings.map(materialToCloud),
       // 步骤显式摘掉前端的 id（渲染标识，不进库）；顺序即数组顺序
@@ -785,11 +885,13 @@ const save = async () => {
     // （`creating` 为假、`cloudDishId` 又为空属于理论不可达；真出现时云端会返回 400/404，
     //   按上面的失败分支提示重试即可。）
     const action = creating.value ? 'create' : 'update'
-    // 新增必须带 type（云端校验必填），且菜谱页只产美食菜谱 —— 咖啡归点单页管
-    // 新建的菜谱**默认不发布**：它先待在菜谱里，确认没问题再点底栏的「发布菜品」上到菜单。
+    // 新增必须带 type（云端校验必填）：**由当前类型决定** —— 美食页建 `food`、咖啡页建 `coffee`。
+    // ⚠️ 这一处写死 'food' 会让咖啡页新建出来的记录变成美食（列表、菜单两处都跟着错），
+    //    而页面本身不会报任何错，属于「静默写错数据」。
+    // 新建的**默认不发布**：它先待在菜谱里，确认没问题再点底栏的「发布菜品」上到菜单。
     // isOnSale 写在 ...fields 之前，避免将来 fields 里意外出现同名字段把它盖掉
     const data = action === 'create'
-      ? { module: 'dishes-crud', action, token: userStore.token, type: 'food', isOnSale: false, ...fields }
+      ? { module: 'dishes-crud', action, token: userStore.token, type: isCoffee.value ? 'coffee' : 'food', isOnSale: false, ...fields }
       : { module: 'dishes-crud', action, token: userStore.token, _id: cloudDishId.value, ...fields }
     const res = await uniCloud.callFunction({ name: 'app-service', data })
     const result = res.result || {}
@@ -798,7 +900,7 @@ const save = async () => {
       uni.showToast({ title: result.message || '保存到云端失败，请重试', icon: 'none' })
       return
     }
-    let toast = '菜谱已保存'
+    let toast = isCoffee.value ? '咖啡已保存' : '菜谱已保存'
     if (action === 'create') {
       // 记下新菜品的 _id 并退出新建态：本页随即变成「编辑既有菜谱」，
       // 用户接着改再保存走的是 update，不会重复创建
@@ -807,7 +909,7 @@ const save = async () => {
       // 新建时云端写的 isOnSale 就是 false，本地状态必须跟上 ——
       // 否则底栏会显示成「取消发布」，用户以为它已经在菜单里了
       published.value = false
-      toast = '菜谱已添加'
+      toast = isCoffee.value ? '咖啡已添加' : '菜谱已添加'
     }
 
     saved.value = value; exitEditing()

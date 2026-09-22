@@ -11,9 +11,10 @@ const blankRecipe = () => ({
   seasonings: [],
   steps: []
 });
-function validateRecipe(value) {
+function validateRecipe(value, kind = "dish") {
+  const what = kind === "coffee" ? "这杯咖啡" : "这道菜";
   if (!value.name.trim())
-    return "给这道菜起个名字吧";
+    return `给${what}起个名字吧`;
   if (!String(value.image || "").trim())
     return "还差一张封面，给它配一张吧";
   const emptyIndex = value.steps.findIndex((step) => !step.title.trim());
