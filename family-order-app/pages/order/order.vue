@@ -13,7 +13,17 @@
       </view>
       <view class="filter-row">
         <scroll-view scroll-x class="category-scroll" :show-scrollbar="false">
-          <view class="category-list"><button v-for="category in categoryTabs" :key="category.id" class="category" :class="{ selected: categories[mode] === category.id }" :aria-pressed="categories[mode] === category.id" @tap="categories[mode] = category.id"><text>{{ category.name }}</text><view class="category-underline" /></button></view>
+          <view class="category-list">
+            <button v-for="category in categoryTabs" :key="category.id" class="category" :class="{ selected: categories[mode] === category.id }" :aria-pressed="categories[mode] === category.id" @tap="categories[mode] = category.id">
+              <view class="category-icon-slot">
+                <!-- 静态层：**动图加载完成之前一直露着**，所以它的显隐不能绑在"已选中"上（见 iconDimmed） -->
+                <image v-if="category.icon" class="category-icon" :class="{ 'is-dim': iconDimmed(category) }" :src="category.icon" mode="aspectFit" />
+                <image v-if="category.iconActive && categories[mode] === category.id" class="category-icon category-icon-moving" :src="category.iconActive" mode="aspectFit" @load="markIconLoaded(category.id)" @error="markIconFailed(category.id)" />
+              </view>
+              <text>{{ category.name }}</text>
+              <view class="category-underline" />
+            </button>
+          </view>
         </scroll-view>
         <button class="search-toggle" :class="{ active: searchOpen }" aria-label="搜索菜单" :aria-expanded="searchOpen" @tap="toggleSearch"><view class="search-glass" /></button>
       </view>
@@ -73,6 +83,11 @@
     </view>
     <custom-tabbar />
 
+    <!-- 注：分类动图**没有预热层**（2026-09-22 复核后删掉）。原先这里用 `v-for` 把**所有**配了动图的
+         分类一次性挂上预热，那是在只有 1 个动图（108KB）时定的做法；六个分类配满后这个量变成
+         **773KB**，而用户可能一个分类都不点。现在改为"点哪个下哪个 + 静态图撑到动图加载完"，
+         详见 script 里 iconLoaded 的注释。 -->
+
     <view v-if="panel" class="sheet-layer">
       <view class="sheet-mask" :class="{ closing }" @tap="closePanel" @touchmove.stop.prevent />
       <view class="sheet" :class="{ closing, 'success-sheet': panel === 'success' }" role="dialog" aria-modal="true" :aria-label="panelTitle">
@@ -127,7 +142,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onUnmounted } from 'vue'
+import { ref, reactive, computed, onUnmounted, watch } from 'vue'
 import { onLoad, onShow, onHide, onBackPress } from '@dcloudio/uni-app'
 import { useSafeArea } from '@/composables/useSafeArea.js'
 import { useCartStore } from '@/store/cart.js'
@@ -138,7 +153,7 @@ import { addToCart, removeLine } from '@/mock/order-menu.js'
 // 辣度文案取全局唯一那份（菜谱页 / 详情页同源）—— 点单这里虽然是只读，也得用同一套词
 import { SPICY_TEXT, spicyImage, spicyMark } from '@/utils/spicy.js'
 // 卡片上那枚**做法分类图标**的素材映射（与菜谱列表页、编辑抽屉同一份）
-import { categoryArt } from '@/utils/category-art.js'
+import { categoryArt, categoryArtActive } from '@/utils/category-art.js'
 // 菜品图来自云存储，必须过 imgUrl 才能拿到按需尺寸的 WebP
 import { imgUrl } from '@/utils/image.js'
 const { statusBarHeight, menuButton } = useSafeArea()
@@ -213,7 +228,8 @@ const loadMenu = async (type) => {
       recipeCategory: d.categoryName || '',
       // 菜单分类 id（云端 categories 的 _id），顶部筛选栏按它过滤
       category: d.categoryId || '',
-      signature: !!d.isSignature,
+      // ⚠️ 这里**故意不带** isSignature：点单页已没有「拿手菜」筛选入口（见 categoryTabs 的说明），
+      //    带上就是没人读的死字段。菜谱页卡片角标仍用它，那边有自己的映射，两边互不影响。
       tone: toneFor(d.dishId)
     }))
     target.loaded = true
@@ -228,31 +244,68 @@ const loadMenu = async (type) => {
 /**
  * 顶部筛选栏的分类
  *
- * =「全部」（前端概念、不过滤）+「拿手菜」+ 云端返回的分类。
- * 两个虚拟项固定在前，其余按云端 categories 的 sortOrder 排（接口已按 sortOrder asc 查好）。
- * 「拿手菜」是前端补的：云端 menu-list 不返回它，但 `isSignature`（家的拿手菜）是个有意义的
- * 筛选维度、改造前也有这个 tab，所以按 `signature` 字段在本地筛（见 visibleItems）。
+ * =「全部」（前端概念、不过滤）+ 云端返回的分类。
+ * 「全部」固定在前，其余按云端 categories 的 sortOrder 排（接口已按 sortOrder asc 查好）。
+ *
+ * ⚠️ **分类栏必须与菜谱页的分类栏逐项一致**（2026-09-22 主人明确要求）：
+ * 两页都只列 `categories` 集合里 `type=food` 的真实记录，**不再有任何前端凭空补的分类**。
+ * 曾有一个虚拟的「拿手菜」tab（按 isSignature 在本地筛），已删除 —— 云端从来没有这条分类记录，
+ * 摆在分类栏里等于在讲一件数据里不存在的事，而且两页对不上（菜谱页本来就没有它）。
+ * `isSignature`（家的拿手菜）**字段与云端数据都还在**，菜谱页卡片上那枚「家的拿手菜」角标
+ * 仍由它驱动；只是点单页不再为它单开筛选入口 —— 要找拿手菜就直接翻菜谱页。
  *
  * ⚠️ 2026-09-21 起没有「推荐」这一项了：云端 menu-list 原先会**凭空构造**一个 recommend 分类
  * 置于首位，而 categories 集合里从来没有叫「推荐」的记录 —— 那个分类、配套的 isRecommended
  * 字段、以及管理端的「是否推荐」开关已整套删除（详见 menu-list.js 顶部的说明）。
+ * 与「拿手菜」属同一类问题，区别是那次连数据字段一起清了、这次字段仍在。
+ *
+ * 图标（2026-09-22 加）：与菜谱列表页的分类栏**共用同一张映射表**（utils/category-art.js），
+ * 所以「同一分类在两页长得一样」这件事仍然成立。`iconActive` 是选中态的动图（在云存储上），
+ * 只有配了动图的分类才有；目前有「热菜」「凉菜」，其余分类没有素材 → 图标槽留空、文字 tab 照常成立。
  */
 const categoryTabs = computed(() => {
-  const cloud = (menu.value.categories || []).map(c => ({ id: c.id, name: c.name }))
-  return [{ id: 'all', name: '全部' }, { id: 'signature', name: '拿手菜' }, ...cloud]
+  const cloud = (menu.value.categories || []).map(c => ({
+    id: c.id, name: c.name, icon: categoryArt(c.name), iconActive: categoryArtActive(c.name)
+  }))
+  return [
+    { id: 'all', name: '全部', icon: categoryArt('全部') },
+    ...cloud
+  ]
 })
+
+/**
+ * 分类动图的加载状态 —— **决定静态图什么时候让位**
+ *
+ * 与菜谱列表页**同一套做法与理由**（那边注释更详细，改之前先看那边）：动图在云存储上，
+ * 曾经"进页面就把所有分类的动图挂一遍预热"，在只有 1 个动图（108KB）时还说得过去；
+ * 六个分类配满后变成 **773KB**（点单页美食模式 5 个 = 595KB），而用户可能一个分类都不点。
+ * **2026-09-22 复核后删掉预热**，改为：
+ *   ① 不预热，点哪个下哪个（动图层仍只在选中时挂载）；
+ *   ② **静态图一直露着，直到动图 `load` 到达才压掉** —— 顺带修掉"动图加载失败 → 图标变空白"；
+ *   ③ 换分类/切模式时清空标记（动图层是 `v-if` 挂卸的，标记留着会让静态图先被压掉、闪一下空白）。
+ *
+ * 代价：**首次**点选某分类时动效要等下载完（约 200~600ms）才出现，这期间显示静态图。
+ * ⚠️ 能做到"切换看不见"，前提是 **GIF 首帧与静态图逐像素对齐**（见 utils/category-art.js 的尺度规则）。
+ */
+const iconLoaded = ref({})
+const markIconLoaded = (id) => { iconLoaded.value = { ...iconLoaded.value, [id]: true } }
+/** 动图加载失败：**什么都不做**，静态图继续露着（见上面 ②）；留条日志便于排查 */
+const markIconFailed = (id) => { console.warn('[order] 分类动图加载失败，保持静态图', id) }
+const iconDimmed = (category) => Boolean(category.iconActive && categories[mode.value] === category.id && iconLoaded.value[category.id])
+// 依赖写成 getter：点分类（categories[mode] 变）与切模式（mode 变）都会触发
+watch(() => categories[mode.value], () => { iconLoaded.value = {} })
 
 /**
  * 列表里实际渲染的菜品：先按分类筛、再按关键词搜（名称 + 描述）
  *
- * 两个虚拟分类的判定不同：`all` 不过滤、`signature` 看 isSignature，
- * 其余一律按 categoryId 匹配云端分类（分类栏里已不存在其它虚拟项）。
+ * 只剩 `all` 这一个虚拟分类（不过滤）；其余一律按 categoryId 匹配云端分类。
+ * （曾有的 `signature` 本地分支已随「拿手菜」tab 一起删除，见 categoryTabs 的说明。）
  */
 const visibleItems = computed(() => {
   const key = categories[mode.value]
   const keyword = queries[mode.value].trim().toLocaleLowerCase()
   return menu.value.dishes.filter((item) => {
-    const hitCategory = key === 'all' || (key === 'signature' ? item.signature : item.category === key)
+    const hitCategory = key === 'all' || item.category === key
     if (!hitCategory) return false
     if (!keyword) return true
     return (item.name + ' ' + item.description).toLocaleLowerCase().includes(keyword)
@@ -373,8 +426,24 @@ button { background:none; border-radius:0; margin:0; padding:0; line-height:inhe
 .tab-count { font-size:18rpx; line-height:30rpx; min-width:30rpx; border-radius:50%; background:$p2-coral; color:$p2-white; padding:0 5rpx; }
 .filter-row { display:flex; align-items:center; gap:12rpx; padding-top:10rpx; }
 .category-scroll { flex:1; width:0; min-width:0; }
-.category-list { display:flex; align-items:center; gap:24rpx; padding:12rpx 0 16rpx; }
-.category { position:relative; flex-shrink:0; font-size:25rpx; padding:14rpx 3rpx; color:$p2-ink-soft; &.selected { color:$p2-ink; font-weight:600; .category-underline { opacity:1; transform:rotate(-3deg) scaleX(1); } } }
+.category-list { display:flex; align-items:flex-start; gap:24rpx; padding:12rpx 0 16rpx; }
+// 分类项 2026-09-22 起改成**竖排**（图标在上、名字在下 + 底部标记线），此前只有文字。
+// ⚠️ 同时把 align-items 从 center 改成 flex-start：各分类的图标可有可无（目前只有「热菜」有），
+//    居中对齐会让「有图标」与「没图标」两项的**文字不在同一条水平线上**；
+//    让每一项都从顶部排起、由 .category-icon-slot 的固定高度把文字压到同一行，才是齐的。
+.category { position:relative; flex-shrink:0; display:flex; flex-direction:column; align-items:center; gap:2rpx; font-size:25rpx; padding:6rpx 3rpx 14rpx; color:$p2-ink-soft; &.selected { color:$p2-ink; font-weight:600; .category-underline { opacity:1; transform:rotate(-3deg) scaleX(1); } } }
+// 图标槽：**永远占着 40rpx 高**，即使该分类没有图标（目前除「热菜」外都是）。
+// ⚠️ 空容器不等于零高度 —— 这一格必须显式给高度，否则有图/无图两项的文字会错开一整个图标高。
+// 尺寸与菜谱列表页的分类栏同构（那里 44rpx；本页字号体系小一档，故取 40rpx）。
+.category-icon-slot { position:relative; display:flex; align-items:center; justify-content:center; height:40rpx; }
+.category-icon { width:40rpx; height:40rpx; display:block; transition:opacity $p2-dur-fast $p2-ease; }
+// 选中时静态图让位给动图（只在「该分类确实配了动图」时才让位，条件写在模板里）
+.category-icon.is-dim { opacity:0; }
+// 动图层：绝对定位压在静态图上，50% + 负半个边长（20rpx）居中；图标恒为 40rpx 方块。
+// 用入场动画而非 opacity 过渡 —— 这一层是选中时才新挂载的，没有"过渡的起点"可插值。
+// ⚠️ 不写 fill-mode（默认 none）：`forwards` / `both` 会锁死终态，压掉全局 button:active 的缩放。
+.category-icon-moving { position:absolute; left:50%; top:50%; margin:-20rpx 0 0 -20rpx; animation:icon-swap-in $p2-dur-fast $p2-ease; }
+@keyframes icon-swap-in { from { opacity:0; } to { opacity:1; } }
 .category-underline { position:absolute; bottom:3rpx; left:0; right:0; height:5rpx; background:$p2-leaf; border-radius:60% 40%; opacity:0; transform:scaleX(.4); transition:transform 180ms $p2-ease,opacity 180ms ease; }
 .search-toggle { width:68rpx; height:62rpx; display:flex; justify-content:center; align-items:center; border-left:2rpx solid #e6dac5; &.active { background:$p2-paper-deep; border-radius:15rpx; } }
 .search-glass { width:24rpx; height:24rpx; border:3rpx solid $p2-ink-soft; border-radius:50%; position:relative; flex-shrink:0; &::after { content:''; position:absolute; width:10rpx; height:3rpx; background:$p2-ink-soft; right:-8rpx; bottom:-4rpx; transform:rotate(45deg); } }
@@ -493,7 +562,7 @@ button { background:none; border-radius:0; margin:0; padding:0; line-height:inhe
 @keyframes count-pop { from { transform:scale(.75); } to { transform:scale(1); } }
 @keyframes mask-in { from { opacity:0; } to { opacity:1; } }
 @keyframes sheet-in { from { transform:translateY(100%); } to { transform:translateY(0); } }
-@media (prefers-reduced-motion:reduce) { button,.mode-slider,.category-underline,.sheet,.sheet-mask { transition:none; }.menu-list,.basket-count,.sheet,.sheet-mask,.feedback { animation:none; } }
+@media (prefers-reduced-motion:reduce) { button,.mode-slider,.category-underline,.category-icon,.sheet,.sheet-mask { transition:none; }.menu-list,.basket-count,.category-icon-moving,.sheet,.sheet-mask,.feedback { animation:none; } }
 // 窄屏（≤360px）再收一档。
 // ⚠️ 这里覆盖的值必须**跟着上面的基准值一起改**：基准从 244/36 收到 200/32 之后，
 //    原来那组 220/34 就比基准还大了 —— 窄屏会比大屏更宽松，正好反了。

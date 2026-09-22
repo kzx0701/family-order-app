@@ -46,20 +46,31 @@ const _sfc_main = {
         return;
       loading.value = true;
       try {
-        const dishRes = await common_vendor.Vs.callFunction({ name: "app-service", data: { module: "dishes-crud", action: "list", type: "food" } });
-        const dishResult = dishRes.result || {};
-        if (dishResult.code !== 0) {
-          common_vendor.index.showToast({ title: dishResult.message || "菜谱加载失败", icon: "none" });
+        const queryList = (type) => common_vendor.Vs.callFunction({ name: "app-service", data: { module: "dishes-crud", action: "list", type } });
+        const [foodRes, coffeeRes] = await Promise.all([queryList("food"), queryList("coffee")]);
+        const foodResult = foodRes && foodRes.result || {};
+        const coffeeResult = coffeeRes && coffeeRes.result || {};
+        const foodOk = foodResult.code === 0;
+        const coffeeOk = coffeeResult.code === 0;
+        if (!foodOk && !coffeeOk) {
+          common_vendor.index.showToast({ title: foodResult.message || coffeeResult.message || "菜谱加载失败", icon: "none" });
           return;
         }
-        dishes.value = (dishResult.list || []).map((d) => ({
+        if (!foodOk)
+          common_vendor.index.__f__("warn", "at pages/recipe/recipe.vue:213", "[recipe] 美食菜谱加载失败", foodResult.code, foodResult.message);
+        if (!coffeeOk)
+          common_vendor.index.__f__("warn", "at pages/recipe/recipe.vue:214", "[recipe] 咖啡菜谱加载失败", coffeeResult.code, coffeeResult.message);
+        const toCard = (d, type) => ({
           id: d._id,
           name: d.name,
           image: d.image || "",
+          type,
           // 辣度：直接带出**档位图案**（素材路径），不显示文字档位（角标那条已删，避免同卡说两遍）。
           // 用 spicyMark 而不是 spicyImage —— 卡片是「标记」语义，「不辣」与「未设置」都不挂图标
           // （斜线辣椒留给点单抽屉那种「字段」语义），模板一个 v-if 就收掉。
-          spicyArt: utils_spicy.spicyMark(d.spicy),
+          // **咖啡恒为空串**：咖啡没有辣度这个概念（编辑页那一格也已收掉），历史脏数据里
+          // 若带着 spicy，也不该在卡片上画出一枚辣椒 —— 与详情页 spicyArt 同一口径。
+          spicyArt: type === "coffee" ? "" : utils_spicy.spicyMark(d.spicy),
           // 档位值本身也带出来：模板要靠它挂 `pull-*` 类抵掉素材自带的透明留白（见样式区注释）。
           // 非法值与未设置都拿不到对应类 → 不产生负外边距，图上也不会画（spicyArt 为空）。
           spicy: d.spicy || "",
@@ -68,19 +79,30 @@ const _sfc_main = {
           // 卡片副行不再显示它，但**搜索要用**（「找道菜，或搜搜备注…」按 name + tip 匹配），
           // 所以这个字段继续留在视图模型里，别顺手删
           tip: d.note || d.description || ""
-        }));
-        let catList = dishResult.categories;
-        if (!Array.isArray(catList)) {
-          const catRes = await common_vendor.Vs.callFunction({ name: "app-service", data: { module: "categories-crud", action: "list", type: "food" } });
+        });
+        dishes.value = [
+          ...foodOk ? (foodResult.list || []).map((d) => toCard(d, "food")) : [],
+          ...coffeeOk ? (coffeeResult.list || []).map((d) => toCard(d, "coffee")) : []
+        ];
+        let catList = [
+          ...foodOk && Array.isArray(foodResult.categories) ? foodResult.categories : [],
+          ...coffeeOk && Array.isArray(coffeeResult.categories) ? coffeeResult.categories : []
+        ];
+        if (!catList.length) {
+          const catRes = await common_vendor.Vs.callFunction({ name: "app-service", data: { module: "categories-crud", action: "list" } });
           const catResult = catRes.result || {};
-          catList = (catResult.code === 0 ? catResult.list || [] : []).map((c) => ({ id: c._id, name: c.name }));
+          const all = catResult.code === 0 ? catResult.list || [] : [];
+          catList = [
+            ...all.filter((c) => !c.type || c.type === "food"),
+            ...all.filter((c) => c.type === "coffee")
+          ];
         }
-        categories.value = catList.filter((c) => !c.type || c.type === "food").map((c) => ({ id: c.id || c._id, name: c.name }));
+        categories.value = catList.map((c) => ({ id: c.id || c._id, name: c.name }));
         if (activeCategory.value !== "all" && !categories.value.some((c) => c.id === activeCategory.value)) {
           activeCategory.value = "all";
         }
       } catch (e) {
-        common_vendor.index.__f__("error", "at pages/recipe/recipe.vue:203", "[recipe] loadRecipes error", e);
+        common_vendor.index.__f__("error", "at pages/recipe/recipe.vue:269", "[recipe] loadRecipes error", e);
         common_vendor.index.showToast({ title: "网络不太好，稍后再试", icon: "none" });
       } finally {
         loading.value = false;
@@ -90,18 +112,30 @@ const _sfc_main = {
     common_vendor.onShow(loadRecipes);
     const categoryTabs = common_vendor.computed(() => [
       { id: "all", name: "全部", icon: utils_categoryArt.categoryArt("全部") },
-      ...categories.value.map((item) => ({ ...item, icon: utils_categoryArt.categoryArt(item.name) }))
+      ...categories.value.map((item) => ({ ...item, icon: utils_categoryArt.categoryArt(item.name), iconActive: utils_categoryArt.categoryArtActive(item.name) }))
     ]);
     const filtered = common_vendor.computed(() => {
       const keyword = search.value.trim().toLocaleLowerCase();
       return dishes.value.filter((dish) => (activeCategory.value === "all" || dish.categoryId === activeCategory.value) && (!keyword || [dish.name, dish.tip].some((value) => String(value).toLocaleLowerCase().includes(keyword))));
     });
     const preloadSrc = common_vendor.ref("");
+    const iconLoaded = common_vendor.ref({});
+    const markIconLoaded = (id) => {
+      iconLoaded.value = { ...iconLoaded.value, [id]: true };
+    };
+    const markIconFailed = (id) => {
+      common_vendor.index.__f__("warn", "at pages/recipe/recipe.vue:341", "[recipe] 分类动图加载失败，保持静态图", id);
+    };
+    const iconDimmed = (category) => Boolean(category.iconActive && activeCategory.value === category.id && iconLoaded.value[category.id]);
+    common_vendor.watch(activeCategory, () => {
+      iconLoaded.value = {};
+    });
     const openRecipe = (recipe) => {
       preloadSrc.value = recipe.image ? utils_image.imgUrl(recipe.image, { w: utils_image.IMG_W.dishCover }) : "";
-      common_vendor.index.navigateTo({ url: "/pages/recipe-detail/recipe-detail?id=" + recipe.id, animationType: "slide-in-right", animationDuration: 260 });
+      common_vendor.index.navigateTo({ url: "/pages/recipe-detail/recipe-detail?id=" + recipe.id + "&type=" + (recipe.type || "food"), animationType: "slide-in-right", animationDuration: 260 });
     };
     const createRecipe = () => common_vendor.index.navigateTo({ url: "/pages/recipe-detail/recipe-detail?mode=create", animationType: "slide-in-right", animationDuration: 260 });
+    const createCoffee = () => common_vendor.index.navigateTo({ url: "/pages/recipe-detail/recipe-detail?mode=create&type=coffee", animationType: "slide-in-right", animationDuration: 260 });
     const resetFilters = () => {
       search.value = "";
       activeCategory.value = "all";
@@ -132,13 +166,20 @@ const _sfc_main = {
           return common_vendor.e({
             a: category.icon
           }, category.icon ? {
-            b: category.icon
+            b: iconDimmed(category) ? 1 : "",
+            c: category.icon
           } : {}, {
-            c: common_vendor.t(category.name),
-            d: category.id,
-            e: activeCategory.value === category.id ? 1 : "",
-            f: activeCategory.value === category.id,
-            g: common_vendor.o(($event) => activeCategory.value = category.id, category.id)
+            d: category.iconActive && activeCategory.value === category.id
+          }, category.iconActive && activeCategory.value === category.id ? {
+            e: category.iconActive,
+            f: common_vendor.o(($event) => markIconLoaded(category.id), category.id),
+            g: common_vendor.o(($event) => markIconFailed(category.id), category.id)
+          } : {}, {
+            h: common_vendor.t(category.name),
+            i: category.id,
+            j: activeCategory.value === category.id ? 1 : "",
+            k: activeCategory.value === category.id,
+            l: common_vendor.o(($event) => activeCategory.value = category.id, category.id)
           });
         }),
         m: loading.value && !dishes.value.length
@@ -190,13 +231,13 @@ const _sfc_main = {
         v: common_vendor.t(dishes.value.length ? "试试其他菜名、备注，或放宽筛选吧。" : "饲养员添几道拿手菜，就会出现在这里。"),
         w: dishes.value.length
       }, dishes.value.length ? {
-        x: common_vendor.o(resetFilters, "90")
+        x: common_vendor.o(resetFilters, "29")
       } : canAdd.value ? {
         z: common_vendor.p({
           name: "plus",
           size: 16
         }),
-        A: common_vendor.o(createRecipe, "0e")
+        A: common_vendor.o(createRecipe, "e8")
       } : {}, {
         y: canAdd.value
       }) : {}, {
@@ -213,13 +254,19 @@ const _sfc_main = {
           size: 20,
           ["stroke-width"]: 2.2
         }),
-        E: common_vendor.o(createRecipe, "4f")
+        E: common_vendor.o(createRecipe, "3f"),
+        F: common_vendor.p({
+          name: "coffee",
+          size: 20,
+          ["stroke-width"]: 2.2
+        }),
+        G: common_vendor.o(createCoffee, "5d")
       } : {}, {
-        F: preloadSrc.value
+        H: preloadSrc.value
       }, preloadSrc.value ? {
-        G: preloadSrc.value
+        I: preloadSrc.value
       } : {}, {
-        H: showAddBar.value ? 1 : ""
+        J: showAddBar.value ? 1 : ""
       });
     };
   }

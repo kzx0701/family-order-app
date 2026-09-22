@@ -48,7 +48,13 @@ button.data-v-fb437fc6::after {
   padding: 14rpx 32rpx 12rpx;
   background: #fff9ed;
 }
+.add-slots.data-v-fb437fc6 {
+  display: flex;
+  gap: 16rpx;
+}
 .add-slot.data-v-fb437fc6 {
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -169,6 +175,7 @@ button.data-v-fb437fc6::after {
   transition: background 140ms cubic-bezier(0.22, 0.75, 0.24, 1);
 }
 .category-icon-slot.data-v-fb437fc6 {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -178,6 +185,25 @@ button.data-v-fb437fc6::after {
   width: 44rpx;
   height: 44rpx;
   display: block;
+  transition: opacity 140ms cubic-bezier(0.22, 0.75, 0.24, 1);
+}
+.category-icon.is-dim.data-v-fb437fc6 {
+  opacity: 0;
+}
+.category-icon-moving.data-v-fb437fc6 {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  margin: -22rpx 0 0 -22rpx;
+  animation: icon-swap-in-fb437fc6 140ms cubic-bezier(0.22, 0.75, 0.24, 1);
+}
+@keyframes icon-swap-in-fb437fc6 {
+from {
+    opacity: 0;
+}
+to {
+    opacity: 1;
+}
 }
 .category-mark.data-v-fb437fc6 {
   position: absolute;
@@ -342,10 +368,10 @@ to {
 }
 }
 @media (prefers-reduced-motion: reduce) {
-.recipe-card.data-v-fb437fc6, .add-slot.data-v-fb437fc6 {
+.recipe-card.data-v-fb437fc6, .add-slot.data-v-fb437fc6, .category-icon-moving.data-v-fb437fc6 {
     animation: none;
 }
-.recipe-card.data-v-fb437fc6, .category.data-v-fb437fc6, .category-body.data-v-fb437fc6, .card-photo.data-v-fb437fc6, .add-slot.data-v-fb437fc6, .reset-button.data-v-fb437fc6 {
+.recipe-card.data-v-fb437fc6, .category.data-v-fb437fc6, .category-body.data-v-fb437fc6, .card-photo.data-v-fb437fc6, .add-slot.data-v-fb437fc6, .reset-button.data-v-fb437fc6, .category-icon.data-v-fb437fc6 {
     transition: none;
 }
 }

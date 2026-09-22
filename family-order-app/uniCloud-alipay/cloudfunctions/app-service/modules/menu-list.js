@@ -15,7 +15,8 @@
  *        接口不再构造任何虚拟分类
  *      - dishes：[{ dishId, name, image, description, spicy, note, type, categoryId,
  *                   categoryName, sortOrder, isSignature }, ...]
- *        其中 isSignature=true 表示招牌/拿手菜（点单页的「拿手菜」tab 由页面侧按它筛）
+ *        其中 isSignature=true 表示招牌/拿手菜（⚠️ 点单页**不再**为它单开筛选入口，
+ *        见下面的说明；字段本身保留，菜谱页卡片上的「家的拿手菜」角标仍由它驱动）
  *
  * ⚠️ 2026-09-21 删除了「推荐」相关的一切，原因与范围：
  *   · 这里原先会**凭空构造**一条 `{ id: 'recommend', name: '推荐' }` 置于分类首位，
@@ -24,7 +25,11 @@
  *   · 同时删掉菜品里的 `isRecommended`，配套改动见 dishes.schema.json（删字段）、
  *     admin.vue（删「是否推荐」开关与角标）、dish-detail.vue（删「推荐」标签）、
  *     order.vue（删推荐分类的分支与字段）、categories.js（删「推荐」分类的保护逻辑）。
- *   · 分类栏现在只反映 categories 集合的真实内容；「拿手菜」不动，仍由 isSignature 表达。
+ *   · 分类栏现在只反映 categories 集合的真实内容。
+ *   · ⚠️ 2026-09-22 补充：前端那个按 isSignature 本地筛的虚拟「拿手菜」tab 也删掉了
+ *     （在 order.vue，本模块不涉及）—— 与「推荐」是同一类问题：**分类栏里只能有
+ *     categories 集合的真实记录**，凭空补的分类会让点单页与菜谱页对不上。
+ *     这次只删前端入口，`isSignature` 字段与数据都保留。
  */
 
 exports.main = async (event, context) => {

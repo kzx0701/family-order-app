@@ -16,7 +16,15 @@
         <scroll-view scroll-x class="category-scroll" :show-scrollbar="false">
           <view class="categories">
             <button v-for="category in categoryTabs" :key="category.id" class="category" :class="{ selected: activeCategory === category.id }" :aria-pressed="activeCategory === category.id" @tap="activeCategory = category.id">
-              <view class="category-body"><view class="category-icon-slot"><image v-if="category.icon" class="category-icon" :src="category.icon" mode="aspectFit" /></view><text class="category-label">{{ category.name }}</text></view><view class="category-mark" />
+              <view class="category-body">
+              <view class="category-icon-slot">
+                <!-- 静态层：**动图加载完成之前一直露着**，所以它的显隐不能绑在"已选中"上（见 iconDimmed） -->
+                <image v-if="category.icon" class="category-icon" :class="{ 'is-dim': iconDimmed(category) }" :src="category.icon" mode="aspectFit" />
+                <image v-if="category.iconActive && activeCategory === category.id" class="category-icon category-icon-moving" :src="category.iconActive" mode="aspectFit" @load="markIconLoaded(category.id)" @error="markIconFailed(category.id)" />
+                </view>
+                <text class="category-label">{{ category.name }}</text>
+              </view>
+              <view class="category-mark" />
             </button>
           </view>
         </scroll-view>
@@ -56,12 +64,23 @@
     <!-- 新建入口：常驻在底栏之上的固定卡槽 —— 无论列表多长、滚到哪里都点得到。
          形态沿用网格里那一版的语汇（虚线 + 手绘不规则圆角 + 手绘贴纸圆 + 手写体），
          只是改成横向单行的窄条（96rpx）：固定元素要长期占用视口，不能像原位版那样占两行。
-         外层 .add-bar 铺不透明纸色底，滚上来的卡片会被它挡住，不会从虚线框里透出来。 -->
+         外层 .add-bar 铺不透明纸色底，滚上来的卡片会被它挡住，不会从虚线框里透出来。
+         2026-09-22：**一行拆成左右两个入口**（左菜谱、右咖啡）。两个槽位**除了图标与文案完全同形**
+         （同一套虚线 / 手绘圆角 / 贴纸圆 / 手写体），不做配色区分 —— 区分靠图标与文字，
+         多引入一套颜色只会让这一行读起来是「一个主按钮 + 一个次按钮」，而它们是平级的。
+         ⚠️ 文案必须短：槽位宽度从 686rpx 砍到 (686−16)/2 = **335rpx**，内容宽 = 图标 64 + 间隙 14 +
+         文字。手写体全角字宽≈字号(32rpx)，即最多放得下 8 字；现取 5 字 / 6 字，两侧各余 32rpx 以上。 -->
     <view v-if="showAddBar" class="add-bar">
-      <button class="add-slot" aria-label="再记一道拿手菜" @tap="createRecipe">
-        <view class="add-slot-art"><Icon name="plus" :size="20" :stroke-width="2.2" /></view>
-        <text class="add-slot-title">再记一道拿手菜</text>
-      </button>
+      <view class="add-slots">
+        <button class="add-slot" aria-label="再记一道拿手菜" @tap="createRecipe">
+          <view class="add-slot-art"><Icon name="plus" :size="20" :stroke-width="2.2" /></view>
+          <text class="add-slot-title">再记一道菜</text>
+        </button>
+        <button class="add-slot" aria-label="再添一杯咖啡" @tap="createCoffee">
+          <view class="add-slot-art"><Icon name="coffee" :size="20" :stroke-width="2.2" /></view>
+          <text class="add-slot-title">再添一杯咖啡</text>
+        </button>
+      </view>
     </view>
     <!-- 进详情页前的封面预热
          详情页封面用 IMG_W.dishCover(960)、列表卡片用 IMG_W.dishCard(576) —— 是**两个不同的 URL**，
@@ -73,18 +92,22 @@
             也不能挪到屏幕外（视口外的元素可能被跳过）—— 视口内 1px + opacity:0 最稳。
          只在该页未跳转时按需挂载（v-if 跟着 preloadSrc），页面上没有多余请求。 -->
     <view v-if="preloadSrc" class="preload-layer"><image class="preload-img" :src="preloadSrc" :webp="true" /></view>
+    <!-- 注：分类动图**没有预热层**（2026-09-22 复核后删掉）。原先这里用 `v-for` 把**所有**配了动图的
+         分类一次性挂上预热，那是在只有 1 个动图（108KB）时定的做法；六个分类配满后这个量变成
+         **773KB**，而用户可能一个分类都不点。现在改为"点哪个下哪个 + 静态图撑到动图加载完"，
+         详见 script 里 iconLoaded 的注释。 -->
     <custom-tabbar />
   </view>
 </template>
 
 <script setup>
-import { ref, computed, reactive } from 'vue'
+import { ref, computed, reactive, watch } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { useSafeArea } from '@/composables/useSafeArea.js'
 import { useUserStore } from '@/store/user.js'
 import { imgUrl, IMG_W } from '@/utils/image.js'
 import { spicyMark } from '@/utils/spicy.js'
-import { categoryArt } from '@/utils/category-art.js'
+import { categoryArt, categoryArtActive } from '@/utils/category-art.js'
 import RecipeArt from '@/components/recipe-art/recipe-art.vue'
 const { statusBarHeight, menuButton } = useSafeArea()
 const userStore = useUserStore()
@@ -116,7 +139,7 @@ const loaded = ref(false)
 const activeCategory = ref('all')
 
 /**
- * 底部「再记一道拿手菜」卡槽是否常驻
+ * 底部新建卡槽（菜品 / 咖啡两个入口）是否常驻
  *
  * 条件是「饲养员 + 家里已经有菜谱」：
  * - 干饭人不显示（云端 create 走 requireCook，点了必然 401）
@@ -124,6 +147,11 @@ const activeCategory = ref('all')
  *   否则页面上会同时冒出两个新增入口
  * 其余时候常驻，且**不跟搜索/分类筛选联动**（否则筛到空结果时底栏一闪一闪的）。
  * 它常驻后，正文要按 .has-add-bar 多让出一段底部留白，见样式里的说明。
+ *
+ * ⚠️ 咖啡入口与菜品入口共用这一行，**开关也是同一个**：家里连一道菜谱都没有时，
+ * 这一行整体不出现，也就顺手挡住了「新建第一杯咖啡」那条路（空态里只给了「添第一道菜」）。
+ * 2026-09-22 起本页**同时加载美食与咖啡**（见 loadRecipes），所以「有咖啡、没菜谱」的账号
+ * 也算 `dishes.length > 0`，这一行会出现 —— 原先那个取舍已经不存在了。
  */
 const showAddBar = computed(() => canAdd.value && dishes.value.length > 0)
 
@@ -141,41 +169,66 @@ const markPhotoReady = (id) => {
 }
 
 /**
- * 取菜谱数据
+ * 取菜谱数据（**美食 + 咖啡** —— 2026-09-22 起本页同时管两种类型）
  *
- * 只调 dishes-crud / list 一个接口（无需鉴权，干饭人也要能看菜谱）：
- * 分类栏数据由它顺带返回 —— 该接口内部本来就要查一次 categories 做
- * categoryName join，顺带返回是零额外成本，省掉一整次云函数网络往返。
- * 少一次往返 = 卡片渲染更早 = 图片请求更早发出，这是首屏最直接的提速。
+ * 为什么本页要管咖啡：咖啡与美食**共用同一个编辑器**（同一页、`?type=` 区分），
+ * 而它的入口就在本页底部卡槽。若本页只取 food，就成了「用菜谱页新建的咖啡，在菜谱页找不到」——
+ * 建完即消失，只能去管理页看。所以列表与分类栏都必须把咖啡一起带上。
  *
- * 降级：云函数尚未重新上传时拿不到 categories 字段，此时回退调一次
- * categories-crud / list，保证分类栏不会空（不依赖云函数先更新）。
+ * **两次调用**（Promise.all 并发）而不是一次：`dishes-crud/list` 的 type 是
+ * **必填且只认单一类型**（传别的值直接 400），接口不返回混合结果。并发而非串行 ——
+ * 两者互不依赖，串行会白白多一个往返、把首屏拉长。
+ * 每次调用都顺带返回**该类型自己的分类**（该接口内部本来就要查一次 categories 做
+ * categoryName join，顺带返回零额外成本），两边一拼正好是完整分类栏。
  *
- * 口径：本页只取 `type: 'food'` 的菜谱与分类。详情页的分类选择同样只取 food
- * （categories-crud/list 带 type），两处必须一致 —— 否则会出现「列表多出一个
- * 永远点不出菜的 tab」或「详情页能选、列表页筛不到」。咖啡（coffee）属点单页范畴。
+ * 顺序约定：**美食在前、咖啡在后**（菜品与分类都是）。两类的 sortOrder 是**各自独立编号**的
+ * —— 分类查询先按 type 过滤再排序，所以咖啡可以是 1、2，而美食是 1~7；按 sortOrder 直接混排
+ * 会交错。分组合并才稳定，也保证现有那 7 个分类 tab 的位置一个不动、新分类追加在右侧。
  *
- * 云端字段 → 视图模型在这一层收敛，模板不直接碰原始文档，
- * 后续字段调整只改这里。
+ * 容错：**单边失败不阻断另一边** —— 咖啡挂了不该让美食列表空掉（反之亦然），只记一笔 warn，
+ * 两边都拿不到才算真失败。分类整体缺失时（旧版云函数不返回 `categories` 字段）回退查
+ * `categories-crud/list`（**不带 type = 全量**），再按类型分组，顺序与上面一致。
+ *
+ * ⚠️ 与详情页的口径联动：本页列表里既有美食又有咖啡，所以**点卡片时必须把 `type` 带过去**
+ * （见 openRecipe）—— 详情页靠 `?type=coffee` 决定区数与字段（咖啡是「原料 + 步骤」两步、
+ * 且没有辣度那一格）。不带的话咖啡会被当成美食渲染，页面不报错、只是结构错了。
+ *
+ * 云端字段 → 视图模型在这一层收敛，模板不直接碰原始文档，后续字段调整只改这里。
  */
 const loadRecipes = async () => {
   if (loading.value) return
   loading.value = true
   try {
-    const dishRes = await uniCloud.callFunction({ name: 'app-service', data: { module: 'dishes-crud', action: 'list', type: 'food' } })
-    const dishResult = dishRes.result || {}
-    if (dishResult.code !== 0) {
-      uni.showToast({ title: dishResult.message || '菜谱加载失败', icon: 'none' })
+    const queryList = (type) => uniCloud.callFunction({ name: 'app-service', data: { module: 'dishes-crud', action: 'list', type } })
+    const [foodRes, coffeeRes] = await Promise.all([queryList('food'), queryList('coffee')])
+    const foodResult = (foodRes && foodRes.result) || {}
+    const coffeeResult = (coffeeRes && coffeeRes.result) || {}
+    const foodOk = foodResult.code === 0
+    const coffeeOk = coffeeResult.code === 0
+
+    if (!foodOk && !coffeeOk) {
+      uni.showToast({ title: foodResult.message || coffeeResult.message || '菜谱加载失败', icon: 'none' })
       return
     }
-    dishes.value = (dishResult.list || []).map((d) => ({
+    if (!foodOk) console.warn('[recipe] 美食菜谱加载失败', foodResult.code, foodResult.message)
+    if (!coffeeOk) console.warn('[recipe] 咖啡菜谱加载失败', coffeeResult.code, coffeeResult.message)
+
+    /**
+     * 云端文档 → 卡片视图模型
+     *
+     * `type` 必须带出来：点卡片进详情页要靠它拼 `?type=coffee`。
+     */
+    const toCard = (d, type) => ({
       id: d._id,
       name: d.name,
       image: d.image || '',
+      type,
       // 辣度：直接带出**档位图案**（素材路径），不显示文字档位（角标那条已删，避免同卡说两遍）。
       // 用 spicyMark 而不是 spicyImage —— 卡片是「标记」语义，「不辣」与「未设置」都不挂图标
       // （斜线辣椒留给点单抽屉那种「字段」语义），模板一个 v-if 就收掉。
-      spicyArt: spicyMark(d.spicy),
+      // **咖啡恒为空串**：咖啡没有辣度这个概念（编辑页那一格也已收掉），历史脏数据里
+      // 若带着 spicy，也不该在卡片上画出一枚辣椒 —— 与详情页 spicyArt 同一口径。
+      spicyArt: type === 'coffee' ? '' : spicyMark(d.spicy),
       // 档位值本身也带出来：模板要靠它挂 `pull-*` 类抵掉素材自带的透明留白（见样式区注释）。
       // 非法值与未设置都拿不到对应类 → 不产生负外边距，图上也不会画（spicyArt 为空）。
       spicy: d.spicy || '',
@@ -184,17 +237,30 @@ const loadRecipes = async () => {
       // 卡片副行不再显示它，但**搜索要用**（「找道菜，或搜搜备注…」按 name + tip 匹配），
       // 所以这个字段继续留在视图模型里，别顺手删
       tip: d.note || d.description || ''
-    }))
-    // 分类优先取 list 顺带返回的（形状为 { id, name }）；旧版云函数无此字段则回退
-    let catList = dishResult.categories
-    if (!Array.isArray(catList)) {
-      const catRes = await uniCloud.callFunction({ name: 'app-service', data: { module: 'categories-crud', action: 'list', type: 'food' } })
+    })
+
+    dishes.value = [
+      ...(foodOk ? (foodResult.list || []).map((d) => toCard(d, 'food')) : []),
+      ...(coffeeOk ? (coffeeResult.list || []).map((d) => toCard(d, 'coffee')) : [])
+    ]
+
+    // 分类：两次调用各带本类型的，合并即可（顺序天然是美食在前、咖啡在后）
+    let catList = [
+      ...(foodOk && Array.isArray(foodResult.categories) ? foodResult.categories : []),
+      ...(coffeeOk && Array.isArray(coffeeResult.categories) ? coffeeResult.categories : [])
+    ]
+    if (!catList.length) {
+      // 旧版云函数不返回 categories 字段 → 回退查全量，再按类型分组（顺序与上面一致）。
+      // 无 type 的旧记录按美食处理，「咖啡」只认显式写了 coffee 的。
+      const catRes = await uniCloud.callFunction({ name: 'app-service', data: { module: 'categories-crud', action: 'list' } })
       const catResult = catRes.result || {}
-      catList = (catResult.code === 0 ? catResult.list || [] : []).map((c) => ({ id: c._id, name: c.name }))
+      const all = catResult.code === 0 ? catResult.list || [] : []
+      catList = [
+        ...all.filter((c) => !c.type || c.type === 'food'),
+        ...all.filter((c) => c.type === 'coffee')
+      ]
     }
-    // 只保留 food 分类：新版权云函数已按 type 过滤，但**没重传时返回的仍是全类型**
-    // （与本页既有的「旧版云函数则回退」同一思路），兜一道才不会多出咖啡 tab。
-    categories.value = catList.filter((c) => !c.type || c.type === 'food').map((c) => ({ id: c.id || c._id, name: c.name }))
+    categories.value = catList.map((c) => ({ id: c.id || c._id, name: c.name }))
     // 选中的分类被删掉时退回「全部」，避免停在空列表
     if (activeCategory.value !== 'all' && !categories.value.some((c) => c.id === activeCategory.value)) {
       activeCategory.value = 'all'
@@ -218,9 +284,13 @@ onShow(loadRecipes)
 // 列表页是彩色素材、编辑页是单色线稿，同一批分类在两个页面长得不一样。
 // 「全部」的图标也走同一张表（2026-09-21 补）—— 它虽然不是菜系，但同样占着第一格，
 // 此前写死 icon:'' 让它在图标行里是空的；现在只是映射表里多一个键，没有特例分支。
+//
+// `iconActive`（2026-09-22 加）是**选中态的动图**，来自 category-art.js 的 categoryArtActive()。
+// 两者是两张独立的表：绝大多数分类只有静态图 → iconActive 为空串 → 模板不渲染第二层，
+// 「全部」也没有（它是虚拟 tab，不在 categories 集合里，自然没有选中态可配）。
 const categoryTabs = computed(() => [
   { id: 'all', name: '全部', icon: categoryArt('全部') },
-  ...categories.value.map(item => ({ ...item, icon: categoryArt(item.name) }))
+  ...categories.value.map(item => ({ ...item, icon: categoryArt(item.name), iconActive: categoryArtActive(item.name) }))
 ])
 
 /**
@@ -238,6 +308,39 @@ const filtered = computed(() => {
 })
 /** 预热用的封面地址（详情页那一档）；为空时不挂载预热层 */
 const preloadSrc = ref('')
+
+/**
+ * 分类动图的加载状态 —— **决定静态图什么时候让位**
+ *
+ * 动图 2026-09-22 起在**云存储**上，所以"什么时候下、什么时候切"必须自己管。
+ * 曾经的做法是**进页面就把所有分类的动图挂一遍预热**（`v-for` 挂 6 个 `<image>`）——
+ * 那是在只有 1 个动图（108KB）时定的；六个分类配满后这个量变成 **773KB**
+ * （实测：107.8+51.9+177.2+117.7+140.6+178.2），而用户可能一个分类都不点。
+ * **2026-09-22 复核后改掉**，现在是：
+ *
+ *   ① **不预热**：点哪个分类才下哪个（动图层仍然只在选中时挂载）；
+ *   ② **静态图一直露着，直到动图的 `load` 事件到达才压掉**；
+ *   ③ 换分类时清空标记。
+ *
+ * ② 不只是为了配合"不预热"，它还修掉一个隐患：原先静态图的显隐绑在"已选中"上，
+ * **动图一旦加载失败（403 / 断网），静态被压掉、动图又没出来，图标就变成空白**；
+ * 现在最坏也只是维持静态图（`markIconFailed` 什么都不做）。
+ *
+ * ③ 是因为动图层是 `v-if` 挂卸的 —— 重新选中会**重新挂载**，标记若留着，静态图会在
+ * 动图还没画出来之前就先被压掉（闪一下空白）。清掉后，重新选中时静态图会撑到新的 `load` 到达
+ * （命中缓存时只有一两帧，看不见）。
+ *
+ * 代价（已知并接受）：**首次**点选某分类时，动效要等它下载完（约 200~600ms）才出现，
+ * 这期间显示静态图。换来的是首访少下 773KB。
+ * ⚠️ 之所以能这么做，是因为**GIF 首帧与静态图是逐像素对齐的** —— 静态图 → 动图这一次切换
+ *    看不见。**对齐规则不是可有可无的形式要求，这里就是它的回报。**
+ */
+const iconLoaded = ref({})
+const markIconLoaded = (id) => { iconLoaded.value = { ...iconLoaded.value, [id]: true } }
+/** 动图加载失败：**什么都不做**，静态图继续露着（见上面 ②）；留条日志便于排查 */
+const markIconFailed = (id) => { console.warn('[recipe] 分类动图加载失败，保持静态图', id) }
+const iconDimmed = (category) => Boolean(category.iconActive && activeCategory.value === category.id && iconLoaded.value[category.id])
+watch(activeCategory, () => { iconLoaded.value = {} })
 /**
  * 打开菜谱详情
  *
@@ -248,7 +351,10 @@ const preloadSrc = ref('')
  */
 const openRecipe = (recipe) => {
   preloadSrc.value = recipe.image ? imgUrl(recipe.image, { w: IMG_W.dishCover }) : ''
-  uni.navigateTo({ url: '/pages/recipe-detail/recipe-detail?id=' + recipe.id, animationType: 'slide-in-right', animationDuration: 260 })
+  // ⚠️ **必须带上 `type`**：本页列表里美食与咖啡混排，详情页靠 `?type=coffee` 决定
+  // 区数与字段（咖啡是「原料 + 步骤」两步、且没有辣度那一格）。
+  // 不带的话咖啡会被当成美食渲染 —— 页面不报错，只是结构错了（这种错最难发现）。
+  uni.navigateTo({ url: '/pages/recipe-detail/recipe-detail?id=' + recipe.id + '&type=' + (recipe.type || 'food'), animationType: 'slide-in-right', animationDuration: 260 })
 }
 /**
  * 新建菜谱：进详情页的**新建态**（`mode=create`）
@@ -259,6 +365,23 @@ const openRecipe = (recipe) => {
  * 返回本页时 onShow(loadRecipes) 会静默刷新，新菜谱立刻出现在列表里。
  */
 const createRecipe = () => uni.navigateTo({ url: '/pages/recipe-detail/recipe-detail?mode=create', animationType: 'slide-in-right', animationDuration: 260 })
+/**
+ * 新建咖啡：**同一个详情页、同一份编辑器**，只多带一个 `type=coffee`
+ *
+ * 没有另开一个咖啡编辑页，理由有两条，都要紧：
+ *   ① 表单、校验、抽屉、封面上传、保存链路全部同源，将来改一处不会漏另一处 ——
+ *      复制一份 1100 行的页面，等于把「两页口径必须一致」这件事交给记性去守；
+ *   ② 小程序主包体积敏感（当前收在 1.59MB），新增一个页面会同时多出一份 wxss + js，
+ *      而 `type` 参数是零成本的 —— 这一页按类型切掉的只是「几块区的标题与数量」。
+ * 差异收敛在 recipe-detail 的 `isCoffee` 上：美食是「食材 + 调料 + 步骤」三步，
+ * 咖啡是「原料 + 步骤」两步（原料复用 `ingredients` 字段与 `ingredient` 物料分组，
+ * 咖啡的原料在数据模型里就是食材，不另立分组）。
+ *
+ * ✅ 咖啡新建完**会**出现在本页列表里（2026-09-22 起本页同时加载两类，见 loadRecipes），
+ * 卡片点进去带着 `?type=coffee`，编辑 / 保存 / 发布链路与美食完全一样。
+ * 唯一差别是它**默认不发布**（`isOnSale: false`），要进点单页菜单得先在详情页点一次「发布咖啡」。
+ */
+const createCoffee = () => uni.navigateTo({ url: '/pages/recipe-detail/recipe-detail?mode=create&type=coffee', animationType: 'slide-in-right', animationDuration: 260 })
 const resetFilters = () => { search.value = ''; activeCategory.value = 'all' }
 </script>
 
@@ -284,7 +407,12 @@ button { padding: 0; margin: 0; background: none; color: inherit; font: inherit;
 // 与底栏的接缝：底栏上沿在 `safe-area + 118rpx`（6rpx 内边距 + 112rpx 栏高），
 // 这里取 124rpx 故意**压过去 4rpx**，避免四舍五入后露出一条透出内容的发丝缝。
 .add-bar { position: fixed; left: 0; right: 0; bottom: calc(124rpx + env(safe-area-inset-bottom)); z-index: 190; padding: 14rpx 32rpx 12rpx; background: $p2-paper; }
-.add-slot { display: flex; align-items: center; justify-content: center; gap: 14rpx; height: 96rpx; border: 2rpx dashed #a8b68b; border-radius: 22rpx 18rpx 24rpx 17rpx; color: #63784f; animation: card-arrive 300ms $p2-ease backwards; transition: transform $p2-dur-tap $p2-ease; &:active { transform: scale(.98); } }
+// 两个入口等宽平分整行：内容宽 686rpx − 16rpx(gap) = 670rpx → **各 335rpx**（见模板里的宽度账）。
+// 用 flex:1 而不是各写 50%：gap 会被算进 50%+50% 之外的额外宽度，写死百分比必然溢出。
+.add-slots { display: flex; gap: 16rpx; }
+// flex:1 + min-width:0 的组合是必须的：flex 子项的 min-width 默认是 auto，
+// 文字一旦比可用宽还长就不会收缩、会把另一个槽位挤出去（同行 `.dish-name` 踩过同一个坑）。
+.add-slot { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: center; gap: 14rpx; height: 96rpx; border: 2rpx dashed #a8b68b; border-radius: 22rpx 18rpx 24rpx 17rpx; color: #63784f; animation: card-arrive 300ms $p2-ease backwards; transition: transform $p2-dur-tap $p2-ease; &:active { transform: scale(.98); } }
 // 手绘贴纸圆：与空态的书本圈（.empty-book）同一手法 —— 不规则圆 + 轻微旋转 + 纸片色，
 // 也就是 custom-tabbar 里那块「菜谱」选中贴纸的语汇。图标走 Icon.vue，颜色单独压深一档，
 // 否则绿色加号落在绿贴上会糊成一片。
@@ -342,10 +470,25 @@ button { padding: 0; margin: 0; background: none; color: inherit; font: inherit;
 // 槽固定高度 + 居中，所有分类的文字基线就永远在同一行。尺寸与 .category-icon 一致。
 // 注：「全部」2026-09-21 起也有图标了（见 utils/category-art.js），但这一格不能删 ——
 // 它的存在是为了「没有图标」这种情形，而不是为了「全部」。
-.category-icon-slot { display: flex; align-items: center; justify-content: center; height: 44rpx; }
+// 图标槽：承载**两层**图（静态图 + 选中态动图），故需要定位上下文。
+// ⚠️ 动图层**只在选中时挂载** —— 动图 2026-09-22 起放在云存储，挂载即发请求，不能常驻。
+//    **静态图一直露着，直到动图 `load` 到达才压掉**（见 script 里 iconLoaded 的注释）：
+//    既省掉了 773KB 的无差别预热，也顺手修掉"动图加载失败 → 图标变空白"的隐患。
+//    ⚠️ 这两层能这样接力，前提是**GIF 首帧与静态图逐像素对齐** —— 切换才看不见。
+//    其余分类没有 iconActive → 动图层根本不渲染，行为与从前逐字一致。
+.category-icon-slot { position: relative; display: flex; align-items: center; justify-content: center; height: 44rpx; }
 // 44rpx：与菜谱详情编辑态那枚 .picker-field-art 同档。素材内容占画布约 62% → 视觉高约 27rpx，
 // 与下方 24rpx 的分类名同一量级而略大，读起来仍是「图标在上、名字在下」的从属关系。
-.category-icon { width: 44rpx; height: 44rpx; display: block; }
+.category-icon { width: 44rpx; height: 44rpx; display: block; transition: opacity $p2-dur-fast $p2-ease; }
+// 选中时把静态图让位给动图。**只在「该分类确实配了动图」时才让位**（条件写在模板里）——
+// 否则普通分类一选中就会变成空白格。
+.category-icon.is-dim { opacity: 0; }
+// 动图层：绝对定位压在静态图之上，用 50% + 负半个边长（22rpx）居中。
+// 图标恒为 44rpx 方块，所以这组数值不会随分类变化。
+// 用**入场动画**而不是 opacity 过渡：这一层是选中时才新挂载的元素，没有"过渡的起点"可插值。
+// ⚠️ 不写 fill-mode（默认 none）—— `forwards` / `both` 会锁死终态，把全局 button:active 的缩放压掉。
+.category-icon-moving { position: absolute; left: 50%; top: 50%; margin: -22rpx 0 0 -22rpx; animation: icon-swap-in $p2-dur-fast $p2-ease; }
+@keyframes icon-swap-in { from { opacity: 0; } to { opacity: 1; } }
 // 分类名（.category-label）**没有自己的样式规则**：字号、颜色、行高全部从 .category 继承。
 // 模板里保留这个类名，只是为了把「图标槽 / 分类名」两块分开、将来要单独微调有个钩子。
 .category-mark { position: absolute; left: 10rpx; right: 10rpx; bottom: 3rpx; height: 6rpx; border-radius: 55% 45% 60% 40%; background: $p2-leaf; opacity: 0; transform: rotate(-2deg) scaleX(.5); transition: opacity $p2-dur-fast $p2-ease, transform $p2-dur-settle $p2-ease; }
@@ -422,7 +565,9 @@ button { padding: 0; margin: 0; background: none; color: inherit; font: inherit;
 // 否则新用户读完提示却无处可点。display:flex 是给带前导加号的后者排版用。
 .reset-button { display: flex; align-items: center; gap: 10rpx; background: $p2-leaf-soft; border: 2rpx solid $p2-line; padding: 20rpx 32rpx; margin-top: 30rpx; border-radius: 18rpx; font-size: $p2-fs-body; transition: transform $p2-dur-tap $p2-ease; &:active { transform: scale(.96); } }
 @keyframes card-arrive { from { opacity: 0; transform: translateY(12rpx); } to { opacity: 1; transform: translateY(0); } }
-@media (prefers-reduced-motion: reduce) { .recipe-card, .add-slot { animation: none; } .recipe-card, .category, .category-body, .card-photo, .add-slot, .reset-button { transition: none; } }
+// ⚠️ 这里只能关掉**过渡**：GIF 自身的播放不受 CSS 控制，系统「减弱动态效果」也停不下它。
+//    若这个分类动图将来要长期保留，真机上开了减少动态效果的用户仍会看到它在动 —— 目前按实验性改动接受。
+@media (prefers-reduced-motion: reduce) { .recipe-card, .add-slot, .category-icon-moving { animation: none; } .recipe-card, .category, .category-body, .card-photo, .add-slot, .reset-button, .category-icon { transition: none; } }
 // 窄屏（≤360px）的字号下调：比例沿用各元素原本的收缩幅度，**改基准字号时要回头重算这里**
 // （2026-09-21 菜名基准 36→32rpx，此处同步 33→29rpx，保持同一收缩比 0.917）。
 @media screen and (max-width: 360px) { .page-title { font-size: 49rpx; } .section-title { font-size: 32rpx; } .dish-name { font-size: 29rpx; } }

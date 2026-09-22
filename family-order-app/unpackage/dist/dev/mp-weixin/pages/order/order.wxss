@@ -118,15 +118,19 @@ button[disabled].data-v-93207a4f {
 }
 .category-list.data-v-93207a4f {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 24rpx;
   padding: 12rpx 0 16rpx;
 }
 .category.data-v-93207a4f {
   position: relative;
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rpx;
   font-size: 25rpx;
-  padding: 14rpx 3rpx;
+  padding: 6rpx 3rpx 14rpx;
   color: #8c725e;
 }
 .category.selected.data-v-93207a4f {
@@ -136,6 +140,37 @@ button[disabled].data-v-93207a4f {
 .category.selected .category-underline.data-v-93207a4f {
   opacity: 1;
   transform: rotate(-3deg) scaleX(1);
+}
+.category-icon-slot.data-v-93207a4f {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 40rpx;
+}
+.category-icon.data-v-93207a4f {
+  width: 40rpx;
+  height: 40rpx;
+  display: block;
+  transition: opacity 140ms cubic-bezier(0.22, 0.75, 0.24, 1);
+}
+.category-icon.is-dim.data-v-93207a4f {
+  opacity: 0;
+}
+.category-icon-moving.data-v-93207a4f {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  margin: -20rpx 0 0 -20rpx;
+  animation: icon-swap-in-93207a4f 140ms cubic-bezier(0.22, 0.75, 0.24, 1);
+}
+@keyframes icon-swap-in-93207a4f {
+from {
+    opacity: 0;
+}
+to {
+    opacity: 1;
+}
 }
 .category-underline.data-v-93207a4f {
   position: absolute;
@@ -809,10 +844,10 @@ to {
 }
 }
 @media (prefers-reduced-motion: reduce) {
-button.data-v-93207a4f, .mode-slider.data-v-93207a4f, .category-underline.data-v-93207a4f, .sheet.data-v-93207a4f, .sheet-mask.data-v-93207a4f {
+button.data-v-93207a4f, .mode-slider.data-v-93207a4f, .category-underline.data-v-93207a4f, .category-icon.data-v-93207a4f, .sheet.data-v-93207a4f, .sheet-mask.data-v-93207a4f {
     transition: none;
 }
-.menu-list.data-v-93207a4f, .basket-count.data-v-93207a4f, .sheet.data-v-93207a4f, .sheet-mask.data-v-93207a4f, .feedback.data-v-93207a4f {
+.menu-list.data-v-93207a4f, .basket-count.data-v-93207a4f, .category-icon-moving.data-v-93207a4f, .sheet.data-v-93207a4f, .sheet-mask.data-v-93207a4f, .feedback.data-v-93207a4f {
     animation: none;
 }
 }
