@@ -2,6 +2,7 @@
 const common_vendor = require("../../common/vendor.js");
 const composables_useSafeArea = require("../../composables/useSafeArea.js");
 const composables_useCoverUpload = require("../../composables/useCoverUpload.js");
+const composables_useArtSwap = require("../../composables/useArtSwap.js");
 const store_user = require("../../store/user.js");
 const mock_recipeEditor = require("../../mock/recipe-editor.js");
 const utils_spicy = require("../../utils/spicy.js");
@@ -35,7 +36,6 @@ const _sfc_main = {
     const kindText = common_vendor.computed(() => isCoffee.value ? {
       nameLabel: "咖啡名称",
       namePlaceholder: "给这杯咖啡起个名字",
-      categoryLabel: "咖啡分类",
       descLabel: "咖啡描述",
       createLabel: "添加咖啡",
       saveLabel: "保存咖啡",
@@ -103,7 +103,7 @@ const _sfc_main = {
     } });
     const picker = common_vendor.ref(""), selection = common_vendor.ref([]), discardDialog = common_vendor.ref(false);
     const pickerKeyword = common_vendor.ref(""), pickerFocused = common_vendor.ref(false);
-    const CLOUD_GROUP = { ingredients: "ingredient", seasonings: "seasoning" };
+    const CLOUD_GROUP = common_vendor.computed(() => isCoffee.value ? { ingredients: "coffee" } : { ingredients: "ingredient", seasonings: "seasoning" });
     const materialFromCloud = (item) => ({ id: item.materialId, quantity: item.quantity || "" });
     const materialToCloud = (item) => ({ materialId: item.id, quantity: item.quantity });
     const STEPS_STAMP = Date.now();
@@ -116,7 +116,8 @@ const _sfc_main = {
     const categories = common_vendor.ref([]);
     const categoryOptions = common_vendor.computed(() => categories.value.map((c) => {
       const art = c.image || utils_categoryArt.categoryArt(c.name);
-      return { id: c.id, name: c.name, image: utils_image.imgUrl(art, { w: PICKER_ART_WIDTH }), icon: art ? "" : FALLBACK_CATEGORY_ICON };
+      const artActive = c.image ? "" : utils_categoryArt.categoryArtActive(c.name);
+      return { id: c.id, name: c.name, image: utils_image.imgUrl(art, { w: PICKER_ART_WIDTH }), imageActive: artActive, icon: art ? "" : FALLBACK_CATEGORY_ICON };
     }));
     const spicyArt = common_vendor.computed(() => isCoffee.value ? "" : utils_spicy.spicyMark(shown.value && shown.value.spicy));
     const currentCategory = common_vendor.computed(() => categoryOptions.value.find((o) => o.id === (shown.value && shown.value.categoryId)) || null);
@@ -150,7 +151,7 @@ const _sfc_main = {
         searchable: true,
         multiple: true,
         emptyTitle: "这里还没有可选的原料",
-        emptyHint: "请先在云端的 materials 集合里添加，group 填 ingredient"
+        emptyHint: "请先在云端的 materials 集合里添加，group 填 coffee"
       } : {
         noun: "食材",
         title: "挑一点食材",
@@ -178,7 +179,9 @@ const _sfc_main = {
         searchable: false,
         multiple: false,
         emptyTitle: "这里还没有可选的分类",
-        emptyHint: isCoffee.value ? "请先在云端的 categories 集合里添加，type 填 coffee" : "请先在云端的 categories 集合里添加，type 填 food"
+        // 咖啡没有分类（2026-09-23）→ 这个抽屉只可能在美食页被打开，提示语不必再分类型。
+        // 留着 coffee 那一支只会让下一个人以为"咖啡还有分类，只是没配"。
+        emptyHint: "请先在云端的 categories 集合里添加，type 填 food"
       },
       spicy: {
         noun: "辣度",
@@ -196,7 +199,7 @@ const _sfc_main = {
         return categoryOptions.value;
       if (picker.value === "spicy")
         return utils_spicy.SPICY_OPTIONS.map((o) => ({ id: o.value, name: o.label, image: o.image }));
-      return cloudMaterials.value.filter((m) => m.group === CLOUD_GROUP[picker.value] && m.isActive !== false).map((m) => ({ id: m._id, name: m.name, image: utils_image.imgUrl(m.image, { w: PICKER_ART_WIDTH }) }));
+      return cloudMaterials.value.filter((m) => m.group === CLOUD_GROUP.value[picker.value] && m.isActive !== false).map((m) => ({ id: m._id, name: m.name, image: utils_image.imgUrl(m.image, { w: PICKER_ART_WIDTH }) }));
     });
     const pickerOptions = common_vendor.computed(() => {
       if (!pickerKind.value.searchable)
@@ -220,6 +223,12 @@ const _sfc_main = {
       return rows * pickerRowRpx.value + (rows - 1) * PICKER_GAP_RPX + PICKER_GRID_PAD_RPX + "rpx";
     });
     let leaveAfterDiscard = false, nextId = 0;
+    const { canSwap, isStaticDimmed, markLoaded, markFailed } = composables_useArtSwap.useArtSwap({
+      isActive: (item) => selection.value.includes(item.id),
+      resetOn: selection,
+      activeKey: "imageActive",
+      tag: "recipe-detail"
+    });
     const cloudDishId = common_vendor.ref("");
     const published = common_vendor.ref(false);
     const publishing = common_vendor.ref(false);
@@ -230,19 +239,23 @@ const _sfc_main = {
         if (result.code === 0) {
           cloudMaterials.value = result.list || [];
         } else {
-          common_vendor.index.__f__("warn", "at pages/recipe-detail/recipe-detail.vue:591", "[recipe-detail] 物料加载失败", result.code, result.message);
+          common_vendor.index.__f__("warn", "at pages/recipe-detail/recipe-detail.vue:646", "[recipe-detail] 物料加载失败", result.code, result.message);
         }
       } catch (e) {
-        common_vendor.index.__f__("error", "at pages/recipe-detail/recipe-detail.vue:594", "[recipe-detail] 物料请求异常", e);
+        common_vendor.index.__f__("error", "at pages/recipe-detail/recipe-detail.vue:649", "[recipe-detail] 物料请求异常", e);
       }
     };
     const loadCategories = async () => {
-      const kind = isCoffee.value ? "coffee" : "food";
+      if (isCoffee.value) {
+        categories.value = [];
+        return;
+      }
+      const kind = "food";
       try {
         const res = await common_vendor.Vs.callFunction({ name: "app-service", data: { module: "categories-crud", action: "list", type: kind } });
         const result = res.result || {};
         if (result.code !== 0)
-          common_vendor.index.__f__("warn", "at pages/recipe-detail/recipe-detail.vue:618", `[recipe-detail] 分类(type=${kind})查询失败`, result.code, result.message);
+          common_vendor.index.__f__("warn", "at pages/recipe-detail/recipe-detail.vue:677", `[recipe-detail] 分类(type=${kind})查询失败`, result.code, result.message);
         let list = result.code === 0 ? result.list || [] : [];
         if (!list.length) {
           const allRes = await common_vendor.Vs.callFunction({ name: "app-service", data: { module: "categories-crud", action: "list" } });
@@ -250,14 +263,14 @@ const _sfc_main = {
           if (allResult.code === 0) {
             list = allResult.list || [];
           } else {
-            common_vendor.index.__f__("warn", "at pages/recipe-detail/recipe-detail.vue:626", "[recipe-detail] 分类全量查询也失败", allResult.code, allResult.message);
+            common_vendor.index.__f__("warn", "at pages/recipe-detail/recipe-detail.vue:685", "[recipe-detail] 分类全量查询也失败", allResult.code, allResult.message);
           }
         }
         categories.value = list.filter((c) => !c.type || c.type === kind).map((c) => ({ id: c._id, name: c.name, image: c.image || "" }));
         if (!categories.value.length)
-          common_vendor.index.__f__("warn", "at pages/recipe-detail/recipe-detail.vue:632", "[recipe-detail] 分类结果为空，抽屉会显示空态");
+          common_vendor.index.__f__("warn", "at pages/recipe-detail/recipe-detail.vue:691", "[recipe-detail] 分类结果为空，抽屉会显示空态");
       } catch (e) {
-        common_vendor.index.__f__("error", "at pages/recipe-detail/recipe-detail.vue:634", "[recipe-detail] 分类请求异常", e);
+        common_vendor.index.__f__("error", "at pages/recipe-detail/recipe-detail.vue:693", "[recipe-detail] 分类请求异常", e);
       }
     };
     const loadCloudRecipe = async (id) => {
@@ -268,7 +281,7 @@ const _sfc_main = {
         const dishRes = await common_vendor.Vs.callFunction({ name: "app-service", data: { module: "dishes-crud", action: "detail", _id: id } });
         const dishResult = dishRes.result || {};
         if (dishResult.code !== 0 || !dishResult.dish) {
-          common_vendor.index.__f__("warn", "at pages/recipe-detail/recipe-detail.vue:657", "[recipe-detail] 菜谱详情没拿到", dishResult.code, dishResult.message || "（接口未返回 dish）");
+          common_vendor.index.__f__("warn", "at pages/recipe-detail/recipe-detail.vue:716", "[recipe-detail] 菜谱详情没拿到", dishResult.code, dishResult.message || "（接口未返回 dish）");
           loadFailed.value = true;
           return;
         }
@@ -299,7 +312,7 @@ const _sfc_main = {
         published.value = dish.isOnSale !== false;
         loadFailed.value = false;
       } catch (e) {
-        common_vendor.index.__f__("error", "at pages/recipe-detail/recipe-detail.vue:692", "[recipe-detail] 加载云端菜谱失败", e);
+        common_vendor.index.__f__("error", "at pages/recipe-detail/recipe-detail.vue:751", "[recipe-detail] 加载云端菜谱失败", e);
         loadFailed.value = true;
       }
     };
@@ -328,7 +341,7 @@ const _sfc_main = {
         return;
       }
       if (!routeId.value) {
-        common_vendor.index.__f__("warn", "at pages/recipe-detail/recipe-detail.vue:760", "[recipe-detail] 路由没有带 id，无法取菜谱");
+        common_vendor.index.__f__("warn", "at pages/recipe-detail/recipe-detail.vue:819", "[recipe-detail] 路由没有带 id，无法取菜谱");
         loadFailed.value = true;
         return;
       }
@@ -560,7 +573,7 @@ const _sfc_main = {
         published.value = next;
         common_vendor.index.showToast({ title: next ? "已发布，去菜单看看吧" : "已从菜单撤下", icon: "none" });
       } catch (e) {
-        common_vendor.index.__f__("error", "at pages/recipe-detail/recipe-detail.vue:954", "[recipe-detail] 切换发布状态失败", e);
+        common_vendor.index.__f__("error", "at pages/recipe-detail/recipe-detail.vue:1013", "[recipe-detail] 切换发布状态失败", e);
         common_vendor.index.showToast({ title: "网络异常，请重试", icon: "none" });
       } finally {
         publishing.value = false;
@@ -625,58 +638,61 @@ const _sfc_main = {
         D: kindText.value.nameLabel,
         E: draft.value.name,
         F: common_vendor.o(($event) => draft.value.name = $event.detail.value, "c6"),
-        G: common_vendor.t(kindText.value.categoryLabel),
-        H: currentCategoryImage.value
-      }, currentCategoryImage.value ? {
+        G: !isCoffee.value
+      }, !isCoffee.value ? common_vendor.e({
+        H: common_vendor.t(kindText.value.categoryLabel),
         I: currentCategoryImage.value
+      }, currentCategoryImage.value ? {
+        J: currentCategoryImage.value
       } : currentCategoryIcon.value ? {
-        K: common_vendor.p({
+        L: common_vendor.p({
           name: currentCategoryIcon.value,
           size: "36rpx"
         })
       } : {}, {
-        J: currentCategoryIcon.value,
-        L: common_vendor.t(currentCategoryName.value || "还没选分类"),
-        M: !currentCategoryName.value ? 1 : "",
-        N: common_vendor.p({
+        K: currentCategoryIcon.value,
+        M: common_vendor.t(currentCategoryName.value || "还没选分类"),
+        N: !currentCategoryName.value ? 1 : "",
+        O: common_vendor.p({
           name: "chevron-right",
           size: 15
         }),
-        O: "选择" + kindText.value.categoryLabel,
-        P: common_vendor.o(($event) => openPicker("category"), "66"),
-        Q: !isCoffee.value
+        P: "选择" + kindText.value.categoryLabel,
+        Q: common_vendor.o(($event) => openPicker("category"), "f8")
+      }) : {}, {
+        R: !isCoffee.value
       }, !isCoffee.value ? {
-        R: currentSpicy.value.image,
-        S: common_vendor.t(currentSpicy.value.label),
-        T: common_vendor.p({
+        S: currentSpicy.value.image,
+        T: common_vendor.t(currentSpicy.value.label),
+        U: common_vendor.p({
           name: "chevron-right",
           size: 15
         }),
-        U: common_vendor.o(($event) => openPicker("spicy"), "1e")
+        V: common_vendor.o(($event) => openPicker("spicy"), "e0")
       } : {}, {
-        V: common_vendor.t(kindText.value.descLabel),
-        W: kindText.value.descLabel,
-        X: draft.value.subtitle,
-        Y: common_vendor.o(($event) => draft.value.subtitle = $event.detail.value, "ae")
+        W: common_vendor.t(kindText.value.descLabel),
+        X: kindText.value.descLabel,
+        Y: draft.value.subtitle,
+        Z: common_vendor.o(($event) => draft.value.subtitle = $event.detail.value, "5e")
       }) : common_vendor.e({
-        Z: common_vendor.t(shown.value.name),
-        aa: shown.value.subtitle
+        aa: common_vendor.t(shown.value.name),
+        ab: shown.value.subtitle
       }, shown.value.subtitle ? {
-        ab: common_vendor.t(shown.value.subtitle)
+        ac: common_vendor.t(shown.value.subtitle)
       } : {}), {
-        ac: !editing.value && (currentCategoryName.value || spicyArt.value)
+        ad: !editing.value && (currentCategoryName.value || spicyArt.value)
       }, !editing.value && (currentCategoryName.value || spicyArt.value) ? common_vendor.e({
-        ad: currentCategoryName.value
+        ae: currentCategoryName.value
       }, currentCategoryName.value ? {
-        ae: common_vendor.t(currentCategoryName.value)
+        af: common_vendor.t(currentCategoryName.value)
       } : {}, {
-        af: currentCategoryName.value && spicyArt.value
+        ag: currentCategoryName.value && spicyArt.value
       }, currentCategoryName.value && spicyArt.value ? {} : {}, {
-        ag: spicyArt.value
-      }, spicyArt.value ? {
         ah: spicyArt.value
+      }, spicyArt.value ? {
+        ai: spicyArt.value
       } : {}) : {}, {
-        ai: common_vendor.f(sections.value, (section, index, i0) => {
+        aj: common_vendor.f(sections.value, (section, index, i0) => {
           return common_vendor.e({
             a: common_vendor.t(index + 1),
             b: common_vendor.n(section.key),
@@ -725,9 +741,9 @@ const _sfc_main = {
             n: section.key
           });
         }),
-        aj: editing.value,
-        ak: common_vendor.t(sections.value.length + 1),
-        al: common_vendor.f(shown.value.steps, (step, index, i0) => {
+        ak: editing.value,
+        al: common_vendor.t(sections.value.length + 1),
+        am: common_vendor.f(shown.value.steps, (step, index, i0) => {
           return common_vendor.e({
             a: common_vendor.t(index + 1)
           }, editing.value ? {
@@ -787,140 +803,146 @@ const _sfc_main = {
             K: editing.value && attempted.value && !step.title.trim() ? 1 : ""
           });
         }),
-        am: editing.value,
         an: editing.value,
-        ao: editing.value ? 1 : "",
-        ap: !editing.value && !shown.value.steps.length
+        ao: editing.value,
+        ap: editing.value ? 1 : "",
+        aq: !editing.value && !shown.value.steps.length
       }, !editing.value && !shown.value.steps.length ? {} : {}, {
-        aq: editing.value
+        ar: editing.value
       }, editing.value ? {
-        ar: common_vendor.p({
+        as: common_vendor.p({
           name: "plus",
           size: 19
         }),
-        as: common_vendor.t(draft.value.steps.length >= 30 ? "最多 30 个步骤" : "添加步骤"),
-        at: draft.value.steps.length >= 30,
-        av: common_vendor.o(addStep, "db")
+        at: common_vendor.t(draft.value.steps.length >= 30 ? "最多 30 个步骤" : "添加步骤"),
+        av: draft.value.steps.length >= 30,
+        aw: common_vendor.o(addStep, "eb")
       } : {
-        aw: common_vendor.p({
+        ax: common_vendor.p({
           name: "food",
           size: 16
         })
       }), {
-        ax: canEdit.value && !loadFailed.value
+        ay: canEdit.value && !loadFailed.value
       }, canEdit.value && !loadFailed.value ? common_vendor.e({
-        ay: editing.value
+        az: editing.value
       }, editing.value ? {
-        az: common_vendor.o(cancelEditing, "13"),
-        aA: common_vendor.p({
+        aA: common_vendor.o(cancelEditing, "01"),
+        aB: common_vendor.p({
           name: "check",
           size: 18
         }),
-        aB: common_vendor.t(saving.value ? "正在保存…" : creating.value ? kindText.value.createLabel : kindText.value.saveLabel),
-        aC: saving.value,
-        aD: common_vendor.o(save, "e3")
+        aC: common_vendor.t(saving.value ? "正在保存…" : creating.value ? kindText.value.createLabel : kindText.value.saveLabel),
+        aD: saving.value,
+        aE: common_vendor.o(save, "66")
       } : {
-        aE: common_vendor.p({
+        aF: common_vendor.p({
           name: "edit",
           size: 18
         }),
-        aF: common_vendor.t(kindText.value.editLabel),
-        aG: common_vendor.o(startEditing, "22"),
-        aH: common_vendor.p({
+        aG: common_vendor.t(kindText.value.editLabel),
+        aH: common_vendor.o(startEditing, "3e"),
+        aI: common_vendor.p({
           name: published.value ? "check" : "upload",
           size: 18
         }),
-        aI: common_vendor.t(publishing.value ? "处理中…" : published.value ? "取消发布" : kindText.value.publishLabel),
-        aJ: publishing.value,
-        aK: common_vendor.o(togglePublish, "88")
+        aJ: common_vendor.t(publishing.value ? "处理中…" : published.value ? "取消发布" : kindText.value.publishLabel),
+        aK: publishing.value,
+        aL: common_vendor.o(togglePublish, "bf")
       }) : {}, {
-        aL: picker.value && editing.value && canEdit.value
+        aM: picker.value && editing.value && canEdit.value
       }, picker.value && editing.value && canEdit.value ? common_vendor.e({
-        aM: common_vendor.o(($event) => picker.value = "", "da"),
-        aN: common_vendor.o(() => {
-        }, "47"),
-        aO: common_vendor.t(pickerKind.value.title),
-        aP: common_vendor.t(pickerKind.value.subtitle),
-        aQ: pickerKind.value.searchable
+        aN: common_vendor.o(($event) => picker.value = "", "0b"),
+        aO: common_vendor.o(() => {
+        }, "8c"),
+        aP: common_vendor.t(pickerKind.value.title),
+        aQ: common_vendor.t(pickerKind.value.subtitle),
+        aR: pickerKind.value.searchable
       }, pickerKind.value.searchable ? common_vendor.e({
-        aR: common_vendor.p({
+        aS: common_vendor.p({
           name: "search",
           size: 16,
           ["stroke-width"]: 2.2
         }),
-        aS: "搜一搜" + pickerKind.value.noun,
-        aT: PLACEHOLDER_STYLE,
-        aU: "搜索" + pickerKind.value.noun,
-        aV: common_vendor.o(($event) => pickerFocused.value = true, "88"),
-        aW: common_vendor.o(($event) => pickerFocused.value = false, "ba"),
-        aX: pickerKeyword.value,
-        aY: common_vendor.o(($event) => pickerKeyword.value = $event.detail.value, "24"),
-        aZ: pickerKeyword.value
+        aT: "搜一搜" + pickerKind.value.noun,
+        aU: PLACEHOLDER_STYLE,
+        aV: "搜索" + pickerKind.value.noun,
+        aW: common_vendor.o(($event) => pickerFocused.value = true, "6b"),
+        aX: common_vendor.o(($event) => pickerFocused.value = false, "87"),
+        aY: pickerKeyword.value,
+        aZ: common_vendor.o(($event) => pickerKeyword.value = $event.detail.value, "57"),
+        ba: pickerKeyword.value
       }, pickerKeyword.value ? {
-        ba: common_vendor.p({
+        bb: common_vendor.p({
           name: "close",
           size: 13
         }),
-        bb: common_vendor.o(($event) => pickerKeyword.value = "", "3d")
+        bc: common_vendor.o(($event) => pickerKeyword.value = "", "b7")
       } : {}, {
-        bc: pickerFocused.value ? 1 : ""
+        bd: pickerFocused.value ? 1 : ""
       }) : {}, {
-        bd: !pickerOptions.value.length
+        be: !pickerOptions.value.length
       }, !pickerOptions.value.length ? common_vendor.e({
-        be: pickerKind.value.searchable && pickerKeyword.value.trim()
+        bf: pickerKind.value.searchable && pickerKeyword.value.trim()
       }, pickerKind.value.searchable && pickerKeyword.value.trim() ? {
-        bf: common_vendor.t(pickerKeyword.value.trim())
+        bg: common_vendor.t(pickerKeyword.value.trim())
       } : {
-        bg: common_vendor.t(pickerKind.value.emptyTitle),
-        bh: common_vendor.t(pickerKind.value.emptyHint)
+        bh: common_vendor.t(pickerKind.value.emptyTitle),
+        bi: common_vendor.t(pickerKind.value.emptyHint)
       }) : {}, {
-        bi: common_vendor.f(pickerOptions.value, (item, index, i0) => {
+        bj: common_vendor.f(pickerOptions.value, (item, index, i0) => {
           return common_vendor.e({
             a: item.image
-          }, item.image ? {
-            b: item.image
-          } : item.icon ? {
-            d: "fc6387aa-22-" + i0,
-            e: common_vendor.p({
+          }, item.image ? common_vendor.e({
+            b: common_vendor.unref(isStaticDimmed)(item) ? 1 : "",
+            c: item.image,
+            d: common_vendor.unref(canSwap)(item)
+          }, common_vendor.unref(canSwap)(item) ? {
+            e: item.imageActive,
+            f: common_vendor.o(($event) => common_vendor.unref(markLoaded)(item.id), item.id + "-" + pickerKeyword.value),
+            g: common_vendor.o(($event) => common_vendor.unref(markFailed)(item.id), item.id + "-" + pickerKeyword.value)
+          } : {}) : item.icon ? {
+            i: "fc6387aa-22-" + i0,
+            j: common_vendor.p({
               name: item.icon,
               size: "88rpx"
             })
           } : {}, {
-            c: item.icon,
-            f: common_vendor.t(item.name),
-            g: selection.value.includes(item.id)
+            h: item.icon,
+            k: common_vendor.t(item.name),
+            l: selection.value.includes(item.id)
           }, selection.value.includes(item.id) ? {
-            h: "fc6387aa-23-" + i0,
-            i: common_vendor.p({
+            m: "fc6387aa-23-" + i0,
+            n: common_vendor.p({
               name: "check",
               size: 12
             })
           } : {}, {
-            j: item.id + "-" + pickerKeyword.value,
-            k: Math.min(index, 6) * 20 + "ms",
-            l: selection.value.includes(item.id) ? 1 : "",
-            m: "选择" + item.name,
-            n: selection.value.includes(item.id),
-            o: common_vendor.o(($event) => toggleSelection(item.id), item.id + "-" + pickerKeyword.value)
+            o: item.id + "-" + pickerKeyword.value,
+            p: Math.min(index, 6) * 20 + "ms",
+            q: selection.value.includes(item.id) ? 1 : "",
+            r: "选择" + item.name,
+            s: selection.value.includes(item.id),
+            t: common_vendor.o(($event) => toggleSelection(item.id), item.id + "-" + pickerKeyword.value)
           });
         }),
-        bj: common_vendor.n("cols-" + pickerCols.value),
-        bk: pickerListHeight.value,
-        bl: common_vendor.t(pickerConfirmText.value),
-        bm: common_vendor.o(confirmPicker, "ed")
+        bk: common_vendor.n("cols-" + pickerCols.value),
+        bl: pickerListHeight.value,
+        bm: common_vendor.t(pickerConfirmText.value),
+        bn: common_vendor.o(confirmPicker, "19")
       }) : {}, {
-        bn: common_vendor.o(($event) => discardDialog.value = false, "3e"),
-        bo: common_vendor.o(discard, "2f"),
-        bp: common_vendor.p({
+        bo: common_vendor.o(($event) => discardDialog.value = false, "3f"),
+        bp: common_vendor.o(discard, "18"),
+        bq: common_vendor.p({
           visible: discardDialog.value,
           title: "收起这次修改？",
           subtitle: kindText.value.discardHint,
           ["cancel-text"]: "继续编辑",
           ["confirm-text"]: "放弃修改"
         }),
-        bq: common_vendor.o(common_vendor.unref(onCropConfirm), "5e"),
-        br: common_vendor.o(common_vendor.unref(onCropCancel), "21"),
-        bs: common_vendor.p({
+        br: common_vendor.o(common_vendor.unref(onCropConfirm), "e5"),
+        bs: common_vendor.o(common_vendor.unref(onCropCancel), "b9"),
+        bt: common_vendor.p({
           visible: common_vendor.unref(cropperVisible),
           ["image-src"]: common_vendor.unref(cropperSrc),
           ratio: 1,

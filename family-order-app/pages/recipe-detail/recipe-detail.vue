@@ -41,8 +41,18 @@
         <template v-if="editing">
           <text class="field-label">{{ kindText.nameLabel }} · 必填</text>
           <input v-model="draft.name" class="field title-field" maxlength="24" :placeholder="kindText.namePlaceholder" :aria-label="kindText.nameLabel" />
-          <text class="field-label">{{ kindText.categoryLabel }} <text>选填</text></text>
-          <button class="field picker-field" :aria-label="'选择' + kindText.categoryLabel" @tap="openPicker('category')"><image v-if="currentCategoryImage" class="picker-field-art" :src="currentCategoryImage" mode="aspectFit" /><Icon v-else-if="currentCategoryIcon" class="picker-field-icon" :name="currentCategoryIcon" size="36rpx" /><text class="picker-field-value" :class="{ 'is-empty': !currentCategoryName }">{{ currentCategoryName || '还没选分类' }}</text><Icon name="chevron-right" :size="15" /></button>
+          <!-- 分类：**只有美食有**（2026-09-23 按主人要求收掉咖啡的这一格）。
+               咖啡没有分类这个概念 —— 它不是「某类菜」，自己就是一个类型（dishes.type=coffee）。
+               与辣度同一处理：整个字段收掉，而不是留一个永远只能提示「还没选分类」的控件。
+               ⚠️ 配套两处一起收，否则等于没收干净：
+                 ① 本处模板 + 咖啡那一支的 `categoryLabel`（不再需要这个称呼）；
+                 ② `loadCategories` 对咖啡直接不发查询 —— `categories` 恒空之后，
+                    分类名 / 分类图 / 浏览态那枚分类徽标全部随之消失，
+                    历史数据里若带着 `categoryId` 也不会在页面上任何地方冒出来。 -->
+          <template v-if="!isCoffee">
+            <text class="field-label">{{ kindText.categoryLabel }} <text>选填</text></text>
+            <button class="field picker-field" :aria-label="'选择' + kindText.categoryLabel" @tap="openPicker('category')"><image v-if="currentCategoryImage" class="picker-field-art" :src="currentCategoryImage" mode="aspectFit" /><Icon v-else-if="currentCategoryIcon" class="picker-field-icon" :name="currentCategoryIcon" size="36rpx" /><text class="picker-field-value" :class="{ 'is-empty': !currentCategoryName }">{{ currentCategoryName || '还没选分类' }}</text><Icon name="chevron-right" :size="15" /></button>
+          </template>
           <!-- 辣度：**只有美食有**（2026-09-22 按主人要求收掉咖啡的这一格）。
                咖啡没有辣度这个概念 —— 点单页的咖啡卡片也不读这个字段，云端 dishes.spicy 对咖啡恒为 none。
                整个字段收掉，而不是留着显示成「不辣」：一个永远只能选「不辣」的选择器，
@@ -132,7 +142,7 @@
       <view class="mask" @tap="picker = ''" @touchmove.stop.prevent />
       <view class="sheet"><view class="handle" /><view class="picker-heading"><view><text class="section-title">{{ pickerKind.title }}</text><text class="subtitle">{{ pickerKind.subtitle }}</text></view></view>
         <view v-if="pickerKind.searchable" class="picker-search" :class="{ 'is-focused': pickerFocused }"><Icon name="search" :size="16" :stroke-width="2.2" /><input v-model="pickerKeyword" class="picker-search-input" :placeholder="'搜一搜' + pickerKind.noun" :placeholder-style="PLACEHOLDER_STYLE" :maxlength="20" confirm-type="search" :aria-label="'搜索' + pickerKind.noun" @focus="pickerFocused = true" @blur="pickerFocused = false" /><button v-if="pickerKeyword" class="picker-search-clear" aria-label="清空搜索" @tap="pickerKeyword = ''"><Icon name="close" :size="13" /></button></view>
-        <scroll-view scroll-y class="picker-scroll" :style="{ height: pickerListHeight }"><view v-if="!pickerOptions.length" class="picker-blank"><template v-if="pickerKind.searchable && pickerKeyword.trim()"><text>没有找到「{{ pickerKeyword.trim() }}」</text><text>换个词试试</text></template><template v-else><text>{{ pickerKind.emptyTitle }}</text><text>{{ pickerKind.emptyHint }}</text></template></view><view class="picker-grid" :class="'cols-' + pickerCols"><button v-for="(item, index) in pickerOptions" :key="item.id + '-' + pickerKeyword" class="picker-item" :style="{ animationDelay: Math.min(index, 6) * 20 + 'ms' }" :class="{ selected: selection.includes(item.id) }" :aria-label="'选择' + item.name" :aria-pressed="selection.includes(item.id)" @tap="toggleSelection(item.id)"><image v-if="item.image" :src="item.image" mode="aspectFit" /><view v-else-if="item.icon" class="picker-art-box"><Icon :name="item.icon" size="88rpx" /></view><text>{{ item.name }}</text><view class="selection-dot"><Icon v-if="selection.includes(item.id)" name="check" :size="12" /></view></button></view></scroll-view>
+        <scroll-view scroll-y class="picker-scroll" :style="{ height: pickerListHeight }"><view v-if="!pickerOptions.length" class="picker-blank"><template v-if="pickerKind.searchable && pickerKeyword.trim()"><text>没有找到「{{ pickerKeyword.trim() }}」</text><text>换个词试试</text></template><template v-else><text>{{ pickerKind.emptyTitle }}</text><text>{{ pickerKind.emptyHint }}</text></template></view><view class="picker-grid" :class="'cols-' + pickerCols"><button v-for="(item, index) in pickerOptions" :key="item.id + '-' + pickerKeyword" class="picker-item" :style="{ animationDelay: Math.min(index, 6) * 20 + 'ms' }" :class="{ selected: selection.includes(item.id) }" :aria-label="'选择' + item.name" :aria-pressed="selection.includes(item.id)" @tap="toggleSelection(item.id)"><view v-if="item.image" class="picker-art-box"><image class="picker-art" :class="{ 'is-dim': isStaticDimmed(item) }" :src="item.image" mode="aspectFit" /><image v-if="canSwap(item)" class="picker-art picker-art-moving" :src="item.imageActive" mode="aspectFit" @load="markLoaded(item.id)" @error="markFailed(item.id)" /></view><view v-else-if="item.icon" class="picker-art-box"><Icon :name="item.icon" size="88rpx" /></view><text>{{ item.name }}</text><view class="selection-dot"><Icon v-if="selection.includes(item.id)" name="check" :size="12" /></view></button></view></scroll-view>
         <button class="primary confirm" @tap="confirmPicker">{{ pickerConfirmText }}</button>
       </view>
     </view>
@@ -147,6 +157,7 @@ import { ref, computed, watch, nextTick } from 'vue'
 import { onLoad, onBackPress } from '@dcloudio/uni-app'
 import { useSafeArea } from '@/composables/useSafeArea.js'
 import { useCoverUpload } from '@/composables/useCoverUpload.js'
+import { useArtSwap } from '@/composables/useArtSwap.js'
 import { useUserStore } from '@/store/user.js'
 // 编辑器逻辑。文件名里的 mock 是历史遗留 —— 这一份里的 blankRecipe / cloneRecipe / validateRecipe
 // 都是**生产逻辑**，别按名字当演示数据处理。
@@ -154,7 +165,7 @@ import { useUserStore } from '@/store/user.js'
 // 「取不到云端菜谱时不再回退演示数据」一起删除 —— 页面现在只有「云端真数据」一种来源。
 import { blankRecipe, cloneRecipe, validateRecipe } from '@/mock/recipe-editor.js'
 import { SPICY_OPTIONS, SPICY_LEVELS, spicyMark } from '@/utils/spicy.js'
-import { categoryArt } from '@/utils/category-art.js'
+import { categoryArt, categoryArtActive } from '@/utils/category-art.js'
 import { imgUrl, IMG_W } from '@/utils/image.js'
 const userStore = useUserStore()
 const canEdit = computed(() => userStore.isCook)
@@ -167,28 +178,33 @@ const canEdit = computed(() => userStore.isCook)
  *   |          | 美食                          | 咖啡            |
  *   | 区       | ① 食材 ② 调料 ③ 一起慢慢做      | ① 原料 ② 一起慢慢做 |
  *   | 字段     | ingredients + seasonings       | ingredients（即「原料」）|
- *   | 物料分组 | ingredient / seasoning         | ingredient      |
- *   | 分类     | categories.type = food         | categories.type = coffee |
+ *   | 物料分组 | ingredient / seasoning         | coffee          |
+ *   | 分类     | 有（categories.type = food）    | **没有**（整格收掉） |
  *   | create   | dishes.type = 'food'           | dishes.type = 'coffee' |
  *
  * **不复制第二个页面**的理由见 pages/recipe/recipe.vue 的 createCoffee 注释（主包体积 + 口径唯一）。
- * ⚠️ 咖啡的「原料」**复用 `ingredients` 字段与 `ingredient` 物料分组**，没有新字段也没有新分组：
- *    咖啡原料（咖啡豆 / 牛奶 / 糖浆）在材料表里本来就归 ingredient，另立一套只会让
- *    materials 的枚举、两条查询链路、菜单接口跟着一起改，而它们要表达的是同一件事。
+ * ⚠️ 咖啡的「原料」**复用 `ingredients` 这个字段**（不新增字段），但**用自己的物料分组 `coffee`**
+ *    （2026-09-23 新增，见 CLOUD_GROUP）：
+ *    · 复用字段的理由：两边的结构完全一样（一组「物料 + 用量」），另立 `rawMaterials` 只会让
+ *      校验、抽屉、保存映射、云端整组替换全都复制一份；
+ *    · 分组必须分开的理由：**分组就是抽屉的候选池**。共用 `ingredient` 时咖啡的「原料」抽屉里
+ *      列的是葱、小青菜这些美食食材 —— 内容错但不报错，是这里最难被发现的错法。
  */
 const isCoffee = ref(false)
 /**
  * 按类型切换的文案
  *
- * 咖啡页写「菜谱名称 / 菜品分类 / 保存菜谱」都不准确，但这些差异很小、散在模板里就是
+ * 咖啡页写「菜谱名称 / 保存菜谱」都不准确，但这些差异很小、散在模板里就是
  * 一堆三元判断。集中在这张表里，模板只读字段名；将来真出现第三种类型，也只需在这里补一条。
  *
- * ⚠️ 这张表**只装称呼**，不装业务规则：区数、分类的 type、写库的 type 都跟着 `isCoffee` 走，
- *    与文案无关（文案改错只是读起来别扭，那三处改错是写错数据）。
+ * ⚠️ 这张表**只装称呼**，不装业务规则：区数、分类有无、写库的 type 都跟着 `isCoffee` 走，
+ *    与文案无关（文案改错只是读起来别扭，那几处改错是写错数据）。
+ * ⚠️ 咖啡那一支**没有 `categoryLabel`** —— 咖啡没有「分类」这一格（2026-09-23），
+ *    模板整块 `v-if="!isCoffee"` 收掉了，这里就不该留一个永远读不到的称呼。
  */
 const kindText = computed(() => (isCoffee.value
   ? {
-    nameLabel: '咖啡名称', namePlaceholder: '给这杯咖啡起个名字', categoryLabel: '咖啡分类', descLabel: '咖啡描述',
+    nameLabel: '咖啡名称', namePlaceholder: '给这杯咖啡起个名字', descLabel: '咖啡描述',
     createLabel: '添加咖啡', saveLabel: '保存咖啡', editLabel: '编辑咖啡', publishLabel: '发布咖啡',
     discardHint: '未保存的内容会丢失，原来的咖啡仍会保留。'
   }
@@ -292,10 +308,19 @@ const pickerKeyword = ref(''), pickerFocused = ref(false)
 /**
  * 云端物料（materials 集合）
  *
- * 页面的分组 key 是复数（ingredients / seasonings），而云端 materials.group 是单数
- * （ingredient / seasoning）—— 在这里做一次映射，不把两套命名混进模板。
+ * 页面的分区 key 是复数（ingredients / seasonings），而云端 materials.group 是单数
+ * （ingredient / seasoning / coffee）—— 在这里做一次映射，不把两套命名混进模板。
+ *
+ * ⚠️ **必须按类型求值**（2026-09-23 起改成 computed）：美食与咖啡共用 `ingredients` 这个分区 key
+ * （咖啡那边只是把标题换成「原料」），但两者要取的是**两池不同的物料**。
+ * 写成固定常量的话，咖啡的「原料」抽屉会列出葱、小青菜这些美食食材 ——
+ * **不报错、只是内容错**，与 `loadCategories` 里 type 传错是同一类静默错。
+ * （咖啡没有调料区，所以它这一支**不给 `seasonings` 键**：万一某条路径把它打开了，
+ * 空列表也比列出美食调料更诚实、更容易被发现。）
  */
-const CLOUD_GROUP = { ingredients: 'ingredient', seasonings: 'seasoning' }
+const CLOUD_GROUP = computed(() => (isCoffee.value
+  ? { ingredients: 'coffee' }
+  : { ingredients: 'ingredient', seasonings: 'seasoning' }))
 
 // 配料在两个方向上换名：页面内部统一用 { id, quantity }，云端存 { materialId, quantity }。
 // 只在读、写云端的两处调用，模板与编辑器一律用页面内部的写法。
@@ -315,6 +340,9 @@ const stepFromCloud = (step, index) => ({
 
 /**
  * 菜品分类（categories 集合里 type=food 的那些）
+ *
+ * ⚠️ **咖啡恒为空数组**（咖啡没有分类，见 loadCategories 的说明）—— 分类名 / 分类图 /
+ *    浏览态的分类徽标全部由它派生，它空着就等于整条分类链路对咖啡都不存在。
  *
  * 分类是**预置**的：不提供增删改，只让用户给菜品选一个，所以这里只读不写。
  * 与菜谱列表页的分类筛选共用同一份数据 —— 在详情页选好分类，列表页的筛选栏就会跟着有它。
@@ -336,10 +364,18 @@ const categories = ref([])
 const FALLBACK_CATEGORY_ICON = 'food'
 const categoryOptions = computed(() => categories.value.map(c => {
   const art = c.image || categoryArt(c.name)
+  // 选中态的动图（2026-09-23 加）：抽屉里被选中的那一格会从静态图切成动图，
+  // 与菜谱列表页分类栏、点单页分类栏是同一套行为、同一份映射（utils/category-art.js）。
+  // ⚠️ 两条硬约束：
+  //   ① **不能过 imgUrl()** —— 它会追加 `format,webp`，把 GIF 动画静默压成一张静态图；
+  //      所以这一项是**裸链接**（静态图那一项才需要配输出尺寸）。
+  //   ② 云端 `categories.image` 一旦配了图，静态图就是用户自己传的照片；此时**不给选中态** ——
+  //      拿内置动图去顶替用户的照片是错的替换（形状、内容都不同），不如两边都不动。
+  const artActive = c.image ? '' : categoryArtActive(c.name)
   // 云端分类图也走 imgUrl：它是用户上传的图，原图尺寸远超抽屉里那 110rpx 的格子。
   // 本地素材（categoryArt 返回的 static 路径）会被 imgUrl 原样返回，两种来源共用这一行。
   // 注意 icon 的判断仍用**未处理的** art —— 命不中素材时 art 为空串，才轮到内置图标兜底。
-  return { id: c.id, name: c.name, image: imgUrl(art, { w: PICKER_ART_WIDTH }), icon: art ? '' : FALLBACK_CATEGORY_ICON }
+  return { id: c.id, name: c.name, image: imgUrl(art, { w: PICKER_ART_WIDTH }), imageActive: artActive, icon: art ? '' : FALLBACK_CATEGORY_ICON }
 }))
 
 // 辣度档位（SPICY_OPTIONS / SPICY_LEVELS）与档位图案（spicyImage / spicyMark）都来自
@@ -438,9 +474,10 @@ const materialArt = id => imgUrl(lookup(id).image, { w: MATERIAL_ART_WIDTH })
  * 选项少而固定，不需要搜索框 —— 这些差异全部收敛到这张表里，模板只读它，
  * 不再散落一堆 `picker === 'ingredients' ? … : …` 的三元判断。
  *
- * 2026-09-22：改成**按类型求值**（computed），因为咖啡页的「原料」抽屉与美食页的
- * 「食材」抽屉是**同一条数据链路**（都取 `group=ingredient` 的物料），只有称呼不同；
- * 分类抽屉的空态提示也要跟着说对 `type`（coffee / food），否则排查时会照着错的那句去查库。
+ * 2026-09-22：改成**按类型求值**（computed）—— 称呼要跟着类型走（咖啡那边不叫「食材」叫「原料」）。
+ * 2026-09-23 ①：咖啡的「原料」抽屉改用**自己的物料分组 `coffee`**（见 CLOUD_GROUP），
+ *    与美食「食材」抽屉**不再是同一条数据链路**了，只是文案结构仍然相同。
+ * 2026-09-23 ②：**咖啡没有分类** → 分类抽屉只剩美食会打开，它的空态提示也不必再分类型。
  */
 const PICKER_KINDS = computed(() => ({
   ingredients: isCoffee.value
@@ -448,7 +485,7 @@ const PICKER_KINDS = computed(() => ({
       noun: '原料', title: '挑一点原料', subtitle: '这杯咖啡用什么，都在这里',
       searchable: true, multiple: true,
       emptyTitle: '这里还没有可选的原料',
-      emptyHint: '请先在云端的 materials 集合里添加，group 填 ingredient'
+      emptyHint: '请先在云端的 materials 集合里添加，group 填 coffee'
     }
     : {
       noun: '食材', title: '挑一点食材', subtitle: '厨房的小伙伴，都在这里',
@@ -468,9 +505,9 @@ const PICKER_KINDS = computed(() => ({
     noun: '分类', title: '挑一个最像它的', subtitle: '先归好类，翻菜谱时更好找',
     searchable: false, multiple: false,
     emptyTitle: '这里还没有可选的分类',
-    emptyHint: isCoffee.value
-      ? '请先在云端的 categories 集合里添加，type 填 coffee'
-      : '请先在云端的 categories 集合里添加，type 填 food'
+    // 咖啡没有分类（2026-09-23）→ 这个抽屉只可能在美食页被打开，提示语不必再分类型。
+    // 留着 coffee 那一支只会让下一个人以为"咖啡还有分类，只是没配"。
+    emptyHint: '请先在云端的 categories 集合里添加，type 填 food'
   },
   spicy: {
     noun: '辣度', title: '这道菜有多辣', subtitle: '挑一档，做的时候照着来',
@@ -492,7 +529,7 @@ const pickerAllOptions = computed(() => {
   if (picker.value === 'category') return categoryOptions.value
   if (picker.value === 'spicy') return SPICY_OPTIONS.map(o => ({ id: o.value, name: o.label, image: o.image }))
   return cloudMaterials.value
-    .filter(m => m.group === CLOUD_GROUP[picker.value] && m.isActive !== false)
+    .filter(m => m.group === CLOUD_GROUP.value[picker.value] && m.isActive !== false)
     // 同样走 imgUrl：抽屉格子只有 110rpx，而物料图是用户上传的原图。
     // 辣度那一支不处理 —— 它的 image 是本地 static 素材，imgUrl 会原样返回，没必要绕一圈
     .map(m => ({ id: m._id, name: m.name, image: imgUrl(m.image, { w: PICKER_ART_WIDTH }) }))
@@ -502,7 +539,9 @@ const pickerAllOptions = computed(() => {
  * 抽屉里实际渲染的选项
  *
  * 食材/调料按名称过滤（大小写不敏感、只在当前分组内）；分类与辣度不搜索、原样返回。
- * 选项统一为 { id, name, image } 三字段 —— 模板只消费这三项。
+ * 选项统一为 { id, name, image } 三字段 —— 模板只消费这三项；
+ * **分类选项多带一项 `imageActive`**（选中态的动图、裸链接，见 categoryOptions 的注释），
+ * 只有分类有它 —— 模板据此决定「被选中的那一格要不要切成动图」。
  */
 const pickerOptions = computed(() => {
   if (!pickerKind.value.searchable) return pickerAllOptions.value
@@ -542,6 +581,22 @@ const pickerListHeight = computed(() => {
   return rows * pickerRowRpx.value + (rows - 1) * PICKER_GAP_RPX + PICKER_GRID_PAD_RPX + 'rpx'
 })
 let leaveAfterDiscard = false, nextId = 0
+/**
+ * 分类抽屉的「静态图 → 选中时切成动图」
+ *
+ * ⚠️ **行为、理由与踩过的坑都写在 `composables/useArtSwap.js` 里，只写了一次**
+ * （第三处调用方：菜谱列表页分类栏、点单页分类栏各有一处）。本页只交代「哪一格算被选中」。
+ * 与两页分类栏的唯一差别是字段名：这里的静态图字段叫 `image`，动图随之叫 `imageActive`。
+ *
+ * 只有分类选项带 `imageActive`；食材 / 调料 / 辣度那三种抽屉没有这一项 →
+ * 动图层根本不渲染（`canSwap` 恒假），行为与从前逐字一致。
+ */
+const { canSwap, isStaticDimmed, markLoaded, markFailed } = useArtSwap({
+  isActive: (item) => selection.value.includes(item.id),
+  resetOn: selection,
+  activeKey: 'imageActive',
+  tag: 'recipe-detail'
+})
 /**
  * 已成功加载的云端菜品 ID
  *
@@ -596,22 +651,26 @@ const loadMaterials = async () => {
 }
 
 /**
- * 基础数据二：分类（**跟着当前类型走**：美食取 type=food，咖啡取 type=coffee）
+ * 基础数据二：分类（**只有美食会查**）
  *
- * 两步查询，**都不能省**：
- * 1. 先按 `type: food / coffee` 查（正常路径，只取本类型的分类）；
- * 2. 结果为空时再不带 type 查一次全量，在页面侧按 `!c.type || c.type === kind` 筛 ——
- *    菜谱列表页就是这么做的（它拿的是 dishes-crud/list 顺带返回的分类，同样靠这句兜底），
+ * ⚠️ **咖啡没有分类（2026-09-23 主人定）** → 咖啡页**一次分类查询都不发**，`categories` 恒为空。
+ *    这不是「顺手省一个请求」，而是把这条规则**收到数据层**：分类名、分类图、浏览态那枚分类徽标
+ *    全部由 `categories` 派生，它空着 —— 历史数据里若带着 `categoryId` 也不会在页面上任何地方冒出来。
+ *    （与辣度同一思路：只在模板上收掉那格，脏数据早晚会在某个新展示位冒出来。）
+ *
+ * 美食这一支是两步查询，**都不能省**：
+ * 1. 先按 `type: 'food'` 查（正常路径，只取美食分类）；
+ * 2. 结果为空时再不带 type 查一次全量，在页面侧按 `!c.type || c.type === 'food'` 筛 ——
+ *    菜谱列表页对美食正是这么做的（它拿的是 dishes-crud/list 顺带返回的分类，同样靠这句兜底），
  *    **两页口径必须一致**，否则会出现「列表页有 6 个分类、编辑页抽屉却是空的」这种裂缝。
- *
- * ⚠️ 咖啡页若仍按 food 查，抽屉里会列出一堆「炒菜 / 蒸菜 / 汤羹」，而咖啡分类一个都看不到 ——
- *    这类错误不会报错、页面也照常渲染，只能靠口径本身守住。
  *
  * 为什么两处都要打 warn：原先这里只有一句 `if (code === 0)`，接口异常时**完全静默** ——
  * 2026-09-20 排查「抽屉空」时，就是因为没有任何输出才绕了弯路。
  */
 const loadCategories = async () => {
-  const kind = isCoffee.value ? 'coffee' : 'food'
+  // 咖啡没有分类：不发查询，并**显式清空**（切类型时这里可能还留着上一次的结果）
+  if (isCoffee.value) { categories.value = []; return }
+  const kind = 'food'
   try {
     const res = await uniCloud.callFunction({ name: 'app-service', data: { module: 'categories-crud', action: 'list', type: kind } })
     const result = res.result || {}
@@ -1190,6 +1249,12 @@ $picker-row: 190rpx;
 // **改这里要同步改 script 里的 PICKER_ROW_SPICY_RPX**。
 $picker-row-spicy: 176rpx;
 $picker-gap: 18rpx;
+// 图案边长：三列抽屉用 110rpx，辣度那套四列（.cols-4）收到 94rpx 留呼吸。
+// **只在这里写一次** —— 静态图层、选中态动图层、图标兜底层三种图案共用它，
+// 改一处三处一起动。动图层居中用 `translate(-50%,-50%)` 而不是「负半个边长的 margin」，
+// 正是为了不必在这里再写一份半值（见 .picker-art-moving）。
+$picker-art: 110rpx;
+$picker-art-spicy: 94rpx;
 // 搜索框：复用菜谱页 .search-box 的二期输入框规范（奶油底 + 实棕描边 + 聚焦转珊瑚色）
 .picker-search { display:flex; align-items:center; gap:14rpx; height:72rpx; padding:0 24rpx; margin-top:26rpx; color:$p2-ink-soft; background:$p2-surface; border:2rpx solid $p2-line; border-radius:20rpx 24rpx 19rpx 23rpx; transition:border-color $p2-dur-fast $p2-ease; &.is-focused { border-color:$p2-coral; } }
 .picker-search-input { flex:1; min-width:0; height:64rpx; font-size:$p2-fs-control; color:$p2-ink; }
@@ -1203,7 +1268,7 @@ $picker-gap: 18rpx;
 // 故把图案收到 94rpx（左右各留 13rpx 呼吸）；行高同步降到 $picker-row-spicy，维持接近方形的比例。
 .picker-grid { display:grid; grid-template-columns:repeat(3,1fr); grid-auto-rows:$picker-row; gap:$picker-gap; padding:6rpx;
   &.cols-4 { grid-template-columns:repeat(4,1fr); grid-auto-rows:$picker-row-spicy;
-    .picker-item { height:$picker-row-spicy; image { width:94rpx; height:94rpx; } .picker-art-box { height:94rpx; } }
+    .picker-item { height:$picker-row-spicy; .picker-art { width:$picker-art-spicy; height:$picker-art-spicy; } .picker-art-box { height:$picker-art-spicy; } }
   }
 }
 // 入场动效：关键词一变，:key 里带了关键词 → 列表节点整体重建，卡片依次淡入上浮，
@@ -1211,13 +1276,33 @@ $picker-gap: 18rpx;
 // fill-mode 用 backwards 而不是 both/forwards —— 那两个会在动画结束后继续锁定 to 段的
 // transform:none，把按下反馈（全局 button:active 的 scale(.96)）压掉；backwards 只在
 // 延迟期间维持 from，动画一结束就把属性交还给常规样式。
-.picker-item { box-sizing:border-box; height:$picker-row; position:relative; border:2rpx solid #e1d8c5; padding:15rpx; border-radius:20rpx; font-size:$p2-fs-body; background:$p2-surface; animation: picker-pop $p2-dur-base $p2-ease backwards; image { display:block; width:110rpx; height:110rpx; margin:auto; } &.selected { background:#eaf0db; border-color:#8b9e6a; } }
-// 内置图标与上面的 <image> 占同样高度（110rpx），让两种选项的格子高度一致 ——
-// 图片是 display:block + margin:auto 居中，图标是 inline-block 的组件，套一层 flex 盒子才稳。
-.picker-art-box { display:flex; align-items:center; justify-content:center; height:110rpx; }
+.picker-item { box-sizing:border-box; height:$picker-row; position:relative; border:2rpx solid #e1d8c5; padding:15rpx; border-radius:20rpx; font-size:$p2-fs-body; background:$p2-surface; animation: picker-pop $p2-dur-base $p2-ease backwards; &.selected { background:#eaf0db; border-color:#8b9e6a; } }
+// 图案本体 —— **静态图那一层**（被选中时另有一层动图压在上面，见 .picker-art-moving）。
+// 尺寸由 $picker-art 唯一给出（辣度那套四列变体在 .cols-4 里收到 $picker-art-spicy）。
+// transition 是给「选中时静态图让位给动图」那一次透明度切换用的：
+// 两层是**逐像素对齐**的（GIF 的首帧就是照静态图渲染的），所以这一次切换本身看不见；
+// 留个过渡只是不想在任何边角情形下硬切。
+.picker-art { display:block; width:$picker-art; height:$picker-art; margin:auto; transition:opacity $p2-dur-fast $p2-ease; }
+// 选中时把静态图收掉、露出下面的动图层。**只在「这一格确实配了动图」时才收**（条件写在模板里）——
+// 否则一选中就变成空白格。
+.picker-art.is-dim { opacity:0; }
+// 动图层：绝对定位压在静态图之上，两级居中（50% + translate 自身一半）。
+// 用 translate 而不是「负半个边长的 margin」，是为了**不依赖图案边长** ——
+// 同一份规则在三列（110rpx）与辣度四列（94rpx）下都成立，将来改边长也不必回来改这里。
+// ⚠️ 用**入场动画**而不是 opacity 过渡：这一层是选中时才新挂载的元素，没有"过渡的起点"可插值。
+// ⚠️ 不写 fill-mode（默认 none）—— `forwards` / `both` 会锁死终态，把全局 button:active 的缩放压掉。
+// `margin:0` 是**显式覆盖 `.picker-art` 的 `margin:auto`**：这一层是绝对定位的，
+// 左右 auto 外边距在这里不参与居中（居中完全交给 translate），写出来只为免去"auto 会不会吃掉落差"的疑问。
+.picker-art-moving { position:absolute; left:50%; top:50%; margin:0; transform:translate(-50%,-50%); animation:picker-art-swap-in $p2-dur-fast $p2-ease; }
+@keyframes picker-art-swap-in { from { opacity:0; } to { opacity:1; } }
+// 图案槽：**两种选项（素材图 / 内置图标）套的是同一层**，高度一致（$picker-art，四列变体同步收窄），
+// 保证同一行里两种选项的格子等高 —— 图片是 display:block + margin:auto 居中，
+// 图标是 inline-block 的组件，套一层 flex 盒子才稳。
+// 2026-09-23 起它同时是**定位上下文**：被选中的那一格要把动图层绝对定位压在静态图上。
+.picker-art-box { position:relative; display:flex; align-items:center; justify-content:center; height:$picker-art; }
 @keyframes picker-pop { from { opacity:0; transform:translateY(16rpx) scale(.94); } to { opacity:1; transform:none; } }
 .selection-dot { position:absolute; top:10rpx; right:10rpx; width:28rpx; height:28rpx; border:2rpx solid #a9b695; border-radius:50%; display:flex; align-items:center; justify-content:center; }.confirm { width:100%; }
 @keyframes appear { from { opacity:0; transform:translateY(6rpx); } to { opacity:1; transform:translateY(0); } }
 @keyframes slide-up { from { transform:translateY(100%); } to { transform:translateY(0); } }
-@media (prefers-reduced-motion:reduce) { button { transition:none; }.editor,.sheet,.picker-item,.picker-blank,.cover-progress,.load-failed { animation:none; } }
+@media (prefers-reduced-motion:reduce) { button { transition:none; }.picker-art { transition:none; }.editor,.sheet,.picker-item,.picker-blank,.picker-art-moving,.cover-progress,.load-failed { animation:none; } }
 </style>

@@ -50,14 +50,14 @@
         },
         "ingredients": {
             "bsonType": "array",
-            "description": "食材列表。只存对 materials 集合的引用 + 本菜用量，名称与图片不复制 —— 物料改名或换图只需改一处，所有引用它的菜品同步生效",
+            "description": "食材列表。只存对 materials 集合的引用 + 本菜用量，名称与图片不复制 —— 物料改名或换图只需改一处，所有引用它的菜品同步生效。⚠️ 这个字段**被两类菜品共用**：美食存「食材」（物料 group=ingredient），咖啡存「原料」（物料 group=coffee）—— 字段与物料分组是两回事，所以新增一个物料分组不需要动 dishes",
             "arrayType": "object",
             "label": "食材",
             "defaultValue": [],
             "properties": {
                 "materialId": {
                     "bsonType": "string",
-                    "description": "物料 ID（materials 集合，group 为 ingredient）",
+                    "description": "物料 ID（materials 集合，group 为 ingredient 或 coffee）",
                     "label": "物料"
                 },
                 "quantity": {
@@ -71,7 +71,7 @@
         },
         "seasonings": {
             "bsonType": "array",
-            "description": "调料列表。结构与 ingredients 完全一致，仅分组不同；与食材分成两个数组是为了 UI 直接映射（详情页分「食材 / 调料」两栏展示）",
+            "description": "调料列表。结构与 ingredients 完全一致，仅分组不同；与食材分成两个数组是为了 UI 直接映射（详情页分「食材 / 调料」两栏展示）。**只有美食用它**：咖啡菜品没有调料区，原料全部存在 ingredients 里",
             "arrayType": "object",
             "label": "调料",
             "defaultValue": [],

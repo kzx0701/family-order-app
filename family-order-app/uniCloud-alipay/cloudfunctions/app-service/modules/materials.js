@@ -2,11 +2,15 @@
 const { requireCook } = require('../utils/auth.js')
 
 /**
- * 物料 CRUD 云函数（食材 / 调料共用一张表）
+ * 物料 CRUD 云函数（食材 / 调料 / 咖啡原料 共用一张表）
  *
- * 为什么合并为一张表：食材与调料的字段完全同构（名称、图片、分组、排序、启用），
- * 拆成两张表会带来两套几乎一样的结构与代码。靠 group 字段区分即可，
+ * 为什么合并为一张表：三者的字段完全同构（名称、图片、分组、排序、启用），
+ * 拆成几张表会带来几套几乎一样的结构与代码。靠 group 字段区分即可，
  * 将来新增分组（干货、冷冻等）只需扩展 enum，不必建表。
+ *
+ * group 的语义是**「这个物料出现在哪个抽屉的候选池里」**（编辑页的食材 / 调料 / 原料
+ * 三个抽屉各看一组），**与菜品记录无关** —— dishes 只存 materialId 引用，
+ * 所以下面 deleteMaterial 的引用检查是**按菜品的字段**统计的、不认分组。
  *
  * 支持的 action：
  *   - list    查询物料（支持 group / isActive 筛选），按 sortOrder 升序
@@ -17,8 +21,10 @@ const { requireCook } = require('../utils/auth.js')
  * 鉴权方式：前端传入 token（openid），查询 users 集合确认 lastMode == 'cook'
  */
 
-// 允许的分组（与 materials.schema.json 的 enum 保持一致）
-const GROUPS = ['ingredient', 'seasoning']
+// 允许的分组。⚠️ **必须与 materials.schema.json 的 enum 逐字一致** —— 两处是同一个白名单，
+// 只改 schema 不改这里，控制台能建记录、但页面里的 create / update 会被这里拒掉（反之亦然）。
+// coffee：咖啡原料（水 / 牛奶 / 咖啡豆…），2026-09-23 新增，专供咖啡编辑页的「原料」抽屉。
+const GROUPS = ['ingredient', 'seasoning', 'coffee']
 
 exports.main = async (event, context) => {
   const { action, token, ...payload } = event
@@ -51,7 +57,7 @@ exports.main = async (event, context) => {
 
 /**
  * 查询物料列表
- * 支持筛选：group（ingredient/seasoning）、isActive（是否启用）
+ * 支持筛选：group（ingredient/seasoning/coffee）、isActive（是否启用）
  * 按 sortOrder 升序、createTime 升序排列（与 categories-crud/list 一致）
  */
 async function listMaterials({ group, isActive } = {}, materialCol) {
@@ -80,7 +86,8 @@ async function createMaterial({ name, group, image, unit, sortOrder } = {}, mate
     return { code: 400, message: '物料名称必填' }
   }
   if (!GROUPS.includes(group)) {
-    return { code: 400, message: '分组必填且只能为 ingredient 或 seasoning' }
+    // 文案由 GROUPS 拼出来：白名单加值时这里自动跟上，不会留下"少说一个分组"的过时提示
+    return { code: 400, message: '分组必填，只能是 ' + GROUPS.join(' / ') + ' 之一' }
   }
 
   const now = Date.now()
@@ -158,7 +165,9 @@ async function deleteMaterial({ _id } = {}, materialCol) {
     return { code: 404, message: '物料不存在' }
   }
 
-  // 引用检查：分别统计它作为「食材」和「调料」被多少道菜引用
+  // 引用检查：分别统计它作为「第一个数组」与「第二个数组」被多少道菜引用。
+  // ⚠️ 检查的是**菜品的字段**（ingredients / seasonings），**不是物料的 group** ——
+  //    咖啡原料住在 ingredients 里，所以新增分组**不需要动这里**，它的引用照样被保护。
   const dishCol = uniCloud.database().collection('dishes')
   const [asIngredient, asSeasoning] = await Promise.all([
     dishCol.where({ 'ingredients.materialId': _id }).count(),

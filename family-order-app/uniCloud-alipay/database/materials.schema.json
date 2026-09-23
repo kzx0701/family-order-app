@@ -20,10 +20,10 @@
         },
         "group": {
             "bsonType": "string",
-            "description": "所属分组：ingredient 食材 / seasoning 调料。两者字段完全同构，故合并为一张表、靠本字段区分，将来新增分组（如干货、冷冻）只需扩展 enum",
-            "enum": ["ingredient", "seasoning"],
+            "description": "所属分组：ingredient 食材 / seasoning 调料 / coffee 咖啡原料。三者字段完全同构，故合并为一张表、靠本字段区分。语义上**一个分组 = 一个抽屉候选池**（编辑页的食材 / 调料 / 原料抽屉各自只看一组），所以新增分组只需扩展 enum —— 不必建表，也不必动 dishes（那边只存 materialId 引用，与分组无关）",
+            "enum": ["ingredient", "seasoning", "coffee"],
             "label": "分组",
-            "errorMessage": "分组必填且只能为 ingredient 或 seasoning"
+            "errorMessage": "分组必填，只能是 ingredient / seasoning / coffee 之一"
         },
         "image": {
             "bsonType": "string",

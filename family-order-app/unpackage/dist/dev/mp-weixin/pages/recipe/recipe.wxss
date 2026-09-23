@@ -279,6 +279,15 @@ to {
   border-radius: 7rpx 10rpx 7rpx 9rpx;
   color: #624735;
 }
+.card-status.data-v-fb437fc6 {
+  position: absolute;
+  top: 12rpx;
+  right: 14rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #85a96f;
+}
 .card-copy.data-v-fb437fc6 {
   padding: 19rpx 18rpx 20rpx;
 }

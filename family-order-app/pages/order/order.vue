@@ -2,7 +2,7 @@
   <view class="order-page" :class="'mode-' + mode">
     <view class="top-area" :style="{ paddingTop: headerTop + 'px' }">
       <view class="heading">
-        <view><text class="page-title">{{ mode === 'food' ? '今天，想吃点什么？' : '给今天，加点咖啡香' }}</text><text class="subtitle">{{ mode === 'food' ? '你负责好好吃，我负责用心做。' : '忙里偷个闲，喝杯喜欢的。' }}</text></view>
+        <view><text class="page-title">{{ mode === 'food' ? '今天，想吃点什么？' : '给今天，加点咖啡香' }}</text></view>
         <image class="heading-art" :src="mode === 'food' ? bowlArt : coffeeArt" mode="aspectFit" />
       </view>
       <view class="mode-tabs" role="tablist" aria-label="点单类型">
@@ -12,16 +12,21 @@
         </button>
       </view>
       <view class="filter-row">
-        <scroll-view scroll-x class="category-scroll" :show-scrollbar="false">
+        <!-- 分类栏**只属于美食模式**：咖啡没有分类（2026-09-23）——
+             菜谱编辑页已收掉分类那一格、菜谱页的「咖啡」是类型入口，
+             点单页这边同理，整条不再渲染（留着它只会是一行永远筛不出东西的空 tab）。 -->
+        <scroll-view v-if="mode === 'food'" scroll-x class="category-scroll" :show-scrollbar="false">
           <view class="category-list">
             <button v-for="category in categoryTabs" :key="category.id" class="category" :class="{ selected: categories[mode] === category.id }" :aria-pressed="categories[mode] === category.id" @tap="categories[mode] = category.id">
+              <view class="category-body">
               <view class="category-icon-slot">
-                <!-- 静态层：**动图加载完成之前一直露着**，所以它的显隐不能绑在"已选中"上（见 iconDimmed） -->
-                <image v-if="category.icon" class="category-icon" :class="{ 'is-dim': iconDimmed(category) }" :src="category.icon" mode="aspectFit" />
-                <image v-if="category.iconActive && categories[mode] === category.id" class="category-icon category-icon-moving" :src="category.iconActive" mode="aspectFit" @load="markIconLoaded(category.id)" @error="markIconFailed(category.id)" />
+                <!-- 静态层：**动图加载完成之前一直露着**，所以它的显隐不能绑在"已选中"上（见 canSwap / isStaticDimmed） -->
+                <image v-if="category.icon" class="category-icon" :class="{ 'is-dim': isStaticDimmed(category) }" :src="category.icon" mode="aspectFit" />
+                <image v-if="canSwap(category)" class="category-icon category-icon-moving" :src="category.iconActive" mode="aspectFit" @load="markLoaded(category.id)" @error="markFailed(category.id)" />
               </view>
-              <text>{{ category.name }}</text>
-              <view class="category-underline" />
+              <text class="category-label">{{ category.name }}</text>
+              </view>
+              <view class="category-mark" />
             </button>
           </view>
         </scroll-view>
@@ -66,7 +71,7 @@
              尤其失败时，他无从知道该重试还是该去别的页面加数据。 -->
         <view v-if="menu.loading && !menu.loaded" class="list-state"><text>菜单正在端上来…</text></view>
         <view v-else-if="menu.error" class="list-state"><text>{{ menu.error }}</text><button class="light-button" @tap="loadMenu(mode)">再试一次</button></view>
-        <view v-else-if="!visibleItems.length" class="empty-list"><image :src="bowlArt" mode="aspectFit" /><text class="empty-title">{{ menu.dishes.length ? '这口快乐，还没找到' : '菜单还空着' }}</text><text>{{ menu.dishes.length ? '换个关键词或分类试试看吧。' : '在菜谱里点「发布菜品」，它就会出现在这里。' }}</text><button v-if="menu.dishes.length" class="light-button" @tap="resetFilters">看看全部</button></view>
+        <view v-else-if="!visibleItems.length" class="empty-list"><image :src="bowlArt" mode="aspectFit" /><text class="empty-title">{{ menu.dishes.length ? '这口快乐，还没找到' : '菜单还空着' }}</text><text>{{ menu.dishes.length ? '换个关键词或分类试试看吧。' : emptyMenuHint }}</text><button v-if="menu.dishes.length" class="light-button" @tap="resetFilters">看看全部</button></view>
         <view v-if="visibleItems.length" class="list-end"><text>—</text><text>{{ mode === 'food' ? '好好吃饭，是今天的小正事' : '日子慢慢过，咖啡慢慢喝' }}</text><text>—</text></view>
       </view>
     </scroll-view>
@@ -86,7 +91,7 @@
     <!-- 注：分类动图**没有预热层**（2026-09-22 复核后删掉）。原先这里用 `v-for` 把**所有**配了动图的
          分类一次性挂上预热，那是在只有 1 个动图（108KB）时定的做法；六个分类配满后这个量变成
          **773KB**，而用户可能一个分类都不点。现在改为"点哪个下哪个 + 静态图撑到动图加载完"，
-         详见 script 里 iconLoaded 的注释。 -->
+         详见 `composables/useArtSwap.js`。 -->
 
     <view v-if="panel" class="sheet-layer">
       <view class="sheet-mask" :class="{ closing }" @tap="closePanel" @touchmove.stop.prevent />
@@ -142,9 +147,10 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onUnmounted, watch } from 'vue'
+import { ref, reactive, computed, onUnmounted } from 'vue'
 import { onLoad, onShow, onHide, onBackPress } from '@dcloudio/uni-app'
 import { useSafeArea } from '@/composables/useSafeArea.js'
+import { useArtSwap } from '@/composables/useArtSwap.js'
 import { useCartStore } from '@/store/cart.js'
 // 装饰插画（头部 + 空态）与购物车行逻辑。**菜单数据本身已不再来自 mock** ——
 // 改为云端 menu-list 聚合接口，见下方 loadMenu。
@@ -261,7 +267,13 @@ const loadMenu = async (type) => {
  *
  * 图标（2026-09-22 加）：与菜谱列表页的分类栏**共用同一张映射表**（utils/category-art.js），
  * 所以「同一分类在两页长得一样」这件事仍然成立。`iconActive` 是选中态的动图（在云存储上），
- * 只有配了动图的分类才有；目前有「热菜」「凉菜」，其余分类没有素材 → 图标槽留空、文字 tab 照常成立。
+ * 只有配了动图的分类才有 —— **当前 5 个美食分类都已配齐**；命中不了的分类图标槽留空、
+ * 文字 tab 照常成立，这是云端新加分类、素材还没补时的正常状态。
+ *
+ * ⚠️ **咖啡模式整条不渲染**（2026-09-23 主人定，见模板里的 v-if）：咖啡没有分类 ——
+ * 菜谱编辑页已收掉分类那一格，新咖啡的 `categoryId` 恒为空串，而筛选是按 `categoryId`
+ * 匹配的（见 visibleItems）→ 这条分类栏对咖啡只能是一行**永远筛不出东西的空 tab**。
+ * 所以它现在只服务美食模式，下面也不必再按 mode 分支。
  */
 const categoryTabs = computed(() => {
   const cloud = (menu.value.categories || []).map(c => ({
@@ -274,26 +286,18 @@ const categoryTabs = computed(() => {
 })
 
 /**
- * 分类动图的加载状态 —— **决定静态图什么时候让位**
+ * 分类栏的「静态图 → 选中时切成动图」
  *
- * 与菜谱列表页**同一套做法与理由**（那边注释更详细，改之前先看那边）：动图在云存储上，
- * 曾经"进页面就把所有分类的动图挂一遍预热"，在只有 1 个动图（108KB）时还说得过去；
- * 六个分类配满后变成 **773KB**（点单页美食模式 5 个 = 595KB），而用户可能一个分类都不点。
- * **2026-09-22 复核后删掉预热**，改为：
- *   ① 不预热，点哪个下哪个（动图层仍只在选中时挂载）；
- *   ② **静态图一直露着，直到动图 `load` 到达才压掉** —— 顺带修掉"动图加载失败 → 图标变空白"；
- *   ③ 换分类/切模式时清空标记（动图层是 `v-if` 挂卸的，标记留着会让静态图先被压掉、闪一下空白）。
- *
- * 代价：**首次**点选某分类时动效要等下载完（约 200~600ms）才出现，这期间显示静态图。
- * ⚠️ 能做到"切换看不见"，前提是 **GIF 首帧与静态图逐像素对齐**（见 utils/category-art.js 的尺度规则）。
+ * ⚠️ **行为、理由与踩过的坑都写在 `composables/useArtSwap.js` 里，只写了一次**
+ * （本页原先自己实现了一遍，菜谱列表页分类栏与菜谱编辑页的分类抽屉又各一遍）。
+ * 本页只交代两件事：**哪一格算被选中**、**选中项（这里是「分类 + 模式」两个维度的合成）变了要清标记**。
  */
-const iconLoaded = ref({})
-const markIconLoaded = (id) => { iconLoaded.value = { ...iconLoaded.value, [id]: true } }
-/** 动图加载失败：**什么都不做**，静态图继续露着（见上面 ②）；留条日志便于排查 */
-const markIconFailed = (id) => { console.warn('[order] 分类动图加载失败，保持静态图', id) }
-const iconDimmed = (category) => Boolean(category.iconActive && categories[mode.value] === category.id && iconLoaded.value[category.id])
-// 依赖写成 getter：点分类（categories[mode] 变）与切模式（mode 变）都会触发
-watch(() => categories[mode.value], () => { iconLoaded.value = {} })
+const { canSwap, isStaticDimmed, markLoaded, markFailed } = useArtSwap({
+  isActive: (category) => categories[mode.value] === category.id,
+  // 依赖写成 getter：点分类（categories[mode] 变）与切模式（mode 变）都会触发
+  resetOn: () => categories[mode.value],
+  tag: 'order'
+})
 
 /**
  * 列表里实际渲染的菜品：先按分类筛、再按关键词搜（名称 + 描述）
@@ -302,7 +306,11 @@ watch(() => categories[mode.value], () => { iconLoaded.value = {} })
  * （曾有的 `signature` 本地分支已随「拿手菜」tab 一起删除，见 categoryTabs 的说明。）
  */
 const visibleItems = computed(() => {
-  const key = categories[mode.value]
+  // 咖啡模式**没有分类栏可点**（见 categoryTabs 与模板的 v-if）→ 一律按「全部」处理。
+  // 这道守卫现在仍要留着：新咖啡的 categoryId 恒为空串，任何非 all 的分类筛选都会把
+  // 整个列表筛成空、而且不报错。**筛选条件必须与「分类栏里能选什么」同源** ——
+  // 这条在菜谱页与点单页各踩过一次，是同一个坑（一个静默空列表 = 最难查的一类 bug）。
+  const key = mode.value === 'coffee' ? 'all' : categories[mode.value]
   const keyword = queries[mode.value].trim().toLocaleLowerCase()
   return menu.value.dishes.filter((item) => {
     const hitCategory = key === 'all' || item.category === key
@@ -311,6 +319,15 @@ const visibleItems = computed(() => {
     return (item.name + ' ' + item.description).toLocaleLowerCase().includes(keyword)
   })
 })
+/**
+ * 空菜单时那句行动指引 —— **必须跟着 mode 说对按钮名**
+ *
+ * 咖啡是在菜谱页的「发布咖啡」上发布的，说「发布菜品」会让人去点另一个入口。
+ * （2026-09-23 主人照这句提示排查发布问题时暴露：咖啡模式也在说「发布菜品」。）
+ */
+const emptyMenuHint = computed(() => (mode.value === 'food'
+  ? '在菜谱里点「发布菜品」，它就会出现在这里。'
+  : '在菜谱里点「发布咖啡」，它就会出现在这里。'))
 const searchOpen = ref(false), panel = ref(''), closing = ref(false), confirmClear = ref(false), feedback = ref('')
 const selected = ref(null), selectedNote = ref(''), submitting = ref(false), submitted = ref(null)
 let closeTimer, feedbackTimer, submitTimer
@@ -416,35 +433,67 @@ const panelSubtitle = computed(() => panel.value === 'dish' ? '' : panel.value =
 .order-page { height:100vh; height:100dvh; display:flex; flex-direction:column; overflow:hidden; background:$p2-paper; color:$p2-ink; padding-bottom:calc(132rpx + env(safe-area-inset-bottom)); box-sizing:border-box; }
 button { background:none; border-radius:0; margin:0; padding:0; line-height:inherit; font:inherit; color:inherit; &::after { border:0; } &:active:not([disabled]) { transform:scale(.95); } transition:transform 110ms $p2-ease; &[disabled] { opacity:.45; } }
 .top-area { padding:0 32rpx; flex-shrink:0; }
-.heading { display:flex; align-items:center; justify-content:space-between; gap:8rpx; padding-bottom:24rpx; }
+// 顶部标题行。副标题（「你负责好好吃，我负责用心做。」/「忙里偷个闲，喝杯喜欢的。」）2026-09-23 按主人要求删除。
+// ⚠️ **删掉副标题不会让下方内容自动上移** —— `.heading` 的高度是由右侧插画（112rpx）撑着的，
+//    标题容器变矮，只是让标题在这 112rpx 里垂直居中（标题上下的留白从 2rpx 变成 21.5rpx）。
+//    所以"整体往上移"必须**显式收下边距**：padding-bottom 24 → 12rpx，
+//    顶部整块（heading 112 + 下边距）从 136rpx 收到 124rpx，下方内容上移 12rpx。
+// ⚠️ 若哪天要再收紧，先看清"撑高度的是插画而不是文字"：改 `line-height` 是没用的（标题始终居中）。
+.heading { display:flex; align-items:center; justify-content:space-between; gap:8rpx; padding-bottom:12rpx; }
 .page-title { display:block; font-family:$p2-font-hand, $p2-font-fallback; font-size:46rpx; line-height:1.5; }
-.subtitle { display:block; margin-top:7rpx; color:$p2-ink-soft; font-size:23rpx; }
 .heading-art { width:112rpx; height:112rpx; flex-shrink:0; transform:rotate(6deg); }
 .mode-tabs { position:relative; display:flex; border:2rpx solid $p2-line; border-radius:22rpx 26rpx 19rpx 23rpx; background:$p2-surface; padding:7rpx; height:96rpx; }
 .mode-slider { position:absolute; top:7rpx; bottom:7rpx; left:7rpx; width:calc(50% - 7rpx); background:$p2-leaf-soft; border-radius:16rpx 20rpx 15rpx 19rpx; transform:translateX(0); transition:transform 240ms $p2-ease,background 240ms ease; &.coffee { transform:translateX(100%); background:$p2-butter-soft; } }
 .mode-tab { position:relative; z-index:1; flex:1; display:flex; justify-content:center; align-items:center; gap:12rpx; font-size:29rpx; color:$p2-ink-soft; &.active { color:$p2-ink; font-weight:600; } }
 .tab-count { font-size:18rpx; line-height:30rpx; min-width:30rpx; border-radius:50%; background:$p2-coral; color:$p2-white; padding:0 5rpx; }
 .filter-row { display:flex; align-items:center; gap:12rpx; padding-top:10rpx; }
+// 咖啡模式**没有分类栏**（模板里整条 v-if 掉）→ 这一行只剩搜索按钮。
+// ① 靠右收尾：它是这一行唯一的内容，留在左侧会像"少了一个控件"；靠右则与美食模式下
+//    搜索按钮的位置一致（美食模式它在最右端），切模式时按钮不会横向跳。
+// ② 补一点下边距：分类栏（约 108rpx 高）撤掉后这一行会矮一大截，若仍只有 10rpx 上边距，
+//    按钮会贴着模式切换条、下面又紧接列表 —— 上下呼吸失衡。
+.mode-coffee .filter-row { justify-content:flex-end; padding:10rpx 0 12rpx; }
 .category-scroll { flex:1; width:0; min-width:0; }
-.category-list { display:flex; align-items:flex-start; gap:24rpx; padding:12rpx 0 16rpx; }
-// 分类项 2026-09-22 起改成**竖排**（图标在上、名字在下 + 底部标记线），此前只有文字。
-// ⚠️ 同时把 align-items 从 center 改成 flex-start：各分类的图标可有可无（目前只有「热菜」有），
-//    居中对齐会让「有图标」与「没图标」两项的**文字不在同一条水平线上**；
-//    让每一项都从顶部排起、由 .category-icon-slot 的固定高度把文字压到同一行，才是齐的。
-.category { position:relative; flex-shrink:0; display:flex; flex-direction:column; align-items:center; gap:2rpx; font-size:25rpx; padding:6rpx 3rpx 14rpx; color:$p2-ink-soft; &.selected { color:$p2-ink; font-weight:600; .category-underline { opacity:1; transform:rotate(-3deg) scaleX(1); } } }
-// 图标槽：**永远占着 40rpx 高**，即使该分类没有图标（目前除「热菜」外都是）。
+// 与菜谱列表页的分类栏**逐条对齐**（2026-09-23）。
+// 在此之前两页各是一套：这里图标 40rpx、字号 25rpx、选中态只有「加粗 + 通栏细下划线」；
+// 菜谱页是 44rpx / $p2-fs-caption / 浅绿贴纸底 + 手绘标记线 —— 同一个组件在两个页面长得不一样。
+// ⚠️ **容器用 inline-flex**（横向滚动列表内部必须这样，块级 flex 的宽度恒等于父容器宽、
+//    靠子项溢出触发滚动不可靠 —— 菜谱页与 STYLE-RULES 都是这条口径）；
+//    vertical-align:top 消除 inline 元素固有的基线间隙。
+.category-list { display:inline-flex; vertical-align:top; align-items:flex-start; gap:16rpx; padding:12rpx 0 16rpx; }
+// 分类项：竖排 + **选中贴纸底** + 手绘标记线。三处对齐（差一处都会被一眼看出来）：
+//   ① 尺寸与字号取同一套 token（图标 44rpx、$p2-fs-caption）；gap 由 24 收到 16，
+//      横向呼吸改由 .category-body 的 12rpx 内边距承担 —— 相邻贴纸间仍是 12+16+12 = 40rpx，
+//      与菜谱页一致，且整行在 393pt 屏上仍放得下 6 个分类。
+//   ② **选中态去掉 font-weight:600** —— 菜谱页的选中态是「主色 + 贴纸底 + 标记线」三个信号，
+//      没有加粗（手绘体那套更是明确不建议设 font-weight，见 phase2-tokens 的说明）。
+//   ③ 标记线改用与菜谱页同一组几何值（左右各内缩 10rpx、高 6rpx、rotate(-2deg)、scaleX(.5)→1）。
+// ⚠️ align-items 保持 flex-start：各分类的图标可有可无，居中对齐会让「有图标」与「没图标」
+//    两项的文字不在同一条水平线上；让每一项都从顶部排起、由 .category-icon-slot 的固定高度把
+//    文字压到同一行，才是齐的。
+// ⚠️ 贴纸底色只画在 .category-body（图标 + 名字）那一层，**不含下方留给标记线的 12rpx** ——
+//    否则标记线会压在浅绿底上，变成「浅绿底上再压一条绿线」。
+.category { position:relative; flex-shrink:0; display:flex; flex-direction:column; align-items:center; padding:0 0 12rpx; font-size:$p2-fs-caption; line-height:1.4; color:$p2-ink-soft; transition:color $p2-dur-fast $p2-ease; &.selected { color:$p2-ink; .category-body { background:$p2-leaf-soft; } .category-mark { opacity:1; transform:rotate(-2deg) scaleX(1); } } }
+// 贴纸承载体：图标槽 + 分类名包在这层，底色只画它。
+// 未选中时背景是 transparent —— 这一层始终存在、只换底色，**不靠 v-if 增删节点**，
+// 否则选中时节点进出会让整行重排、位置跳一下。
+.category-body { display:flex; flex-direction:column; align-items:center; gap:2rpx; padding:4rpx 12rpx 5rpx; border-radius:15rpx 19rpx 14rpx 18rpx; background:transparent; transition:background $p2-dur-fast $p2-ease; }
+// 图标槽：**永远占着 44rpx 高**，即使该分类没有图标（云端新加的分类、映射表命中不了的名字）。
 // ⚠️ 空容器不等于零高度 —— 这一格必须显式给高度，否则有图/无图两项的文字会错开一整个图标高。
-// 尺寸与菜谱列表页的分类栏同构（那里 44rpx；本页字号体系小一档，故取 40rpx）。
-.category-icon-slot { position:relative; display:flex; align-items:center; justify-content:center; height:40rpx; }
-.category-icon { width:40rpx; height:40rpx; display:block; transition:opacity $p2-dur-fast $p2-ease; }
+// 44rpx 与菜谱列表页的分类栏、菜谱详情编辑态的 .picker-field-art 同档。
+.category-icon-slot { position:relative; display:flex; align-items:center; justify-content:center; height:44rpx; }
+.category-icon { width:44rpx; height:44rpx; display:block; transition:opacity $p2-dur-fast $p2-ease; }
 // 选中时静态图让位给动图（只在「该分类确实配了动图」时才让位，条件写在模板里）
 .category-icon.is-dim { opacity:0; }
-// 动图层：绝对定位压在静态图上，50% + 负半个边长（20rpx）居中；图标恒为 40rpx 方块。
+// 动图层：绝对定位压在静态图上，50% + 负半个边长（22rpx）居中；图标恒为 44rpx 方块。
 // 用入场动画而非 opacity 过渡 —— 这一层是选中时才新挂载的，没有"过渡的起点"可插值。
 // ⚠️ 不写 fill-mode（默认 none）：`forwards` / `both` 会锁死终态，压掉全局 button:active 的缩放。
-.category-icon-moving { position:absolute; left:50%; top:50%; margin:-20rpx 0 0 -20rpx; animation:icon-swap-in $p2-dur-fast $p2-ease; }
+.category-icon-moving { position:absolute; left:50%; top:50%; margin:-22rpx 0 0 -22rpx; animation:icon-swap-in $p2-dur-fast $p2-ease; }
 @keyframes icon-swap-in { from { opacity:0; } to { opacity:1; } }
-.category-underline { position:absolute; bottom:3rpx; left:0; right:0; height:5rpx; background:$p2-leaf; border-radius:60% 40%; opacity:0; transform:scaleX(.4); transition:transform 180ms $p2-ease,opacity 180ms ease; }
+// 分类名：**没有自己的样式规则** —— 字号、颜色、行高全部从 .category 继承（与菜谱页同一写法）。
+// 模板里保留这个类名，只是为了把「图标槽 / 分类名」两块分开、将来要单独微调有个钩子。
+// 手绘标记线：与菜谱页同一组几何值（左右各内缩 10rpx，正好落在贴纸内沿）。
+.category-mark { position:absolute; left:10rpx; right:10rpx; bottom:3rpx; height:6rpx; border-radius:55% 45% 60% 40%; background:$p2-leaf; opacity:0; transform:rotate(-2deg) scaleX(.5); transition:opacity $p2-dur-fast $p2-ease,transform $p2-dur-settle $p2-ease; }
 .search-toggle { width:68rpx; height:62rpx; display:flex; justify-content:center; align-items:center; border-left:2rpx solid #e6dac5; &.active { background:$p2-paper-deep; border-radius:15rpx; } }
 .search-glass { width:24rpx; height:24rpx; border:3rpx solid $p2-ink-soft; border-radius:50%; position:relative; flex-shrink:0; &::after { content:''; position:absolute; width:10rpx; height:3rpx; background:$p2-ink-soft; right:-8rpx; bottom:-4rpx; transform:rotate(45deg); } }
 .search-box { display:flex; align-items:center; gap:20rpx; padding:0 22rpx; background:$p2-surface; border:2rpx solid #cdbba4; border-radius:18rpx; margin-bottom:15rpx; input { flex:1; min-width:0; height:74rpx; font-size:26rpx; } }
@@ -503,7 +552,13 @@ button { background:none; border-radius:0; margin:0; padding:0; line-height:inhe
 .basket-count { position:absolute; top:-4rpx; right:-3rpx; min-width:30rpx; line-height:30rpx; font-size:19rpx; text-align:center; padding:0 5rpx; border-radius:50%; background:$p2-coral; color:white; animation:count-pop 200ms $p2-ease; }
 .cart-title { display:block; font-size:25rpx; font-weight:600; }.cart-subtitle { display:block; font-size:18rpx; color:$p2-ink-soft; margin-top:6rpx; }
 .checkout-button { display:flex; align-items:center; justify-content:center; gap:6rpx; background:$p2-coral-soft; border:2rpx solid $p2-line; padding:18rpx 20rpx; height:76rpx; border-radius:17rpx 21rpx 16rpx 19rpx; font-size:27rpx; flex-shrink:0; }
-.mode-coffee { .dish-add:not(.added) { background:$p2-butter-soft; }.category-underline { background:$p2-butter; }.cart-bar.filled { background:#faf0d7; } }
+// 咖啡模式的强调色：不止标记线要跟着换成黄油色，**贴纸底也要一起换** ——
+// 贴纸与标记线是「同一个选中状态」的两个信号，一绿一黄并排会被读成配色错误。
+// 换过之后与模式滑块的 butter-soft、.dish-add、.cart-bar 同属一套咖啡语汇。
+// ⚠️ 这里原先还有两条**分类选中态**的覆盖（贴纸底 `$p2-butter-soft`、标记线 `$p2-butter`）——
+//    2026-09-23 咖啡模式撤掉分类栏后它们已无作用对象，一并删除，**别再加回来**：
+//    咖啡没有分类，哪来的选中态。
+.mode-coffee { .dish-add:not(.added) { background:$p2-butter-soft; }.cart-bar.filled { background:#faf0d7; } }
 .empty-list,.empty-cart { display:flex; flex-direction:column; align-items:center; gap:16rpx; text-align:center; color:$p2-ink-soft; font-size:25rpx; padding:40rpx 10rpx; image { width:150rpx; height:150rpx; } }
 .empty-title { font-family:$p2-font-hand, $p2-font-fallback; font-size:34rpx; color:$p2-ink; }
 .light-button { border:2rpx solid #b9c39f; border-radius:15rpx; padding:17rpx 25rpx; background:$p2-leaf-soft; margin-top:12rpx; }
@@ -562,7 +617,7 @@ button { background:none; border-radius:0; margin:0; padding:0; line-height:inhe
 @keyframes count-pop { from { transform:scale(.75); } to { transform:scale(1); } }
 @keyframes mask-in { from { opacity:0; } to { opacity:1; } }
 @keyframes sheet-in { from { transform:translateY(100%); } to { transform:translateY(0); } }
-@media (prefers-reduced-motion:reduce) { button,.mode-slider,.category-underline,.category-icon,.sheet,.sheet-mask { transition:none; }.menu-list,.basket-count,.category-icon-moving,.sheet,.sheet-mask,.feedback { animation:none; } }
+@media (prefers-reduced-motion:reduce) { button,.mode-slider,.category-mark,.category-body,.category-icon,.sheet,.sheet-mask { transition:none; }.menu-list,.basket-count,.category-icon-moving,.sheet,.sheet-mask,.feedback { animation:none; } }
 // 窄屏（≤360px）再收一档。
 // ⚠️ 这里覆盖的值必须**跟着上面的基准值一起改**：基准从 244/36 收到 200/32 之后，
 //    原来那组 220/34 就比基准还大了 —— 窄屏会比大屏更宽松，正好反了。

@@ -1,0 +1,72 @@
+import { ref, watch } from 'vue'
+
+/**
+ * 「静态图案 → 选中时切成动图」的状态机 —— **唯一的一份实现**
+ *
+ * 页面只交代**「哪一格算被选中」**（传一个 `isActive` 判定），剩下三件事全在这里：
+ *
+ *   ① **不预热**：动图层只在某一格被选中时才挂载 —— 动图体积大（52~178KB）且在云存储上，
+ *      而用户可能一个分类都不点；
+ *   ② **静态图一直露着，直到动图的 `load` 到达才让位** —— 于是动图加载失败（403 / 断网）
+ *      最坏也只是维持静态图，**不会出现「选中反而变成空白格」**；
+ *   ③ 选中项一变就清空标记 —— 动图层是 `v-if` 挂卸的，标记若留着，重新选中那一格时
+ *      静态图会在动图还没画出来之前就先被压掉（闪一下空白）。
+ *
+ * 【为什么必须抽成一份】这套状态机原先在**菜谱列表页分类栏、点单页分类栏、
+ * 菜谱编辑页的分类抽屉**里各写了一遍。它与辣度档位（utils/spicy.js）、
+ * 分类图标（utils/category-art.js）是同一个教训：**跨页面共用的行为只允许有一份实现** ——
+ * 三份拷贝改一处漏两处，页面不会报任何错，只是行为悄悄不一致。
+ *
+ * ⚠️ 代价（已知并接受）：**首次**点选某一格时，动效要等它下载完（约 200~600ms）才出现，
+ *    这期间显示静态图。换来的是首访不必下载全部动图（六个分类合计 773KB —— 那是 2026-09-22
+ *    之前「进页面就把所有动图挂上预热」的老做法，已删，别再改回去）。
+ * ⚠️ 之所以能做到「切换看不见」，前提是 **GIF 首帧与静态图逐像素对齐**
+ *    （素材的尺度规则见 `.workbuddy/memory/STYLE-RULES.md`）——
+ *    **对齐规则不是可有可无的形式要求，这里就是它的回报。**
+ *
+ * 用法（三个调用方各一行）：
+ *   · 菜谱列表页  `isActive: c => activeCategory.value === c.id`、`resetOn: activeCategory`
+ *   · 点单页      `isActive: c => categories[mode.value] === c.id`、`resetOn: () => categories[mode.value]`
+ *   · 编辑页抽屉  `isActive: it => selection.value.includes(it.id)`、`resetOn: selection`、
+ *                另加 `activeKey: 'imageActive'`（那边的静态字段叫 `image`，动图字段随它命名）
+ *
+ * @param {object} options
+ * @param {(item: object) => boolean} options.isActive
+ *        某一项当前是否被选中。**单选、多选、带 mode 维度的选中态全部收敛在这一个回调里**，
+ *        组合式函数内部不认识这些差异 —— 所以它不去猜、也不自己维护选中态。
+ * @param {object} [options.resetOn=null]
+ *        选中项本身（ref 或 getter），一变就清空加载标记（见上面 ③）。
+ *        单选是一格值、多选是一个数组、点单页还叠了 mode 维度，形态不一 → 由调用方给，
+ *        不给就退化成「不清空」。
+ * @param {string} [options.activeKey='iconActive']
+ *        动图地址在选项对象上的字段名。默认与两页分类栏一致（`icon` / `iconActive`）。
+ * @param {string} [options.tag='art-swap']
+ *        失败日志的前缀，便于定位是哪一页在报。
+ * @returns {{ canSwap: (item) => boolean, isStaticDimmed: (item) => boolean, markLoaded: (id) => void, markFailed: (id) => void }}
+ */
+export function useArtSwap({ isActive, resetOn = null, activeKey = 'iconActive', tag = 'art-swap' }) {
+  /** 动图**已就绪**的 id 集合（只表示"这一格的动图已画出来"，不代表它被选中） */
+  const loaded = ref({})
+  /**
+   * 动图层该不该挂载：既要配了动图、又要正被选中。
+   *
+   * **动图层的挂载与静态图的让位必须用同一个判断**（模板里 `v-if="canSwap(x)"`、
+   * `:class="{'is-dim': isStaticDimmed(x)}"` 都从它派生）—— 各写一半的话，
+   * 「选中却没动图可切」那一格就会被压成空白。
+   */
+  const canSwap = (item) => Boolean(item && item[activeKey] && isActive(item))
+  /**
+   * 静态图该不该让位：**必须等动图真的画出来**（见文件头 ②）。
+   *
+   * ⚠️ 名字里带 `Static` 不是啰嗦：引导页另有一个**同名不同义**的 `isDimmed(值, 目标值)`
+   *    （用于把未选中的性别/身份选项置灰）。两者作用域互不干扰，但一个词两种含义本身就是
+   *    读代码时的陷阱 —— 这里用 `isStaticDimmed` 明确「被压暗的是**静态那一层**」。
+   */
+  const isStaticDimmed = (item) => canSwap(item) && Boolean(loaded.value[item.id])
+  const markLoaded = (id) => { loaded.value = { ...loaded.value, [id]: true } }
+  /** 动图加载失败：**什么都不做**，静态图继续露着（见文件头 ②）；留条日志便于排查 */
+  const markFailed = (id) => { console.warn(`[${tag}] 分类动图加载失败，保持静态图`, id) }
+  // ③：选中项一变就清空标记。依赖写成 getter 由调用方给 —— 见 resetOn 的说明。
+  if (resetOn) watch(resetOn, () => { loaded.value = {} })
+  return { canSwap, isStaticDimmed, markLoaded, markFailed }
+}
